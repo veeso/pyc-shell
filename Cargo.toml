@@ -1,0 +1,15 @@
+[package]
+name = "pyc"
+version = "0.1.0"
+authors = ["ChristianVisintin <christian.visintin1997@gmail.com>"]
+edition = "2018"
+license = "GPL-3.0"
+description = "Pyc is a simple CLI application, which allows you to perform shell commands in russian cyrillic, through command and output transliteration."
+homepage = "https://github.com/ChristianVisintin/Pyc"
+repository = "https://github.com/ChristianVisintin/Pyc"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+yaml-rust = "0.4.3"
+getopts = "0.2.21"
