@@ -1,0 +1,15 @@
+language: rust
+sudo: required
+dist: trusty
+cache: cargo
+rust:
+  - stable
+  - beta
+  - nightly
+matrix:
+  allow_failures:
+    - rust: nightly
+script:
+- cargo clean
+- cargo build --verbose --all
+- cargo test --verbose -- --nocapture

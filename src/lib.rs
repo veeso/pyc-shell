@@ -19,8 +19,5 @@
 *
 */
 
-//TODO: shell format function
-
-fn main() {
-    println!("Hello, world!");
-}
+pub mod shellenv;
+pub mod translator;

@@ -1,6 +1,6 @@
 # Pyc
 
-[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0) [![Stars](https://img.shields.io/github/stars/ChristianVisintin/Pyc.svg)](https://github.com/ChristianVisintin/Pyc) [![Issues](https://img.shields.io/github/issues/ChristianVisintin/Pyc.svg)](https://github.com/ChristianVisintin/Pyc/issues) [![Crates.io](https://img.shields.io/badge/crates.io-v1.0.0-orange.svg)](https://crates.io/crates/pyc)
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0) [![Stars](https://img.shields.io/github/stars/ChristianVisintin/Pyc.svg)](https://github.com/ChristianVisintin/Pyc) [![Issues](https://img.shields.io/github/issues/ChristianVisintin/Pyc.svg)](https://github.com/ChristianVisintin/Pyc/issues) [![Crates.io](https://img.shields.io/badge/crates.io-v0.1.0-orange.svg)](https://crates.io/crates/pyc) [![Build](https://api.travis-ci.org/ChristianVisintin/Pyc.svg?branch=master)](https://travis-ci.org/ChristianVisintin/Pyc)
 
 ~ Shell По-Русски ~  
 Developed by Christian Visintin  
@@ -29,7 +29,7 @@ Well, basically I started studying russian and to become practical with the cyri
 
 ## Features
 
-- Transliteration of every word according to russian [GOST 7.79-2000](https://en.wikipedia.org/wiki/GOST_7.79-2000)
+- Transliteration of every word according to russian [GOST 7.79-2000](https://en.wikipedia.org/wiki/GOST_7.79-2000) with some differences (TODO: see here)
 - Conversion of both Input and outputs.
 - Escaping for latin strings.
 - Oneshot and interactive modes

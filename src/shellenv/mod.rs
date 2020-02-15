@@ -18,9 +18,3 @@
 *   along with Pyc.  If not, see <http://www.gnu.org/licenses/>.
 *
 */
-
-//TODO: shell format function
-
-fn main() {
-    println!("Hello, world!");
-}
