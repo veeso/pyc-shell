@@ -23,18 +23,53 @@
 *
 */
 
+use std::fmt;
+
+#[derive(Copy, Clone, PartialEq, fmt::Debug)]
+pub enum ParserError {
+  MissingToken,
+}
+
 struct ParserStates {
-  escape_block: bool,
-  backslash: bool,
-  in_expression: bool,
+  escape_block: bool, //Check if we're inside an escaped block (hey, keep out for expressions though)
+  backslash: bool,    //Check if backslash is active
+  in_expression: bool, //Check is we're inside an expression
+  skip_counter: usize, //The amount of cycles to skip
+  previous_state: Option<Box<ParserStates>>, //Reference to previous state
 }
 
 impl ParserStates {
-  fn new() -> ParserStates {
+  fn new(previous_state: Option<ParserStates>) -> ParserStates {
     ParserStates {
-      escape_block: false, //Check if we're inside an escaped block (hey, keep out for expressions though)
-      backslash: false,    //Check if backslash is active
-      in_expression: false, //Check is we're inside an expression
+      escape_block: false,
+      backslash: false,
+      in_expression: false,
+      skip_counter: 0,
+      previous_state: match previous_state {
+        None => None,
+        Some(prev_state) => Some(Box::new(prev_state)),
+      },
+    }
+  }
+
+  fn clone(strref: &ParserStates) -> ParserStates {
+    ParserStates {
+      escape_block: strref.escape_block,
+      backslash: strref.backslash,
+      in_expression: strref.in_expression,
+      skip_counter: strref.skip_counter,
+      previous_state: match &strref.previous_state {
+        //Recursive clone
+        None => None,
+        Some(state_box) => Some(Box::new(ParserStates::clone(state_box.as_ref()))),
+      },
+    }
+  }
+
+  fn restore_previous_state(&mut self) -> ParserStates {
+    match &self.previous_state {
+      None => panic!("ParserState has no previous state"),
+      Some(prev_state) => ParserStates::clone(prev_state.as_ref()),
     }
   }
 }
@@ -44,21 +79,33 @@ impl ParserStates {
 /// Converts a string which contains russian cyrillic characters into a latin string.
 /// Characters between '"' (quotes) are escaped, expressions inside escaped blocks are translitarated anyway
 /// Transliteration according to GOST 7.79-2000
-pub fn russian_to_latin(input: String) -> String {
+pub fn russian_to_latin(input: String) -> Result<String, ParserError> {
   let mut output = String::new();
   //Iterate over string
-  let mut states: ParserStates = ParserStates::new();
+  let mut states: ParserStates = ParserStates::new(None);
   for (i, c) in input.chars().enumerate() {
+    if states.skip_counter > 0 {
+      //Skip cycles
+      states.skip_counter -= 1; //Decrement skip counter
+      continue;
+    }
     //If character is '(' an expression block starts (if backlsash is disabled)
     if c == '(' && !states.backslash {
       states.in_expression = true;
       states.escape_block = false; //Set escape to false
+                                   //Create new state
+      states = ParserStates::new(Some(states));
       output.push(c);
       continue;
     }
     //If character is ')' an expression ends (if backslash is disabled)
     if c == ')' && !states.backslash {
       states.in_expression = false;
+      //Restore previous state
+      states = match states.previous_state {
+        Some(mut state) => state.restore_previous_state(),
+        None => return Err(ParserError::MissingToken),
+      };
       output.push(c);
       continue;
     }
@@ -219,7 +266,7 @@ pub fn russian_to_latin(input: String) -> String {
       }
     });
   }
-  output
+  Ok(output)
 }
 
 /// ### latin_to_russian
@@ -244,17 +291,17 @@ mod tests {
     //Simple commands
     //ls -l
     let input: String = String::from("лс -л");
-    let output = russian_to_latin(input.clone());
+    let output = russian_to_latin(input.clone()).unwrap();
     println!("\"{}\" => \"{}\"", input, output);
     assert_eq!(output, "ls -l");
     //Echo hello
     let input: String = String::from("екхо хелло");
-    let output = russian_to_latin(input.clone());
+    let output = russian_to_latin(input.clone()).unwrap();
     println!("\"{}\" => \"{}\"", input, output);
     assert_eq!(output, "echo hello");
     //K vs C
     let input: String = String::from("ифконфиг етх0 аддресс 192.168.1.30 нетмаскъ 255.255.255.0"); //Use твёрдый знак to force k in netmask
-    let output = russian_to_latin(input.clone());
+    let output = russian_to_latin(input.clone()).unwrap();
     println!("\"{}\" => \"{}\"", input, output);
     assert_eq!(
       output,
