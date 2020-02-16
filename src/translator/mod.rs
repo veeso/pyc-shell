@@ -91,10 +91,16 @@ pub fn russian_to_latin(input: String) -> Result<String, ParserError> {
     }
     //If character is '(' an expression block starts (if backlsash is disabled)
     if c == '(' && !states.backslash {
-      states.in_expression = true;
-      states.escape_block = false; //Set escape to false
-                                   //Create new state
+      //If previous character is ₽, then change it into $
+      if output.chars().last().unwrap() == '₽' {
+        output.pop();
+        output.push('$');
+      }
+      //Set escape to false
+      states.escape_block = false;
+      //Create new state
       states = ParserStates::new(Some(states));
+      states.in_expression = true;
       output.push(c);
       continue;
     }
@@ -103,7 +109,7 @@ pub fn russian_to_latin(input: String) -> Result<String, ParserError> {
       states.in_expression = false;
       //Restore previous state
       states = match states.previous_state {
-        Some(mut state) => state.restore_previous_state(),
+        Some(_) => states.restore_previous_state(),
         None => return Err(ParserError::MissingToken),
       };
       output.push(c);
@@ -112,6 +118,7 @@ pub fn russian_to_latin(input: String) -> Result<String, ParserError> {
     //Check if escape (and previous character is not backslash or we're inside an expression)
     if c == '"' && (!states.backslash || states.in_expression) {
       states.escape_block = !states.escape_block;
+      output.push(c);
       continue;
     }
     //If backslash, enable backslash and push character
@@ -134,14 +141,43 @@ pub fn russian_to_latin(input: String) -> Result<String, ParserError> {
       'а' => "a",
       'Б' => "B",
       'б' => "b",
-      'В' => "V",
-      'в' => "v",
+      'В' => {
+        //If following character is 'ь', then is always W
+        match input.chars().nth(i + 1) {
+          Some(ch) => {
+            match ch {
+              'ь' | 'Ь' => {
+                states.skip_counter += 1; //Skip character
+                "W"
+              }
+              _ => "V",
+            }
+          }
+          None => "V",
+        }
+      }
+      'в' =>
+      //If following character is 'ь', then is always W
+      {
+        match input.chars().nth(i + 1) {
+          Some(ch) => {
+            match ch {
+              'ь' | 'Ь' => {
+                states.skip_counter += 1; //Skip character
+                "w"
+              }
+              _ => "v",
+            }
+          }
+          None => "v",
+        }
+      }
       'Г' => "G",
       'г' => "g",
       'Д' => "D",
       'д' => "d",
-      'Е' => "E",
-      'е' => "e",
+      'Е' => "YE",
+      'е' => "ye",
       'Э' => "E",
       'э' => "e",
       'Ё' => "YO",
@@ -155,22 +191,42 @@ pub fn russian_to_latin(input: String) -> Result<String, ParserError> {
       'Й' => "J",
       'й' => "j",
       'К' => {
-        //K is very complex, sometimes it is C and sometimes is K
+        //K is very complex, sometimes it is C, sometimes is K or even Q or X
         //If following letter is in (E, I, Y), then is K
+        //If following character is 'Ъ', then is always K
+        //If following character is 'ь', then is always C
+        //If following character is 'y', then is always Q
+        //If follwing character is 'с', then is always X
         match input.chars().nth(i + 1) {
           Some(ch) => {
             //Check following character
             match ch {
-              'Е' | 'Э' | 'И' | 'Й' | 'Ы' | 'Ъ' => "K",
+              'Е' | 'Э' | 'И' | 'Й' | 'Ы' | 'е' | 'э' | 'и' | 'й' | 'ы' => "K",
               ' ' => {
                 //Check previous character
                 match input.chars().nth(i - 1) {
                   Some(ch) => match ch {
-                    'К' | 'А' | 'И' | 'О' | 'У' => "K",
+                    'К' | 'А' | 'И' | 'О' | 'к' | 'а' | 'и' | 'о' => "K",
                     _ => "c",
                   },
                   None => "K",
                 }
+              }
+              'У' | 'у' => {
+                states.skip_counter += 1;
+                "Q"
+              }
+              'с' | 'С' => {
+                states.skip_counter += 1;
+                "X"
+              }
+              'ъ' | 'Ъ' => {
+                states.skip_counter += 1; //Skip next character
+                "K"
+              }
+              'ь' | 'Ь' => {
+                states.skip_counter += 1; //Skip character
+                "C"
               }
               _ => "C",
             }
@@ -179,7 +235,7 @@ pub fn russian_to_latin(input: String) -> Result<String, ParserError> {
             //Check previous character
             match input.chars().nth(i - 1) {
               Some(ch) => match ch {
-                'К' | 'А' | 'И' | 'О' | 'У' => "K",
+                'К' | 'А' | 'И' | 'О' | 'У' | 'к' | 'а' | 'и' | 'о' | 'у' => "K",
                 _ => "C",
               },
               None => "K",
@@ -194,16 +250,32 @@ pub fn russian_to_latin(input: String) -> Result<String, ParserError> {
           Some(ch) => {
             //Check following character
             match ch {
-              'е' | 'э' | 'и' | 'й' | 'ы' | 'ъ' => "k",
+              'Е' | 'Э' | 'И' | 'Й' | 'Ы' | 'е' | 'э' | 'и' | 'й' | 'ы' => "k",
               ' ' => {
                 //Check previous character
                 match input.chars().nth(i - 1) {
                   Some(ch) => match ch {
-                    'к' | 'а' | 'и' | 'о' | 'у' => "k",
+                    'К' | 'А' | 'И' | 'О' | 'к' | 'а' | 'и' | 'о' => "k",
                     _ => "c",
                   },
                   None => "k",
                 }
+              }
+              'У' | 'у' => {
+                states.skip_counter += 1;
+                "q"
+              }
+              'с' | 'С' => {
+                states.skip_counter += 1;
+                "x"
+              }
+              'ъ' | 'Ъ' => {
+                states.skip_counter += 1; //Skip next character
+                "k"
+              }
+              'ь' | 'Ь' => {
+                states.skip_counter += 1; //Skip character
+                "c"
               }
               _ => "c",
             }
@@ -212,7 +284,7 @@ pub fn russian_to_latin(input: String) -> Result<String, ParserError> {
             //Check previous character
             match input.chars().nth(i - 1) {
               Some(ch) => match ch {
-                'к' | 'а' | 'и' | 'о' | 'у' => "k",
+                'К' | 'А' | 'И' | 'О' | 'У' | 'к' | 'а' | 'и' | 'о' | 'у' => "k",
                 _ => "c",
               },
               None => "k",
@@ -247,9 +319,9 @@ pub fn russian_to_latin(input: String) -> Result<String, ParserError> {
       'Ш' => "SH",
       'ш' => "sh",
       'Щ' => "SHH",
-      'щ' => "SHH",
-      'Ъ' => "",
-      'ъ' => "",
+      'щ' => "shh",
+      'Ъ' => "'",
+      'ъ' => "'",
       'Ы' => "Y",
       'ы' => "y",
       'Ь' => "`",
@@ -295,17 +367,41 @@ mod tests {
     println!("\"{}\" => \"{}\"", input, output);
     assert_eq!(output, "ls -l");
     //Echo hello
-    let input: String = String::from("екхо хелло");
+    let input: String = String::from("экхо хэлло");
     let output = russian_to_latin(input.clone()).unwrap();
     println!("\"{}\" => \"{}\"", input, output);
     assert_eq!(output, "echo hello");
     //K vs C
-    let input: String = String::from("ифконфиг етх0 аддресс 192.168.1.30 нетмаскъ 255.255.255.0"); //Use твёрдый знак to force k in netmask
+    let input: String = String::from("ифконфиг этх0 аддрэсс 192.168.1.30 нэтмаскъ 255.255.255.0"); //Use твёрдый знак to force k in netmask
     let output = russian_to_latin(input.clone()).unwrap();
     println!("\"{}\" => \"{}\"", input, output);
     assert_eq!(
       output,
       "ifconfig eth0 address 192.168.1.30 netmask 255.255.255.0"
     );
+    let input: String = String::from("кат РЭАДМЭ.мд");
+    let output = russian_to_latin(input.clone()).unwrap();
+    println!("\"{}\" => \"{}\"", input, output);
+    assert_eq!(output, "cat README.md");
+    //Test all letters (Lowercase)
+    let input: String = String::from("абкьдэфгхижйкълмнопкурстуввьксызшщёюяч");
+    let output = russian_to_latin(input.clone()).unwrap();
+    println!("\"{}\" => \"{}\"", input, output);
+    assert_eq!(output, "abcdefghijjklmnopqrstuvwxyzshshhyoyuyach");
+    //Test all letters (Uppercase)
+    let input: String = String::from("АБКЬДЭФГХИЖЙКЪЛМНОПКУРСТУВВЬКСЫЗШЩЁЮЯЧ");
+    let output = russian_to_latin(input.clone()).unwrap();
+    println!("\"{}\" => \"{}\"", input, output);
+    assert_eq!(output, "ABCDEFGHIJJKLMNOPQRSTUVWXYZSHSHHYOYUYACH");
+    //Try escapes
+    let input: String = String::from("кат \"Привет.ткст\"");
+    let output = russian_to_latin(input.clone()).unwrap();
+    println!("\"{}\" => \"{}\"", input, output);
+    assert_eq!(output, "cat \"Привет.ткст\"");
+    //Escapes with expressions
+    let input: String = String::from("экхо \"хостнамэ: ₽(хостнамэ)\""); //Stuff inside quotes, won't be translated, but content inside expression () will
+    let output = russian_to_latin(input.clone()).unwrap();
+    println!("\"{}\" => \"{}\"", input, output);
+    assert_eq!(output, "echo \"хостнамэ: $(hostname)\"");
   }
 }
