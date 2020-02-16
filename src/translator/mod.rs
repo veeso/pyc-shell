@@ -346,8 +346,185 @@ pub fn russian_to_latin(input: String) -> Result<String, ParserError> {
 /// Converts a string which contains latin characters into a russian cyrillic string.
 /// Characters between quotes are escapes
 pub fn latin_to_russian(input: String) -> String {
-  let mut output = String::from(input);
-  //TODO: implement
+  let mut output: String = String::new();
+  let mut skip_cycles: usize = 0;
+  for (i, c) in input.chars().enumerate() {
+    if skip_cycles > 0 {
+      skip_cycles -= 1;
+      continue;
+    }
+    let unchanged_str: String;
+    output.push_str(match c {
+      'A' => "А",
+      'a' => "а",
+      'B' => "Б",
+      'b' => "б",
+      'C' => match input.chars().nth(i + 1) {
+        Some(ch) => match ch {
+          'h' | 'H' => "Ч",
+          _ => "К",
+        },
+        None => "К",
+      },
+      'c' => match input.chars().nth(i + 1) {
+        Some(ch) => match ch {
+          'h' | 'H' => "ч",
+          _ => "к",
+        },
+        None => "к",
+      },
+      'D' => "Д",
+      'd' => "д",
+      'E' => "Э",
+      'e' => "э",
+      'F' => "Ф",
+      'f' => "ф",
+      'G' => match input.chars().nth(i + 1) {
+        Some(ch) => match ch {
+          'y' | 'Y' | 'e' | 'E' | 'i' | 'I' => "ДЖ",
+          _ => "Г",
+        },
+        None => "Г",
+      },
+      'g' => match input.chars().nth(i + 1) {
+        Some(ch) => match ch {
+          'y' | 'Y' | 'e' | 'E' | 'i' | 'I' => "дж",
+          _ => "г",
+        },
+        None => "г",
+      },
+      'H' => "Х",
+      'h' => "х",
+      'I' => match input.chars().nth(i + 1) {
+        Some(ch) => match ch {
+          'u' | 'U' => {
+            skip_cycles += 1;
+            "Ю"
+          }
+          'a' | 'A' => {
+            skip_cycles += 1;
+            "Я"
+          }
+          'o' | 'O' => {
+            skip_cycles += 1;
+            "Ё"
+          }
+          _ => "И",
+        },
+        None => "И",
+      },
+      'i' => match input.chars().nth(i + 1) {
+        Some(ch) => match ch {
+          'u' | 'U' => {
+            skip_cycles += 1;
+            "ю"
+          }
+          'a' | 'A' => {
+            skip_cycles += 1;
+            "я"
+          }
+          'o' | 'O' => {
+            skip_cycles += 1;
+            "ё"
+          }
+          _ => "и",
+        },
+        None => "и",
+      },
+      'J' => "Ж",
+      'j' => "ж",
+      'K' => "К",
+      'k' => "к",
+      'L' => "Л",
+      'l' => "л",
+      'M' => "М",
+      'm' => "м",
+      'N' => "Н",
+      'n' => "н",
+      'O' => "О",
+      'o' => "о",
+      'P' => "П",
+      'p' => "п",
+      'Q' => "КЫ",
+      'q' => "кы",
+      'R' => "Р",
+      'r' => "р",
+      'S' => match input.chars().nth(i + 1) {
+        Some(ch) => match ch {
+          'h' | 'H' => {
+            skip_cycles += 1;
+            "Ш"
+          }
+          _ => "С",
+        },
+        None => "С",
+      },
+      's' => match input.chars().nth(i + 1) {
+        Some(ch) => match ch {
+          'h' | 'H' => {
+            skip_cycles += 1;
+            "ш"
+          }
+          _ => "с",
+        },
+        None => "с",
+      },
+      'T' => match input.chars().nth(i + 1) {
+        Some(ch) => match ch {
+          's' | 'S' => {
+            skip_cycles += 1;
+            "Ц"
+          }
+          _ => "Т",
+        },
+        None => "Т",
+      },
+      't' => match input.chars().nth(i + 1) {
+        Some(ch) => match ch {
+          's' | 'T' => {
+            skip_cycles += 1;
+            "ц"
+          }
+          _ => "т",
+        },
+        None => "т",
+      },
+      'U' => "У",
+      'u' => "у",
+      'V' => "В",
+      'v' => "в",
+      'W' => "У",
+      'w' => "у",
+      'X' => "КС",
+      'x' => "кс",
+      'Y' => match input.chars().nth(i + 1) {
+        Some(ch) => match ch {
+          'e' | 'E' => {
+            skip_cycles += 1;
+            "Е"
+          }
+          _ => "Ы",
+        },
+        None => "Ы",
+      },
+      'y' => match input.chars().nth(i + 1) {
+        Some(ch) => match ch {
+          'e' | 'E' => {
+            skip_cycles += 1;
+            "е"
+          }
+          _ => "ы",
+        },
+        None => "ы",
+      },
+      'Z' => "З",
+      'z' => "з",
+      _ => {
+        unchanged_str = c.to_string();
+        unchanged_str.as_str()
+      }
+    });
+  }
   output
 }
 
@@ -403,5 +580,68 @@ mod tests {
     let output = russian_to_latin(input.clone()).unwrap();
     println!("\"{}\" => \"{}\"", input, output);
     assert_eq!(output, "echo \"хостнамэ: $(hostname)\"");
+    let input: String = String::from("экхо \"Намэ: ₽(экхо \\\"кристиан\\\")\""); //Double escape block
+    let output = russian_to_latin(input.clone()).unwrap();
+    println!("\"{}\" => \"{}\"", input, output);
+    assert_eq!(output, "echo \"Намэ: $(echo \\\"кристиан\\\")\"");
+  }
+
+  #[test]
+  fn test_latin_to_russian() {
+    //Test all
+    let input: String = String::from("a b c d e f g h i j k l m n o p q r s t u v w x y z");
+    let output = latin_to_russian(input.clone());
+    println!("\"{}\" => \"{}\"", input, output);
+    assert_eq!(
+      output,
+      "а б к д э ф г х и ж к л м н о п кы р с т у в у кс ы з"
+    );
+    let input: String = String::from("A B C D E F G H I J K L M N O P Q R S T U V W X Y Z");
+    let output = latin_to_russian(input.clone());
+    println!("\"{}\" => \"{}\"", input, output);
+    assert_eq!(
+      output,
+      "А Б К Д Э Ф Г Х И Ж К Л М Н О П КЫ Р С Т У В У КС Ы З"
+    );
+    //Test particular case (sh)
+    let input: String = String::from("Shell");
+    let output = latin_to_russian(input.clone());
+    println!("\"{}\" => \"{}\"", input, output);
+    assert_eq!(output, "Шэлл");
+    //Test particular case (jo)
+    let input: String = String::from("Option");
+    let output = latin_to_russian(input.clone());
+    println!("\"{}\" => \"{}\"", input, output);
+    assert_eq!(output, "Оптён");
+    //Test particular case (ts)
+    let input: String = String::from("tsunami");
+    let output = latin_to_russian(input.clone());
+    println!("\"{}\" => \"{}\"", input, output);
+    assert_eq!(output, "цунами");
+    //Test particular case (g)
+    let input: String = String::from("gin and games");
+    let output = latin_to_russian(input.clone());
+    println!("\"{}\" => \"{}\"", input, output);
+    assert_eq!(output, "джин анд гамэс");
+    //Test particular case (iu)
+    let input: String = String::from("iuta");
+    let output = latin_to_russian(input.clone());
+    println!("\"{}\" => \"{}\"", input, output);
+    assert_eq!(output, "юта");
+    //Test particular case (ye)
+    let input: String = String::from("yellow");
+    let output = latin_to_russian(input.clone());
+    println!("\"{}\" => \"{}\"", input, output);
+    assert_eq!(output, "еллоу");
+    //Test particular case (giu) + (ia)
+    let input: String = String::from("giulia");
+    let output = latin_to_russian(input.clone());
+    println!("\"{}\" => \"{}\"", input, output);
+    assert_eq!(output, "джюля");
+    //Test some words
+    let input: String = String::from("Usage: cat [OPTION]... [FILE]...");
+    let output = latin_to_russian(input.clone());
+    println!("\"{}\" => \"{}\"", input, output);
+    assert_eq!(output, "Усаджэ: кат [ОПТЁН]... [ФИЛЭ]...");
   }
 }
