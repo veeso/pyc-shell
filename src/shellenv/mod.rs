@@ -323,22 +323,18 @@ mod tests {
     #[test]
     fn test_kill() {
         let argv: Vec<String> = vec![
-            String::from("read"),
-            String::from("-n"),
-            String::from("8"),
-            String::from("-p"),
-            String::from("\">> \""),
+            String::from("yes")
         ];
         let mut process: ShellProcess = match ShellProcess::exec(argv) {
             Ok(p) => p,
-            Err(error) => panic!("Could not start process 'read': {}", error),
+            Err(error) => panic!("Could not start process 'yes': {}", error),
         };
         //Check if running and waiting
         assert!(process.is_running());
-        println!("read process started");
+        println!("yes process started");
         //Kill process
         if let Err(err) = process.kill() {
-            panic!("Could not kill 'read' process: {:?}", err);
+            panic!("Could not kill 'yes' process: {:?}", err);
         }
         assert!(!process.is_running());
         //Exit code should be 9
