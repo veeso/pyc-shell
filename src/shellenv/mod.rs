@@ -234,6 +234,9 @@ mod tests {
             match process.read() {
                 Ok((stdout, _)) => match stdout {
                     Some(output) => {
+                        if output.len() == 0 {
+                            continue;
+                        }
                         println!("Echo Output: '{}'", output);
                         assert_eq!(output, String::from("foo bar\n"));
                     }
