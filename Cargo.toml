@@ -15,3 +15,6 @@ yaml-rust = "0.4.3"
 getopts = "0.2.21"
 subprocess = "0.2.4"
 nix = "0.17.0"
+
+[dev-dependencies]
+tempfile = "3"

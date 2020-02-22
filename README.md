@@ -44,6 +44,20 @@ TODO
 
 ## Configuration
 
+Pyc supports a user configuration which adds some features and customization.
+The configuration must be stored at ```$HOME/.config/pyc/pyc.yml```. A default configuration is located in the repository at ```/pyc.yml```.
+
+Let's see how the configuration is written
+
+```yaml
+аляс:
+  - чд: "cd"
+  - пвд: "pwd"
+  - уич: "which"
+```
+
+- аляс (or alias): list of alias. When the first word of a command is one of the configured alias, it is automatically replaced with the associated latin expression.
+
 ## Documentation
 
 ### Cyrillic to latin

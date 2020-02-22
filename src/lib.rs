@@ -19,5 +19,6 @@
 *
 */
 
+pub mod config;
 pub mod shellenv;
 pub mod translator;
