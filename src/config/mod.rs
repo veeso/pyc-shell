@@ -46,6 +46,23 @@ pub struct ConfigError {
     pub message: String,
 }
 
+impl fmt::Display for ConfigErrorCode {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let code_str: &str = match self {
+            ConfigErrorCode::NoSuchFileOrDirectory => "NoSuchFileOrDirectory",
+            ConfigErrorCode::CouldNotReadFile => "CouldNotReadFile",
+            ConfigErrorCode::YamlSyntaxError => "YamlSyntaxError"
+        };
+        write!(f, "{}", code_str)
+    }
+}
+
+impl fmt::Display for ConfigError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{} ({})", self.message, self.code)
+    }
+}
+
 impl Config {
     /// ### parse_config
     ///
