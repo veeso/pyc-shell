@@ -13,6 +13,7 @@ Current version: 0.1.0 (??/??/2020)
     - [The reasons](#the-reasons)
   - [Features](#features)
   - [Usage](#usage)
+  - [Configuration](#configuration)
   - [Documentation](#documentation)
     - [Cyrillic to latin](#cyrillic-to-latin)
   - [Contributions](#contributions)
@@ -35,11 +36,13 @@ Well, basically I started studying russian and to become practical with the cyri
 - Conversion of both Input and outputs.
 - Escaping for latin strings.
 - Oneshot and interactive modes
-- Customizations for interactive mode
+- Customizations for interactive mode and aliases
 
 ## Usage
 
 TODO
+
+## Configuration
 
 ## Documentation
 
