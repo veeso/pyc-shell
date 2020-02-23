@@ -15,6 +15,9 @@ yaml-rust = "0.4.3"
 getopts = "0.2.21"
 subprocess = "0.2.4"
 nix = "0.17.0"
+dirs = "2.0.2"
+termion = "1.5.5"
+signal-hook = "0.1.13"
 
 [dev-dependencies]
 tempfile = "3"
