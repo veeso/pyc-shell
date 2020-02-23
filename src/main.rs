@@ -129,7 +129,7 @@ fn process_command(
     };
     //Create input stream
     let mut stdin = async_stdin().bytes();
-    let mut input: String = String::new();
+    let mut input_bytes: Vec<u8> = Vec::new();
     let running = Arc::new(Mutex::new(true));
     let (sig_tx, sig_rx) = mpsc::channel::<nix::sys::signal::Signal>();
     let sig_running = Arc::clone(&running);
@@ -160,15 +160,18 @@ fn process_command(
     while process.is_running() {
         //Read user input
         if let Some(Ok(i)) = stdin.next() {
-            input.push(i as char);
+            input_bytes.push(i);
+            //TODO: rewrite stdin
         } else {
             //Buffer is empty, if len > 0, send input to program, otherwise there's no input
-            if input.len() > 0 {
+            if input_bytes.len() > 0 {
+                //Convert bytes to UTF-8 string
+                let input: String = String::from(std::str::from_utf8(input_bytes.as_slice()).unwrap());
                 if let Err(err) = process.write(input) {
                     eprintln!("{}", (translator.to_cyrillic)(err.to_string()));
                 }
                 //Reset input buffer
-                input = String::new();
+                input_bytes = Vec::new();
             }
         }
         //Read program stdout
