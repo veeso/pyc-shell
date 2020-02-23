@@ -397,14 +397,20 @@ fn latin_to_russian(input: String) -> String {
       'b' => "б",
       'C' => match input.chars().nth(i + 1) {
         Some(ch) => match ch {
-          'h' | 'H' => "Ч",
+          'h' | 'H' => {
+            skip_cycles += 1;
+            "Ч"
+          },
           _ => "К",
         },
         None => "К",
       },
       'c' => match input.chars().nth(i + 1) {
         Some(ch) => match ch {
-          'h' | 'H' => "ч",
+          'h' | 'H' => {
+            skip_cycles += 1;
+            "ч"
+          },
           _ => "к",
         },
         None => "к",
@@ -676,6 +682,15 @@ mod tests {
     let output = (translator.to_cyrillic)(input.clone());
     println!("\"{}\" => \"{}\"", input, output);
     assert_eq!(output, "джюля");
+    //Test case 'ch'
+    let input: String = String::from("channel");
+    let output = (translator.to_cyrillic)(input.clone());
+    println!("\"{}\" => \"{}\"", input, output);
+    assert_eq!(output, "чаннэл");
+    let input: String = String::from("CHANNEL");
+    let output = (translator.to_cyrillic)(input.clone());
+    println!("\"{}\" => \"{}\"", input, output);
+    assert_eq!(output, "ЧАННЭЛ");
     //Test some words
     let input: String = String::from("Usage: cat [OPTION]... [FILE]...");
     let output = (translator.to_cyrillic)(input.clone());
