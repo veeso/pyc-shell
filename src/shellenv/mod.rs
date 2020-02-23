@@ -31,8 +31,12 @@ use std::fmt;
 //I/O
 use std::io::{Read, Write};
 //UNIX stuff
+use nix::sys::select;
 use nix::sys::signal;
+use nix::sys::time::TimeVal;
+use nix::sys::time::TimeValLike;
 use nix::unistd::Pid;
+use std::os::unix::io::IntoRawFd;
 //Subprocess
 use subprocess::{ExitStatus, Popen, PopenConfig, Redirection};
 
@@ -109,11 +113,14 @@ impl ShellProcess {
         //NOTE: WHY Not communicate? Well, because the author of this crate,
         //arbitrary decided that it would have been a great idea closing
         //the stream after calling communicate, so you can't read/write twice or more times to the process
-        //match self.process.communicate(Some("")) {
-        //    Ok((stdout, stderr)) => Ok((stdout, stderr)),
-        //    Err(err) => Err(err),
-        //}
-        //TODO: fix blocking read
+        /*
+        match self.process.communicate(Some("")) {
+            Ok((stdout, stderr)) => Ok((stdout, stderr)),
+            Err(err) => Err(err),
+        }
+        */
+        /*
+        NOTE: deleted due to blocking pipe; use select instead
         let mut stdout: &std::fs::File = &self.process.stdout.as_ref().unwrap();
         let mut output_byte: [u8; 8192] = [0; 8192];
         if let Err(err) = stdout.read(&mut output_byte) {
@@ -126,6 +133,76 @@ impl ShellProcess {
         //Trim null terminators
         let output = String::from(raw_output.trim_matches(char::from(0)));
         Ok((Some(output), None))
+        */
+        //Check if file descriptors exist
+        let mut stdout: &std::fs::File = match &self.process.stdout.as_ref() {
+            Some(out) => out,
+            None => return Err(std::io::Error::from(std::io::ErrorKind::BrokenPipe)),
+        };
+        let mut stderr: &std::fs::File = match &self.process.stderr.as_ref() {
+            Some(err) => err,
+            None => return Err(std::io::Error::from(std::io::ErrorKind::BrokenPipe)),
+        };
+        //Copy file descriptors
+        let stdout_copy: std::fs::File = match stdout.try_clone() {
+            Ok(f) => f,
+            Err(err) => return Err(err),
+        };
+        let stderr_copy: std::fs::File = match stderr.try_clone() {
+            Ok(f) => f,
+            Err(err) => return Err(err),
+        };
+        //Prepare FD Set
+        let mut rd_fdset: select::FdSet = select::FdSet::new();
+        let stdout_fd = stdout_copy.into_raw_fd();
+        let stderr_fd = stderr_copy.into_raw_fd();
+        rd_fdset.insert(stdout_fd);
+        rd_fdset.insert(stderr_fd);
+        let mut timeout = TimeVal::milliseconds(10);
+        let select_result = select::select(None, &mut rd_fdset, None, None, &mut timeout);
+        //Select
+        let mut stdout_str: Option<String> = None;
+        let mut stderr_str: Option<String> = None;
+        match select_result {
+            Ok(fds) => match fds {
+                0 => return Ok((None, None)),
+                -1 => return Err(std::io::Error::from(std::io::ErrorKind::InvalidData)),
+                _ => {
+                    //Check if fd is set for stdout
+                    if rd_fdset.contains(stdout_fd) {
+                        //If stdout ISSET, read stdout
+                        let mut output_byte: [u8; 8192] = [0; 8192];
+                        if let Err(err) = stdout.read(&mut output_byte) {
+                            return Err(err);
+                        }
+                        let raw_output: String = match std::str::from_utf8(&output_byte) {
+                            Ok(s) => String::from(s),
+                            Err(_) => {
+                                return Err(std::io::Error::from(std::io::ErrorKind::InvalidData))
+                            }
+                        };
+                        stdout_str = Some(String::from(raw_output.trim_matches(char::from(0))));
+                    }
+                    //Check if fd is set for stderr
+                    if rd_fdset.contains(stderr_fd) {
+                        //If stdout ISSET, read stderr
+                        let mut output_byte: [u8; 8192] = [0; 8192];
+                        if let Err(err) = stderr.read(&mut output_byte) {
+                            return Err(err);
+                        }
+                        let raw_output: String = match std::str::from_utf8(&output_byte) {
+                            Ok(s) => String::from(s),
+                            Err(_) => {
+                                return Err(std::io::Error::from(std::io::ErrorKind::InvalidData))
+                            }
+                        };
+                        stderr_str = Some(String::from(raw_output.trim_matches(char::from(0))));
+                    }
+                }
+            },
+            Err(_) => return Err(std::io::Error::from(std::io::ErrorKind::InvalidData)),
+        }
+        Ok((stdout_str, stderr_str))
     }
 
     /// ### write

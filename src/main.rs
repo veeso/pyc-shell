@@ -26,6 +26,7 @@ const PYC_VERSION: &str = "0.1.0";
 const PYC_BUILD: &str = "??";
 
 //Crates
+extern crate ctrlc;
 extern crate dirs;
 extern crate getopts;
 extern crate nix;
@@ -34,11 +35,9 @@ extern crate termion;
 //External modules
 use dirs::home_dir;
 use getopts::Options;
-use signal_hook::{iterator::Signals, SIGINT};
 use std::env;
 use std::io::Read;
 use std::sync::{mpsc, Arc, Mutex};
-use std::thread;
 use std::thread::sleep;
 use std::time::Duration;
 use termion::{async_stdin, color, style};
@@ -65,16 +64,14 @@ fn str_to_language(lang: String) -> translator::Language {
     match lang.as_str() {
         "ru" | "рус" => translator::Language::Russian,
         _ => {
-            eprintln!("{}Укноун лангуаж: '{}'; Дэфаултинг то русский", color::Fg(color::Red), lang);
+            eprintln!(
+                "{}Укноун лангуаж: '{}'; Дэфаултинг то русский{}",
+                color::Fg(color::Red),
+                lang,
+                color::Fg(color::Reset)
+            );
             translator::Language::Russian
         }
-    }
-}
-
-fn int_to_signal(sig: i32) -> nix::sys::signal::Signal {
-    match sig {
-        SIGINT => nix::sys::signal::Signal::SIGINT,
-        _ => nix::sys::signal::Signal::SIGINT,
     }
 }
 
@@ -102,7 +99,12 @@ fn process_command(
     let expr: String = match (translator.to_latin)(expr) {
         Ok(s) => s,
         Err(err) => {
-            println!("{}Сынтакс эррор: {:?}", color::Fg(color::Red), err);
+            println!(
+                "{}Сынтакс эррор: {:?}{}",
+                color::Fg(color::Red),
+                err,
+                color::Fg(color::Reset)
+            );
             return 255;
         }
     };
@@ -116,45 +118,45 @@ fn process_command(
     let mut process = match shellenv::ShellProcess::exec(argv) {
         Ok(p) => p,
         Err(_) => {
-            println!("{}Укноун комманд '{}'", color::Fg(color::Red), command);
+            println!(
+                "{}Укноун комманд '{}'{}",
+                color::Fg(color::Red),
+                command,
+                color::Fg(color::Reset)
+            );
             return 255;
         }
     };
     //Create input stream
     let mut stdin = async_stdin().bytes();
     let mut input: String = String::new();
-    //Catch signals
-    let signals: Signals = match Signals::new(&[SIGINT]) {
-        Ok(s) => s,
-        Err(err) => {
-            eprintln!(
-                "{}оулд нот старт сигнал листенерс: {}",
-                color::Fg(color::Red),
-                (translator.to_cyrillic)(err.to_string())
-            );
-            return 255;
-        }
-    };
     let running = Arc::new(Mutex::new(true));
-    let (sig_tx, sig_rx) = mpsc::channel::<i32>();
+    let (sig_tx, sig_rx) = mpsc::channel::<nix::sys::signal::Signal>();
     let sig_running = Arc::clone(&running);
-    let sig_join_hnd = thread::spawn(move || {
+    //Start signal handler
+    if let Err(_) = ctrlc::set_handler(move || {
         let mut terminate: bool = false;
         while !terminate {
-            let current_state = sig_running.lock().unwrap();
-            if *current_state == false {
-                terminate = true;
-            }
-            for sig in signals.forever() {
-                if let Err(_) = sig_tx.send(sig) {
+            {
+                //Inside this block, otherwise does never go out of scope
+                let current_state = sig_running.lock().unwrap();
+                if *current_state == false {
                     terminate = true;
-                    break;
                 }
+            }
+            if let Err(_) = sig_tx.send(nix::sys::signal::Signal::SIGINT) {
+                break;
             }
             sleep(Duration::from_millis(50));
         }
-    });
-    //Loop until process has terminated
+    }) {
+        eprintln!(
+            "{}Коулд нот старт сигнал листенер{}",
+            color::Fg(color::Red),
+            color::Fg(color::Reset)
+        )
+    }
+    //@! Loop until process has terminated
     while process.is_running() {
         //Read user input
         if let Some(Ok(i)) = stdin.next() {
@@ -179,18 +181,19 @@ fn process_command(
             if err.is_some() {
                 //Convert err to cyrillic
                 let err: String = (translator.to_cyrillic)(err.unwrap());
-                eprint!("{}", (translator.to_cyrillic)(err.to_string()));
+                eprint!("{}{}{}", color::Fg(color::Red), (translator.to_cyrillic)(err.to_string()), color::Fg(color::Reset));
             }
         }
         //Fetch signals
         match sig_rx.try_recv() {
             Ok(sig) => {
                 //Send signals
-                if let Err(_) = process.raise(int_to_signal(sig)) {
+                if let Err(_) = process.raise(sig) {
                     eprintln!(
-                        "{}Коулд нот сенд сигнал {} то субпросес!",
+                        "{}Коулд нот сенд сигнал {} то субпросес!{}",
                         color::Fg(color::Red),
-                        sig
+                        sig,
+                        color::Fg(color::Reset)
                     );
                 }
             }
@@ -202,10 +205,7 @@ fn process_command(
     let mut sig_term = running.lock().unwrap();
     *sig_term = true;
     drop(sig_term); //Otherwise the other thread will never read the state
-    if let Err(err) = sig_join_hnd.join() {
-        eprintln!("{}чилд просес паникэд: {:?}", color::Fg(color::Red), err);
-    }
-    //Return exitcode
+                    //Return exitcode
     process.exit_status.unwrap_or(255)
 }
 
@@ -218,12 +218,7 @@ fn main() {
     let oneshot: bool;
     let language: translator::Language;
     let mut opts = Options::new();
-    opts.optopt(
-        "c",
-        "конфиг",
-        "Спесифы конфигуратён YAML филе",
-        "<конфиг>",
-    );
+    opts.optopt("c", "конфиг", "Спесифы конфигуратён YAML филе", "<конфиг>");
     opts.optopt("l", "ланг", "Спесифы сырилик лангуажэ", "<ru|рус>");
     opts.optflag("", "ссср", "");
     opts.optflag("v", "версён", "");
@@ -231,7 +226,12 @@ fn main() {
     let matches = match opts.parse(&args[1..]) {
         Ok(m) => m,
         Err(f) => {
-            println!("{}{}", color::Fg(color::Red), f.to_string());
+            println!(
+                "{}{}{}",
+                color::Fg(color::Red),
+                f.to_string(),
+                color::Fg(color::Reset)
+            );
             std::process::exit(255);
         }
     };
@@ -275,16 +275,18 @@ fn main() {
         Err(err) => match err.code {
             config::ConfigErrorCode::NoSuchFileOrDirectory => {
                 eprintln!(
-                    "{}Но суч филэ ор директоры {}; усинг дефаулт конфигуратион",
+                    "{}Но суч филэ ор директоры {}; усинг дефаулт конфигуратион{}",
                     color::Fg(color::Red),
-                    config_file
+                    config_file,
+                    color::Fg(color::Reset)
                 );
                 config::Config::default()
             }
             _ => panic!(
-                "{}Коулд нот парсэ YAML конфигуратион: {}",
+                "{}Коулд нот парсэ YAML конфигуратион: {}{}",
                 color::Fg(color::Red),
-                err
+                err,
+                color::Fg(color::Reset)
             ),
         },
     };

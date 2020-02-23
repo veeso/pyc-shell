@@ -17,7 +17,7 @@ subprocess = "0.2.4"
 nix = "0.17.0"
 dirs = "2.0.2"
 termion = "1.5.5"
-signal-hook = "0.1.13"
+ctrlc = "3.1.4"
 
 [dev-dependencies]
 tempfile = "3"
