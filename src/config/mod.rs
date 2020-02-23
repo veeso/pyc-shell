@@ -146,9 +146,9 @@ impl Config {
 
     /// ### get_alias
     ///
-    ///  Get alias from configuratio
-    pub fn get_alias(&self, alias: String) -> Option<String> {
-        match self.alias.get(&alias) {
+    ///  Get alias from configuration
+    pub fn get_alias(&self, alias: &String) -> Option<String> {
+        match self.alias.get(alias) {
             Some(cmd) => Some(cmd.clone()),
             None => None,
         }
@@ -186,7 +186,7 @@ mod tests {
     fn test_config_default() {
         let config: Config = Config::default();
         assert!(config
-            .get_alias(String::from("чд"))
+            .get_alias(&String::from("чд"))
             .is_none());
     }
 
@@ -200,19 +200,19 @@ mod tests {
             Ok(config) => {
                 //Verify alias parameters
                 assert_eq!(
-                    config.get_alias(String::from("чд")).unwrap(),
+                    config.get_alias(&String::from("чд")).unwrap(),
                     String::from("cd")
                 );
                 assert_eq!(
-                    config.get_alias(String::from("пвд")).unwrap(),
+                    config.get_alias(&String::from("пвд")).unwrap(),
                     String::from("pwd")
                 );
                 assert_eq!(
-                    config.get_alias(String::from("уич")).unwrap(),
+                    config.get_alias(&String::from("уич")).unwrap(),
                     String::from("which")
                 );
                 assert!(config
-                    .get_alias(String::from("thiskeydoesnotexist"))
+                    .get_alias(&String::from("thiskeydoesnotexist"))
                     .is_none());
             }
             Err(error) => panic!(
@@ -232,19 +232,19 @@ mod tests {
             Ok(config) => {
                 //Verify alias parameters
                 assert_eq!(
-                    config.get_alias(String::from("чд")).unwrap(),
+                    config.get_alias(&String::from("чд")).unwrap(),
                     String::from("cd")
                 );
                 assert_eq!(
-                    config.get_alias(String::from("пвд")).unwrap(),
+                    config.get_alias(&String::from("пвд")).unwrap(),
                     String::from("pwd")
                 );
                 assert_eq!(
-                    config.get_alias(String::from("уич")).unwrap(),
+                    config.get_alias(&String::from("уич")).unwrap(),
                     String::from("which")
                 );
                 assert!(config
-                    .get_alias(String::from("thiskeydoesnotexist"))
+                    .get_alias(&String::from("thiskeydoesnotexist"))
                     .is_none());
             }
             Err(error) => panic!(
@@ -263,7 +263,7 @@ mod tests {
         match Config::parse_config(config_file_path) {
             Ok(config) => {
                 //Verify alias parameters
-                assert!(config.get_alias(String::from("чд")).is_none());
+                assert!(config.get_alias(&String::from("чд")).is_none());
             }
             Err(error) => panic!(
                 "Parse_config should have returned OK, but returned {} ({:?})",
