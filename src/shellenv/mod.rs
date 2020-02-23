@@ -26,6 +26,8 @@
 extern crate nix;
 extern crate subprocess;
 
+//Fmt
+use std::fmt;
 //I/O
 use std::io::{Read, Write};
 //UNIX stuff
@@ -34,6 +36,9 @@ use nix::unistd::Pid;
 //Subprocess
 use subprocess::{ExitStatus, Popen, PopenConfig, PopenError, Redirection};
 
+
+/// ### ShellProcess
+/// 
 /// ShellProcess represents a shell process execution instance
 /// it contains the command and the arguments passed at start and the process pipe
 
@@ -44,14 +49,31 @@ pub struct ShellProcess {
     process: Popen,
 }
 
+#[derive(Copy, Clone, PartialEq, fmt::Debug)]
+pub enum ProcessError {
+    NoArgs,
+    CouldNotStartProcess
+}
+
+impl fmt::Display for ProcessError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let code_str: &str = match self {
+            ProcessError::NoArgs => "Process was not provided of enough process",
+            ProcessError::CouldNotStartProcess => "Could not start process"
+        };
+        write!(f, "{}", code_str)
+    }
+}
+
 impl ShellProcess {
+
+    /// ### exec
+    /// 
     /// Start a new process and returns a ShellProcess struct
     /// If process failed to start, returns a PopenError
-    pub fn exec(argv: Vec<String>) -> Result<ShellProcess, PopenError> {
+    pub fn exec(argv: Vec<String>) -> Result<ShellProcess, ProcessError> {
         if argv.len() == 0 {
-            return Err(PopenError::from(std::io::Error::from(
-                std::io::ErrorKind::InvalidInput,
-            )));
+            return Err(ProcessError::NoArgs)
         }
         let p = Popen::create(
             &argv,
@@ -65,7 +87,7 @@ impl ShellProcess {
         );
         let process: Popen = match p {
             Ok(p) => p,
-            Err(err) => return Err(err),
+            Err(_) => return Err(ProcessError::CouldNotStartProcess)
         };
         let command: String = String::from(&argv[0]);
         let mut args: Vec<String> = Vec::with_capacity(argv.len() - 1);
@@ -82,6 +104,8 @@ impl ShellProcess {
         })
     }
 
+    /// ### read
+    /// 
     /// Read process output
     pub fn read(&mut self) -> std::io::Result<(Option<String>, Option<String>)> {
         //NOTE: WHY Not communicate? Well, because the author of this crate,
@@ -105,6 +129,8 @@ impl ShellProcess {
         Ok((Some(output), None))
     }
 
+    /// ### write
+    /// 
     /// Write input string to stdin
     pub fn write(&mut self, input: String) -> std::io::Result<()> {
         if self.process.stdin.is_none() {
@@ -114,6 +140,8 @@ impl ShellProcess {
         stdin.write_all(input.as_bytes())
     }
 
+    /// ### is_running
+    /// 
     /// Returns whether the process is still running or not
     pub fn is_running(&mut self) -> bool {
         if self.exit_status.is_some() {
@@ -142,6 +170,8 @@ impl ShellProcess {
         }
     }
 
+    /// ### raise
+    /// 
     /// Send a signal to the running process
     pub fn raise(&mut self, signal: signal::Signal) -> Result<(), ()> {
         match self.process.pid() {
@@ -183,6 +213,8 @@ impl ShellProcess {
         }
     }
 
+    /// ### kill
+    /// 
     /// Kill using SIGKILL the sub process
     pub fn kill(&mut self) -> Result<(), ()> {
         match self.process.kill() {
