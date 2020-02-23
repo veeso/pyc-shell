@@ -53,7 +53,7 @@ mod translator;
 /// Print usage
 
 fn print_usage(program: &String, opts: Options) {
-    let brief = format!("Usage: {} [OPTIONS]... [COMMAND]...", program);
+    let brief = format!("Усаж: {} [ОПТИОНС]... [КОММАНД]...", program);
     print!("{}", opts.usage(&brief));
 }
 
@@ -65,7 +65,7 @@ fn str_to_language(lang: String) -> translator::Language {
     match lang.as_str() {
         "ru" | "рус" => translator::Language::Russian,
         _ => {
-            eprintln!("{}Unknown language: '{}'; Defaulting to russian", color::Fg(color::Red), lang);
+            eprintln!("{}Укноун лангуаж: '{}'; Дэфаултинг то русский", color::Fg(color::Red), lang);
             translator::Language::Russian
         }
     }
@@ -102,7 +102,7 @@ fn process_command(
     let expr: String = match (translator.to_latin)(expr) {
         Ok(s) => s,
         Err(err) => {
-            println!("{}Syntax error: {:?}", color::Fg(color::Red), err);
+            println!("{}Сынтакс эррор: {:?}", color::Fg(color::Red), err);
             return 255;
         }
     };
@@ -116,7 +116,7 @@ fn process_command(
     let mut process = match shellenv::ShellProcess::exec(argv) {
         Ok(p) => p,
         Err(_) => {
-            println!("{}Unknown command '{}'", color::Fg(color::Red), command);
+            println!("{}Укноун комманд '{}'", color::Fg(color::Red), command);
             return 255;
         }
     };
@@ -128,9 +128,9 @@ fn process_command(
         Ok(s) => s,
         Err(err) => {
             eprintln!(
-                "{}Could not start signal listeners: {}",
+                "{}оулд нот старт сигнал листенерс: {}",
                 color::Fg(color::Red),
-                err
+                (translator.to_cyrillic)(err.to_string())
             );
             return 255;
         }
@@ -163,7 +163,7 @@ fn process_command(
             //Buffer is empty, if len > 0, send input to program, otherwise there's no input
             if input.len() > 0 {
                 if let Err(err) = process.write(input) {
-                    eprintln!("{}", err);
+                    eprintln!("{}", (translator.to_cyrillic)(err.to_string()));
                 }
                 //Reset input buffer
                 input = String::new();
@@ -179,7 +179,7 @@ fn process_command(
             if err.is_some() {
                 //Convert err to cyrillic
                 let err: String = (translator.to_cyrillic)(err.unwrap());
-                eprint!("{}", err);
+                eprint!("{}", (translator.to_cyrillic)(err.to_string()));
             }
         }
         //Fetch signals
@@ -188,7 +188,7 @@ fn process_command(
                 //Send signals
                 if let Err(_) = process.raise(int_to_signal(sig)) {
                     eprintln!(
-                        "{}Could not send signal {} to subprocess!",
+                        "{}Коулд нот сенд сигнал {} то субпросес!",
                         color::Fg(color::Red),
                         sig
                     );
@@ -203,7 +203,7 @@ fn process_command(
     *sig_term = true;
     drop(sig_term); //Otherwise the other thread will never read the state
     if let Err(err) = sig_join_hnd.join() {
-        eprintln!("{}Child process panicked: {:?}", color::Fg(color::Red), err);
+        eprintln!("{}чилд просес паникэд: {:?}", color::Fg(color::Red), err);
     }
     //Return exitcode
     process.exit_status.unwrap_or(255)
@@ -220,21 +220,24 @@ fn main() {
     let mut opts = Options::new();
     opts.optopt(
         "c",
-        "config",
-        "Specify the configuration YAML file",
-        "<config_yaml>",
+        "конфиг",
+        "Спесифы конфигуратён YAML филе",
+        "<конфиг>",
     );
-    opts.optopt("l", "lang", "Specify the cyrillic language", "<ru|рус>");
+    opts.optopt("l", "ланг", "Спесифы сырилик лангуажэ", "<ru|рус>");
     opts.optflag("", "ссср", "");
-    opts.optflag("v", "version", "");
-    opts.optflag("h", "help", "print this help menu");
+    opts.optflag("v", "версён", "");
+    opts.optflag("h", "хелп", "принт хелп меню");
     let matches = match opts.parse(&args[1..]) {
         Ok(m) => m,
-        Err(f) => panic!(f.to_string()),
+        Err(f) => {
+            println!("{}{}", color::Fg(color::Red), f.to_string());
+            std::process::exit(255);
+        }
     };
     if matches.opt_present("h") {
         print_usage(&program, opts);
-        return;
+        std::process::exit(255);
     }
     if matches.opt_present("v") {
         eprintln!(
@@ -244,7 +247,7 @@ fn main() {
             PYC_BUILD,
             style::Reset
         );
-        return;
+        std::process::exit(255);
     }
     //Set translator language
     language = match matches.opt_str("l") {
@@ -272,14 +275,14 @@ fn main() {
         Err(err) => match err.code {
             config::ConfigErrorCode::NoSuchFileOrDirectory => {
                 eprintln!(
-                    "{}No such file or directory {}; using default configuration",
+                    "{}Но суч филэ ор директоры {}; усинг дефаулт конфигуратион",
                     color::Fg(color::Red),
                     config_file
                 );
                 config::Config::default()
             }
             _ => panic!(
-                "{}Could not parse YAML configuration: {}",
+                "{}Коулд нот парсэ YAML конфигуратион: {}",
                 color::Fg(color::Red),
                 err
             ),
