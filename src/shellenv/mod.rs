@@ -113,6 +113,7 @@ impl ShellProcess {
         //    Ok((stdout, stderr)) => Ok((stdout, stderr)),
         //    Err(err) => Err(err),
         //}
+        //TODO: fix blocking read
         let mut stdout: &std::fs::File = &self.process.stdout.as_ref().unwrap();
         let mut output_byte: [u8; 8192] = [0; 8192];
         if let Err(err) = stdout.read(&mut output_byte) {
@@ -246,7 +247,7 @@ impl ShellProcess {
 mod tests {
 
     use super::*;
-    use std::time::{Duration, Instant};
+    use std::time::Instant;
 
     #[test]
     fn test_subprocess_output_only() {

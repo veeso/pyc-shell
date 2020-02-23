@@ -272,6 +272,42 @@ mod tests {
         };
     }
 
+    #[test]
+    fn test_bad_syntax() {
+        let config_file: tempfile::NamedTempFile = write_config_bad_syntax();
+        let config_file_path: String = String::from(config_file.path().to_str().unwrap());
+        println!("Generated config file: {}", config_file_path);
+        if let Err(err) = Config::parse_config(config_file_path) {
+            match err.code {
+                ConfigErrorCode::YamlSyntaxError => println!("Okay, YamlSynaxError has been returned"),
+                _ => panic!("Expected YamlSynaxError, got {}", err.code)
+            }
+        } else {
+            panic!("parse_config of bad syntax returned OK");
+        }
+    }
+
+    #[test]
+    fn test_no_file() {
+        if let Err(err) = Config::parse_config(String::from("config.does.not.exist.yml")) {
+            match err.code {
+                ConfigErrorCode::NoSuchFileOrDirectory => println!("Okay, nosuchfileordirectory is correct!"),
+                _ => panic!("Expected NoSuchFileOrDirectory, but returned {}", err.code)
+            }
+        } else {
+            panic!("parse_config of not existing file returned OK");
+        }
+    }
+
+    #[test]
+    fn test_error_display() {
+        println!("{};{};{}", ConfigErrorCode::CouldNotReadFile, ConfigErrorCode::NoSuchFileOrDirectory, ConfigErrorCode::YamlSyntaxError);
+        println!("{}", ConfigError {
+            code: ConfigErrorCode::NoSuchFileOrDirectory,
+            message: String::from("No such file or directory ~/.config/pyc/pyc.yml")
+        });
+    }
+
     /// ### write_config_file
     /// Write configuration file to a temporary directory and return the file path
     fn write_config_file_ru() -> tempfile::NamedTempFile {
@@ -304,6 +340,15 @@ mod tests {
         // Write
         let mut tmpfile: tempfile::NamedTempFile = tempfile::NamedTempFile::new().unwrap();
         write!(tmpfile, "foobar: 5\n").unwrap();
+        tmpfile
+    }
+
+    /// ### write_config_file
+    /// Write configuration file to a temporary directory and return the file path
+    fn write_config_bad_syntax() -> tempfile::NamedTempFile {
+        // Write
+        let mut tmpfile: tempfile::NamedTempFile = tempfile::NamedTempFile::new().unwrap();
+        write!(tmpfile, "foobar: 5:\n").unwrap();
         tmpfile
     }
 }
