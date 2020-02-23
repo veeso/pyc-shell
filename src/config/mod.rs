@@ -64,6 +64,17 @@ impl fmt::Display for ConfigError {
 }
 
 impl Config {
+
+    /// ### default
+    /// 
+    /// Instantiates a default configuration struct
+    pub fn default() -> Config {
+        let alias_config: HashMap<String, String> = HashMap::new();
+        Config {
+            alias: alias_config
+        }
+    }
+
     /// ### parse_config
     ///
     /// `parse_config` parse a YAML configuration file and return a Config struct
@@ -170,6 +181,14 @@ impl Config {
 mod tests {
     use super::*;
     use std::io::Write;
+
+    #[test]
+    fn test_config_default() {
+        let config: Config = Config::default();
+        assert!(config
+            .get_alias(String::from("чд"))
+            .is_none());
+    }
 
     #[test]
     fn test_config_ru_alias() {
