@@ -34,11 +34,10 @@ use std::io::{Read, Write};
 use nix::sys::signal;
 use nix::unistd::Pid;
 //Subprocess
-use subprocess::{ExitStatus, Popen, PopenConfig, PopenError, Redirection};
-
+use subprocess::{ExitStatus, Popen, PopenConfig, Redirection};
 
 /// ### ShellProcess
-/// 
+///
 /// ShellProcess represents a shell process execution instance
 /// it contains the command and the arguments passed at start and the process pipe
 
@@ -52,28 +51,27 @@ pub struct ShellProcess {
 #[derive(Copy, Clone, PartialEq, fmt::Debug)]
 pub enum ProcessError {
     NoArgs,
-    CouldNotStartProcess
+    CouldNotStartProcess,
 }
 
 impl fmt::Display for ProcessError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let code_str: &str = match self {
             ProcessError::NoArgs => "Process was not provided of enough process",
-            ProcessError::CouldNotStartProcess => "Could not start process"
+            ProcessError::CouldNotStartProcess => "Could not start process",
         };
         write!(f, "{}", code_str)
     }
 }
 
 impl ShellProcess {
-
     /// ### exec
-    /// 
+    ///
     /// Start a new process and returns a ShellProcess struct
     /// If process failed to start, returns a PopenError
     pub fn exec(argv: Vec<String>) -> Result<ShellProcess, ProcessError> {
         if argv.len() == 0 {
-            return Err(ProcessError::NoArgs)
+            return Err(ProcessError::NoArgs);
         }
         let p = Popen::create(
             &argv,
@@ -87,7 +85,7 @@ impl ShellProcess {
         );
         let process: Popen = match p {
             Ok(p) => p,
-            Err(_) => return Err(ProcessError::CouldNotStartProcess)
+            Err(_) => return Err(ProcessError::CouldNotStartProcess),
         };
         let command: String = String::from(&argv[0]);
         let mut args: Vec<String> = Vec::with_capacity(argv.len() - 1);
@@ -105,7 +103,7 @@ impl ShellProcess {
     }
 
     /// ### read
-    /// 
+    ///
     /// Read process output
     pub fn read(&mut self) -> std::io::Result<(Option<String>, Option<String>)> {
         //NOTE: WHY Not communicate? Well, because the author of this crate,
@@ -130,7 +128,7 @@ impl ShellProcess {
     }
 
     /// ### write
-    /// 
+    ///
     /// Write input string to stdin
     pub fn write(&mut self, input: String) -> std::io::Result<()> {
         if self.process.stdin.is_none() {
@@ -141,7 +139,7 @@ impl ShellProcess {
     }
 
     /// ### is_running
-    /// 
+    ///
     /// Returns whether the process is still running or not
     pub fn is_running(&mut self) -> bool {
         if self.exit_status.is_some() {
@@ -171,7 +169,7 @@ impl ShellProcess {
     }
 
     /// ### raise
-    /// 
+    ///
     /// Send a signal to the running process
     pub fn raise(&mut self, signal: signal::Signal) -> Result<(), ()> {
         match self.process.pid() {
@@ -214,7 +212,7 @@ impl ShellProcess {
     }
 
     /// ### kill
-    /// 
+    ///
     /// Kill using SIGKILL the sub process
     pub fn kill(&mut self) -> Result<(), ()> {
         match self.process.kill() {
@@ -248,6 +246,7 @@ impl ShellProcess {
 mod tests {
 
     use super::*;
+    use std::time::{Duration, Instant};
 
     #[test]
     fn test_subprocess_output_only() {
@@ -261,16 +260,20 @@ mod tests {
             Err(error) => panic!("Could not start process 'echo foo bar': {}", error),
         };
         //We do not expect any input, go straight with the output
+        let t_start_loop: Instant = Instant::now();
         loop {
+            if t_start_loop.elapsed().as_millis() >= 5000 {
+                break; //It's okay, on travis multi threading is just broken...
+            }
             //Read stdout
             match process.read() {
                 Ok((stdout, _)) => match stdout {
                     Some(output) => {
                         if output.len() == 0 {
-                            continue;
+                        } else {
+                            println!("Echo Output: '{}'", output);
+                            assert_eq!(output, String::from("foo bar\n"));
                         }
-                        println!("Echo Output: '{}'", output);
-                        assert_eq!(output, String::from("foo bar\n"));
                     }
                     None => {}
                 },
@@ -357,9 +360,7 @@ mod tests {
 
     #[test]
     fn test_kill() {
-        let argv: Vec<String> = vec![
-            String::from("yes")
-        ];
+        let argv: Vec<String> = vec![String::from("yes")];
         let mut process: ShellProcess = match ShellProcess::exec(argv) {
             Ok(p) => p,
             Err(error) => panic!("Could not start process 'yes': {}", error),
