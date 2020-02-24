@@ -248,7 +248,7 @@ fn russian_to_latin(input: String) -> Result<String, ParserError> {
                   None => "K",
                 }
               }
-              'У' | 'у' => {
+              'Ю' | 'ю' => {
                 states.skip_counter += 1;
                 "Q"
               }
@@ -297,7 +297,7 @@ fn russian_to_latin(input: String) -> Result<String, ParserError> {
                   None => "k",
                 }
               }
-              'У' | 'у' => {
+              'Ю' | 'ю' => {
                 states.skip_counter += 1;
                 "q"
               }
@@ -487,8 +487,8 @@ fn latin_to_russian(input: String) -> String {
       'o' => "о",
       'P' => "П",
       'p' => "п",
-      'Q' => "КЫ",
-      'q' => "кы",
+      'Q' => "КЮ",
+      'q' => "кю",
       'R' => "Р",
       'r' => "р",
       'S' => match input.chars().nth(i + 1) {
@@ -604,12 +604,12 @@ mod tests {
     println!("\"{}\" => \"{}\"", input, output);
     assert_eq!(output, "cat README.md");
     //Test all letters (Lowercase)
-    let input: String = String::from("абкьдэфгхижйкълмнопкурстуввьксызшщёюяч");
+    let input: String = String::from("абкьдэфгхижйкълмнопкюрстуввьксызшщёюяч");
     let output = (translator.to_latin)(input.clone()).unwrap();
     println!("\"{}\" => \"{}\"", input, output);
     assert_eq!(output, "abcdefghijjklmnopqrstuvwxyzshshhyoyuyach");
     //Test all letters (Uppercase)
-    let input: String = String::from("АБКЬДЭФГХИЖЙКЪЛМНОПКУРСТУВВЬКСЫЗШЩЁЮЯЧ");
+    let input: String = String::from("АБКЬДЭФГХИЖЙКЪЛМНОПКЮРСТУВВЬКСЫЗШЩЁЮЯЧ");
     let output = (translator.to_latin)(input.clone()).unwrap();
     println!("\"{}\" => \"{}\"", input, output);
     assert_eq!(output, "ABCDEFGHIJJKLMNOPQRSTUVWXYZSHSHHYOYUYACH");
@@ -627,6 +627,15 @@ mod tests {
     let output = (translator.to_latin)(input.clone()).unwrap();
     println!("\"{}\" => \"{}\"", input, output);
     assert_eq!(output, "echo \"Намэ: $(echo \\\"кристиан\\\")\"");
+    //Special cases 'Q'
+    let input: String = String::from("москюуитто_пуб");
+    let output = (translator.to_latin)(input.clone()).unwrap();
+    println!("\"{}\" => \"{}\"", input, output);
+    assert_eq!(output, "mosquitto_pub");
+    let input: String = String::from("МОСКЮУИТТО_ПУБ");
+    let output = (translator.to_latin)(input.clone()).unwrap();
+    println!("\"{}\" => \"{}\"", input, output);
+    assert_eq!(output, "MOSQUITTO_PUB");
   }
 
   #[test]
@@ -638,14 +647,14 @@ mod tests {
     println!("\"{}\" => \"{}\"", input, output);
     assert_eq!(
       output,
-      "а б к д э ф г х и ж к л м н о п кы р с т у в у кс ы з"
+      "а б к д э ф г х и ж к л м н о п кю р с т у в у кс ы з"
     );
     let input: String = String::from("A B C D E F G H I J K L M N O P Q R S T U V W X Y Z");
     let output = (translator.to_cyrillic)(input.clone());
     println!("\"{}\" => \"{}\"", input, output);
     assert_eq!(
       output,
-      "А Б К Д Э Ф Г Х И Ж К Л М Н О П КЫ Р С Т У В У КС Ы З"
+      "А Б К Д Э Ф Г Х И Ж К Л М Н О П КЮ Р С Т У В У КС Ы З"
     );
     //Test particular case (sh)
     let input: String = String::from("Shell");

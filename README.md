@@ -16,6 +16,8 @@ Current version: 0.1.0 (??/??/2020)
   - [Configuration](#configuration)
   - [Documentation](#documentation)
     - [Cyrillic to latin](#cyrillic-to-latin)
+  - [Known issues](#known-issues)
+    - [Unicode Replacement character while typing (�)](#unicode-replacement-character-while-typing-%ef%bf%bd)
   - [Contributions](#contributions)
   - [Changelog](#changelog)
   - [License](#license)
@@ -85,7 +87,7 @@ The conversion from cyrillic to latin follows the [GOST 7.79-2000](https://en.wi
 | Н       | N     |                                                                                                                                                        |
 | О       | O     |                                                                                                                                                        |
 | П       | P     |                                                                                                                                                        |
-| Кь      | Q     |                                                                                                                                                        |
+| Кю      | Q     |                                                                                                                                                        |
 | Р       | R     |                                                                                                                                                        |
 | С       | S     |                                                                                                                                                        |
 | Т       | T     |                                                                                                                                                        |
@@ -101,6 +103,28 @@ The conversion from cyrillic to latin follows the [GOST 7.79-2000](https://en.wi
 | ₽       | $     |                                                                                                                                                        |
 | Ъ       | '     |                                                                                                                                                        |
 | Ь       | `     |                                                                                                                                                        |
+
+---
+
+## Known issues
+
+### Unicode Replacement character while typing (�)
+
+If you see this character ```�``` when you're typing cyrillic characters, these steps may fix the problem:
+
+Reconfigure locales:
+
+```sh
+sudo dpkg-reconfigure locales
+```
+
+Select all the locales you need from the list, but most important select **ru_RU.UTF-8**.
+
+Regenerate locales:
+
+```sh
+sudo locale-gen
+```
 
 ---
 
