@@ -158,7 +158,7 @@ impl ShellProcess {
         let stderr_fd = stderr_copy.into_raw_fd();
         rd_fdset.insert(stdout_fd);
         rd_fdset.insert(stderr_fd);
-        let mut timeout = TimeVal::milliseconds(10);
+        let mut timeout = TimeVal::milliseconds(50);
         let select_result = select::select(None, &mut rd_fdset, None, None, &mut timeout);
         //Select
         let mut stdout_str: Option<String> = None;
