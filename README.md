@@ -103,6 +103,7 @@ The conversion from cyrillic to latin follows the [GOST 7.79-2000](https://en.wi
 | ₽       | $     |                                                                                                                                                        |
 | Ъ       | '     |                                                                                                                                                        |
 | Ь       | `     |                                                                                                                                                        |
+| №       | #     |                                                                                                                                                        |
 
 ---
 

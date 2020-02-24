@@ -31,20 +31,20 @@ pub enum ParserError {
 }
 
 /// ### Language
-/// 
+///
 /// Cyrillic alphabet language
 #[derive(Copy, Clone, PartialEq, fmt::Debug)]
 pub enum Language {
-  Russian
+  Russian,
 }
 
 /// ### Translator
-/// 
+///
 /// Struct used to convert form cyrillic script to latin script and viceversa
 pub struct Translator {
   pub language: Language,
   pub to_latin: fn(input: String) -> Result<String, ParserError>,
-  pub to_cyrillic: fn(input: String) -> String
+  pub to_cyrillic: fn(input: String) -> String,
 }
 
 struct ParserStates {
@@ -56,9 +56,8 @@ struct ParserStates {
 }
 
 impl Translator {
-
   /// ### new
-  /// 
+  ///
   /// instantiates a new Translator with the provided language,
   /// associating the correct conversion functions
   pub fn new(language: Language) -> Translator {
@@ -66,8 +65,8 @@ impl Translator {
       Language::Russian => Translator {
         language: language,
         to_latin: russian_to_latin,
-        to_cyrillic: latin_to_russian
-      }
+        to_cyrillic: latin_to_russian,
+      },
     }
   }
 }
@@ -95,7 +94,7 @@ impl ParserStates {
       previous_state: match &strref.previous_state {
         //Recursive clone
         None => None,
-        Some(state_box) => Some(Box::new(ParserStates::clone(state_box.as_ref())))
+        Some(state_box) => Some(Box::new(ParserStates::clone(state_box.as_ref()))),
       },
     }
   }
@@ -240,12 +239,15 @@ fn russian_to_latin(input: String) -> Result<String, ParserError> {
               'Е' | 'Э' | 'И' | 'Й' | 'Ы' | 'е' | 'э' | 'и' | 'й' | 'ы' => "K",
               ' ' => {
                 //Check previous character
-                match input.chars().nth(i - 1) {
-                  Some(ch) => match ch {
-                    'К' | 'А' | 'И' | 'О' | 'к' | 'а' | 'и' | 'о' => "K",
-                    _ => "c",
+                match i {
+                  0 => "K",
+                  _ => match input.chars().nth(i - 1) {
+                    Some(ch) => match ch {
+                      'К' | 'А' | 'И' | 'О' | 'к' | 'а' | 'и' | 'о' => "K",
+                      _ => "c",
+                    },
+                    None => "K",
                   },
-                  None => "K",
                 }
               }
               'Ю' | 'ю' => {
@@ -269,12 +271,16 @@ fn russian_to_latin(input: String) -> Result<String, ParserError> {
           }
           None => {
             //Check previous character
-            match input.chars().nth(i - 1) {
-              Some(ch) => match ch {
-                'К' | 'А' | 'И' | 'О' | 'У' | 'к' | 'а' | 'и' | 'о' | 'у' => "K",
-                _ => "C",
+            match i {
+              0 => "K",
+              _ => match input.chars().nth(i - 1) {
+                //Check previous character
+                Some(ch) => match ch {
+                  'К' | 'А' | 'И' | 'О' | 'У' | 'к' | 'а' | 'и' | 'о' | 'у' => "K",
+                  _ => "C",
+                },
+                None => "K",
               },
-              None => "K",
             }
           }
         }
@@ -288,13 +294,16 @@ fn russian_to_latin(input: String) -> Result<String, ParserError> {
             match ch {
               'Е' | 'Э' | 'И' | 'Й' | 'Ы' | 'е' | 'э' | 'и' | 'й' | 'ы' => "k",
               ' ' => {
-                //Check previous character
-                match input.chars().nth(i - 1) {
-                  Some(ch) => match ch {
-                    'К' | 'А' | 'И' | 'О' | 'к' | 'а' | 'и' | 'о' => "k",
-                    _ => "c",
+                match i {
+                  0 => "k",
+                  _ => match input.chars().nth(i - 1) {
+                    //Check previous character
+                    Some(ch) => match ch {
+                      'К' | 'А' | 'И' | 'О' | 'к' | 'а' | 'и' | 'о' => "k",
+                      _ => "c",
+                    },
+                    None => "k",
                   },
-                  None => "k",
                 }
               }
               'Ю' | 'ю' => {
@@ -318,12 +327,15 @@ fn russian_to_latin(input: String) -> Result<String, ParserError> {
           }
           None => {
             //Check previous character
-            match input.chars().nth(i - 1) {
-              Some(ch) => match ch {
-                'К' | 'А' | 'И' | 'О' | 'У' | 'к' | 'а' | 'и' | 'о' | 'у' => "k",
-                _ => "c",
+            match i {
+              0 => "k",
+              _ => match input.chars().nth(i - 1) {
+                Some(ch) => match ch {
+                  'К' | 'А' | 'И' | 'О' | 'У' | 'к' | 'а' | 'и' | 'о' | 'у' => "k",
+                  _ => "c",
+                },
+                None => "k",
               },
-              None => "k",
             }
           }
         }
@@ -374,8 +386,9 @@ fn russian_to_latin(input: String) -> Result<String, ParserError> {
       }
     });
   }
-  if states.backslash || states.in_expression || states.previous_state.is_some() { //Check if expression has been completely closed
-    return Err(ParserError::MissingToken)
+  if states.backslash || states.in_expression || states.previous_state.is_some() {
+    //Check if expression has been completely closed
+    return Err(ParserError::MissingToken);
   }
   Ok(output)
 }
@@ -403,7 +416,7 @@ fn latin_to_russian(input: String) -> String {
           'h' | 'H' => {
             skip_cycles += 1;
             "Ч"
-          },
+          }
           _ => "К",
         },
         None => "К",
@@ -413,7 +426,7 @@ fn latin_to_russian(input: String) -> String {
           'h' | 'H' => {
             skip_cycles += 1;
             "ч"
-          },
+          }
           _ => "к",
         },
         None => "к",
@@ -675,6 +688,32 @@ mod tests {
     let output = (translator.to_latin)(input.clone()).unwrap();
     println!("\"{}\" => \"{}\"", input, output);
     assert_eq!(output, "OK OK");
+    //Special case: k as first character
+    let input: String = String::from("к о");
+    let output = (translator.to_latin)(input.clone()).unwrap();
+    println!("\"{}\" => \"{}\"", input, output);
+    assert_eq!(output, "k o");
+    let input: String = String::from("К О");
+    let output = (translator.to_latin)(input.clone()).unwrap();
+    println!("\"{}\" => \"{}\"", input, output);
+    assert_eq!(output, "K O");
+    //Special case: k as last character, but preceeded by 'к' | 'а' | 'и' | 'о'
+    let input: String = String::from("как бар");
+    let output = (translator.to_latin)(input.clone()).unwrap();
+    println!("\"{}\" => \"{}\"", input, output);
+    assert_eq!(output, "cak bar");
+    let input: String = String::from("КАК БАР");
+    let output = (translator.to_latin)(input.clone()).unwrap();
+    println!("\"{}\" => \"{}\"", input, output);
+    assert_eq!(output, "CAK BAR");
+    let input: String = String::from("как");
+    let output = (translator.to_latin)(input.clone()).unwrap();
+    println!("\"{}\" => \"{}\"", input, output);
+    assert_eq!(output, "cak");
+    let input: String = String::from("КАК");
+    let output = (translator.to_latin)(input.clone()).unwrap();
+    println!("\"{}\" => \"{}\"", input, output);
+    assert_eq!(output, "CAK");
     //Special case: k out of matches
     let input: String = String::from("кд");
     let output = (translator.to_latin)(input.clone()).unwrap();
@@ -689,6 +728,11 @@ mod tests {
     let output = (translator.to_latin)(input.clone()).unwrap();
     println!("\"{}\" => \"{}\"", input, output);
     assert_eq!(output, "'`'`");
+    //Number
+    let input: String = String::from("№");
+    let output = (translator.to_latin)(input.clone()).unwrap();
+    println!("\"{}\" => \"{}\"", input, output);
+    assert_eq!(output, "#");
   }
 
   #[test]
@@ -696,6 +740,12 @@ mod tests {
     let translator: Translator = Translator::new(Language::Russian);
     //Missing expression token
     let input: String = String::from("лс ₽(пвьд");
+    let res: Result<String, ParserError> = (translator.to_latin)(input.clone());
+    println!("Missing token result: {:?}", res);
+    assert!(res.is_err()); //it must be error
+    assert_eq!(res.err().unwrap(), ParserError::MissingToken); //Must be missing token
+    //Closed expression, but never started one
+    let input: String = String::from("лс пвьд)");
     let res: Result<String, ParserError> = (translator.to_latin)(input.clone());
     println!("Missing token result: {:?}", res);
     assert!(res.is_err()); //it must be error
