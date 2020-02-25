@@ -99,6 +99,7 @@ fn process_command(
     let expr: String = match (translator.to_latin)(expr) {
         Ok(s) => s,
         Err(err) => {
+            //TODO: rewrite command back to stdin and let user to complete / fix it (if possible)
             println!(
                 "{}Сынтакс эррор: {:?}{}",
                 color::Fg(color::Red),
@@ -161,7 +162,7 @@ fn process_command(
         //Read user input
         if let Some(Ok(i)) = stdin.next() {
             input_bytes.push(i);
-            //TODO: rewrite stdin
+            //TODO: pass characters at each input to stdin?
         } else {
             //Buffer is empty, if len > 0, send input to program, otherwise there's no input
             if input_bytes.len() > 0 {
@@ -174,6 +175,13 @@ fn process_command(
                 input_bytes = Vec::new();
             }
         }
+        /*
+        let mut input: String = String::new();
+        stdin.read_to_string(&mut input);
+        if input.len() > 0 {
+            println!("INPUT: {}", input);
+        }
+        */
         //Read program stdout
         if let Ok((out, err)) = process.read() {
             if out.is_some() {
