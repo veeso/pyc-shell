@@ -210,7 +210,7 @@ impl ShellProcess {
     /// Write input string to stdin
     pub fn write(&mut self, input: String) -> std::io::Result<()> {
         if self.process.stdin.is_none() {
-            panic!("Stdin is None");
+            return Err(std::io::Error::from(std::io::ErrorKind::BrokenPipe))
         }
         let mut stdin: &std::fs::File = &self.process.stdin.as_ref().unwrap();
         stdin.write_all(input.as_bytes())
@@ -226,6 +226,9 @@ impl ShellProcess {
         match self.process.poll() {
             None => true,
             Some(exit_status) => {
+                self.process.stderr = None;
+                self.process.stdin = None;
+                self.process.stdout = None;
                 match exit_status {
                     //This is fu***** ridicoulous
                     ExitStatus::Exited(rc) => {
@@ -324,7 +327,8 @@ impl ShellProcess {
 mod tests {
 
     use super::*;
-    use std::time::Instant;
+    use std::time::{Duration, Instant};
+    use std::thread::sleep;
 
     #[test]
     fn test_subprocess_output_only() {
@@ -453,5 +457,62 @@ mod tests {
         assert!(!process.is_running());
         //Exit code should be 9
         assert_eq!(process.exit_status.unwrap(), 9);
+    }
+
+    #[test]
+    fn test_process_no_argv() {
+        let argv: Vec<String> = vec![];
+        if let Err(err) = ShellProcess::exec(argv) {
+            assert_eq!(err, ProcessError::NoArgs);
+        } else {
+            panic!("Process without arguments should have returned NoArgs, but returned OK!");
+        }
+    }
+
+    #[test]
+    fn test_process_unknown_command() {
+        let argv: Vec<String> = vec![String::from("piroporopero")];
+        if let Err(err) = ShellProcess::exec(argv) {
+            assert_eq!(err, ProcessError::CouldNotStartProcess);
+        } else {
+            panic!("Process without arguments should have returned CouldNotStartProcess, but returned OK!");
+        }
+    }
+
+    #[test]
+    fn test_process_has_terminated_io() {
+        let argv: Vec<String> = vec![String::from("echo"), String::from("0")];
+        let mut process: ShellProcess = match ShellProcess::exec(argv) {
+            Ok(p) => p,
+            Err(error) => panic!("Could not start process 'echo foo bar': {}", error),
+        };
+        let t_start_loop: Instant = Instant::now();
+        loop {
+            if t_start_loop.elapsed().as_millis() >= 5000 {
+                panic!("Echo command timeout"); //It's okay, on travis multi threading is just broken...
+            }
+            if !process.is_running() {
+                println!("Okay, echo has terminated!");
+                break;
+            }
+        }
+        sleep(Duration::from_secs(1));
+        //Try to write to process
+        if let Err(err) = process.write(String::from("Foobar")) {
+            assert_eq!(err.kind(), std::io::ErrorKind::BrokenPipe); //Error must be broken pipe
+        } else {
+            panic!("Write to terminated process should have returned BrokenPipe, but returned Ok");
+        }
+        //Try to write from process
+        if let Err(err) = process.read() {
+            assert_eq!(err.kind(), std::io::ErrorKind::BrokenPipe); //Error must be broken pipe
+        } else {
+            panic!("Read from terminated process should have returned BrokenPipe, but returned Ok");
+        }
+    }
+
+    #[test]
+    fn test_display_error() {
+        println!("{}; {}", ProcessError::CouldNotStartProcess, ProcessError::NoArgs);
     }
 }
