@@ -81,7 +81,7 @@ fn str_to_language(lang: String) -> translator::Language {
 /// the command output is converted back to cyrillic
 
 fn process_command(
-    translator: &translator::Translator,
+    translator: &Box<dyn translator::Translator>,
     config: &config::Config,
     mut argv: Vec<String>,
 ) -> u8 {
@@ -96,7 +96,7 @@ fn process_command(
     };
     //Join tokens
     let expr: String = argv.join(" ");
-    let expr: String = match (translator.to_latin)(expr) {
+    let expr: String = match translator.to_latin(expr) {
         Ok(s) => s,
         Err(err) => {
             //TODO: rewrite command back to stdin and let user to complete / fix it (if possible)
@@ -169,7 +169,7 @@ fn process_command(
                 //Convert bytes to UTF-8 string
                 let input: String = String::from(std::str::from_utf8(input_bytes.as_slice()).unwrap());
                 if let Err(err) = process.write(input) {
-                    eprintln!("{}", (translator.to_cyrillic)(err.to_string()));
+                    eprintln!("{}", translator.to_cyrillic(err.to_string()));
                 }
                 //Reset input buffer
                 input_bytes = Vec::new();
@@ -186,13 +186,13 @@ fn process_command(
         if let Ok((out, err)) = process.read() {
             if out.is_some() {
                 //Convert out to cyrillic
-                let out: String = (translator.to_cyrillic)(out.unwrap());
+                let out: String = translator.to_cyrillic(out.unwrap());
                 print!("{}", out);
             }
             if err.is_some() {
                 //Convert err to cyrillic
-                let err: String = (translator.to_cyrillic)(err.unwrap());
-                eprint!("{}{}{}", color::Fg(color::Red), (translator.to_cyrillic)(err.to_string()), color::Fg(color::Reset));
+                let err: String = translator.to_cyrillic(err.unwrap());
+                eprint!("{}{}{}", color::Fg(color::Red), translator.to_cyrillic(err.to_string()), color::Fg(color::Reset));
             }
         }
         //Fetch signals
@@ -302,7 +302,7 @@ fn main() {
         },
     };
     //Set up translator
-    let translator = translator::Translator::new(language);
+    let translator: Box<dyn translator::Translator> = translator::new_translator(language);
     let mut rc: u8 = 0;
     if oneshot {
         rc = process_command(&translator, &config, argv);
