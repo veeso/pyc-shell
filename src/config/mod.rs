@@ -51,7 +51,7 @@ impl fmt::Display for ConfigErrorCode {
         let code_str: &str = match self {
             ConfigErrorCode::NoSuchFileOrDirectory => "NoSuchFileOrDirectory",
             ConfigErrorCode::CouldNotReadFile => "CouldNotReadFile",
-            ConfigErrorCode::YamlSyntaxError => "YamlSyntaxError"
+            ConfigErrorCode::YamlSyntaxError => "YamlSyntaxError",
         };
         write!(f, "{}", code_str)
     }
@@ -64,14 +64,13 @@ impl fmt::Display for ConfigError {
 }
 
 impl Config {
-
     /// ### default
-    /// 
+    ///
     /// Instantiates a default configuration struct
     pub fn default() -> Config {
         let alias_config: HashMap<String, String> = HashMap::new();
         Config {
-            alias: alias_config
+            alias: alias_config,
         }
     }
 
@@ -103,14 +102,13 @@ impl Config {
             },
         };
         //Parse YAML file
-        let yaml_docs: Vec<Yaml>;
-        match YamlLoader::load_from_str(config_str.as_str()) {
-            Ok(doc) => yaml_docs = doc,
+        let yaml_docs: Vec<Yaml> = match YamlLoader::load_from_str(config_str.as_str()) {
+            Ok(doc) => doc,
             Err(_) => {
                 return Err(ConfigError {
                     code: ConfigErrorCode::YamlSyntaxError,
                     message: String::from(["Could not parse file", config_file.as_str()].join(" ")),
-                })
+                });
             }
         };
         //Check there is at least one document
@@ -128,17 +126,15 @@ impl Config {
             //If alias doesn't exist, then use 'аляс'
             alias_config_yaml = &yaml_doc["аляс"];
         }
-        let alias_config: HashMap<String, String>;
-        //If 'аляс' doesn't exist, alias is empty
-        if alias_config_yaml.is_badvalue() {
-            alias_config = HashMap::new();
+        let alias_config: HashMap<String, String> = if alias_config_yaml.is_badvalue() {
+            HashMap::new()
         } else {
             //Otherwise parse alias object
-            alias_config = match Config::parse_alias(&alias_config_yaml) {
+            match Config::parse_alias(&alias_config_yaml) {
                 Ok(config) => config,
                 Err(err) => return Err(err),
-            };
-        }
+            }
+        };
         Ok(Config {
             alias: alias_config,
         })
@@ -185,9 +181,7 @@ mod tests {
     #[test]
     fn test_config_default() {
         let config: Config = Config::default();
-        assert!(config
-            .get_alias(&String::from("чд"))
-            .is_none());
+        assert!(config.get_alias(&String::from("чд")).is_none());
     }
 
     #[test]
@@ -279,8 +273,27 @@ mod tests {
         println!("Generated config file: {}", config_file_path);
         if let Err(err) = Config::parse_config(config_file_path) {
             match err.code {
-                ConfigErrorCode::YamlSyntaxError => println!("Okay, YamlSynaxError has been returned"),
-                _ => panic!("Expected YamlSynaxError, got {}", err.code)
+                ConfigErrorCode::YamlSyntaxError => {
+                    println!("Okay, YamlSynaxError has been returned")
+                }
+                _ => panic!("Expected YamlSynaxError, got {}", err.code),
+            }
+        } else {
+            panic!("parse_config of bad syntax returned OK");
+        }
+    }
+
+    #[test]
+    fn test_alias_not_array() {
+        let config_file: tempfile::NamedTempFile = write_config_alias_as_int();
+        let config_file_path: String = String::from(config_file.path().to_str().unwrap());
+        println!("Generated config file: {}", config_file_path);
+        if let Err(err) = Config::parse_config(config_file_path) {
+            match err.code {
+                ConfigErrorCode::YamlSyntaxError => {
+                    println!("Okay, YamlSynaxError has been returned")
+                }
+                _ => panic!("Expected YamlSynaxError, got {}", err.code),
             }
         } else {
             panic!("parse_config of bad syntax returned OK");
@@ -291,8 +304,10 @@ mod tests {
     fn test_no_file() {
         if let Err(err) = Config::parse_config(String::from("config.does.not.exist.yml")) {
             match err.code {
-                ConfigErrorCode::NoSuchFileOrDirectory => println!("Okay, nosuchfileordirectory is correct!"),
-                _ => panic!("Expected NoSuchFileOrDirectory, but returned {}", err.code)
+                ConfigErrorCode::NoSuchFileOrDirectory => {
+                    println!("Okay, nosuchfileordirectory is correct!")
+                }
+                _ => panic!("Expected NoSuchFileOrDirectory, but returned {}", err.code),
             }
         } else {
             panic!("parse_config of not existing file returned OK");
@@ -300,15 +315,52 @@ mod tests {
     }
 
     #[test]
-    fn test_error_display() {
-        println!("{};{};{}", ConfigErrorCode::CouldNotReadFile, ConfigErrorCode::NoSuchFileOrDirectory, ConfigErrorCode::YamlSyntaxError);
-        println!("{}", ConfigError {
-            code: ConfigErrorCode::NoSuchFileOrDirectory,
-            message: String::from("No such file or directory ~/.config/pyc/pyc.yml")
-        });
+    fn test_not_accessible() {
+        if let Err(err) = Config::parse_config(String::from("/dev/ttyS0")) {
+            match err.code {
+                ConfigErrorCode::CouldNotReadFile => println!("Okay, CouldNotReadFile is correct!"),
+                _ => panic!("Expected CouldNotReadFile, but returned {}", err.code),
+            }
+        } else {
+            panic!("parse_config of not not accessible file returned OK");
+        }
     }
 
-    /// ### write_config_file
+    #[test]
+    fn test_empty_yaml() {
+        let config_file: tempfile::NamedTempFile = write_config_empty();
+        let config_file_path: String = String::from(config_file.path().to_str().unwrap());
+        println!("Generated config file: {}", config_file_path);
+        if let Err(err) = Config::parse_config(config_file_path) {
+            match err.code {
+                ConfigErrorCode::YamlSyntaxError => {
+                    println!("Okay, YamlSynaxError has been returned")
+                }
+                _ => panic!("Expected YamlSynaxError, got {}", err.code),
+            }
+        } else {
+            panic!("parse_config of bad syntax returned OK");
+        }
+    }
+
+    #[test]
+    fn test_error_display() {
+        println!(
+            "{};{};{}",
+            ConfigErrorCode::CouldNotReadFile,
+            ConfigErrorCode::NoSuchFileOrDirectory,
+            ConfigErrorCode::YamlSyntaxError
+        );
+        println!(
+            "{}",
+            ConfigError {
+                code: ConfigErrorCode::NoSuchFileOrDirectory,
+                message: String::from("No such file or directory ~/.config/pyc/pyc.yml")
+            }
+        );
+    }
+
+    /// ### write_config_file_ru
     /// Write configuration file to a temporary directory and return the file path
     fn write_config_file_ru() -> tempfile::NamedTempFile {
         // Write
@@ -321,7 +373,7 @@ mod tests {
         tmpfile
     }
 
-    /// ### write_config_file
+    /// ### write_config_file_en
     /// Write configuration file to a temporary directory and return the file path
     fn write_config_file_en() -> tempfile::NamedTempFile {
         // Write
@@ -334,7 +386,7 @@ mod tests {
         tmpfile
     }
 
-    /// ### write_config_file
+    /// ### write_config_no_alias
     /// Write configuration file to a temporary directory and return the file path
     fn write_config_no_alias() -> tempfile::NamedTempFile {
         // Write
@@ -343,12 +395,30 @@ mod tests {
         tmpfile
     }
 
-    /// ### write_config_file
+    /// ### write_config_bad_syntax
     /// Write configuration file to a temporary directory and return the file path
     fn write_config_bad_syntax() -> tempfile::NamedTempFile {
         // Write
         let mut tmpfile: tempfile::NamedTempFile = tempfile::NamedTempFile::new().unwrap();
         write!(tmpfile, "foobar: 5:\n").unwrap();
+        tmpfile
+    }
+
+    /// ### write_config_alias_as_int
+    /// Write configuration file to a temporary directory and return the file path
+    fn write_config_alias_as_int() -> tempfile::NamedTempFile {
+        // Write
+        let mut tmpfile: tempfile::NamedTempFile = tempfile::NamedTempFile::new().unwrap();
+        write!(tmpfile, "alias: 5:\n").unwrap();
+        tmpfile
+    }
+
+    /// ### Write empty yaml file
+    /// Write configuration file to a temporary directory and return the file path
+    fn write_config_empty() -> tempfile::NamedTempFile {
+        // Write
+        let mut tmpfile: tempfile::NamedTempFile = tempfile::NamedTempFile::new().unwrap();
+        write!(tmpfile, "\n").unwrap();
         tmpfile
     }
 }
