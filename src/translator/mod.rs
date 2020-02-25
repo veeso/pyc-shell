@@ -243,8 +243,8 @@ fn russian_to_latin(input: String) -> Result<String, ParserError> {
                   0 => "K",
                   _ => match input.chars().nth(i - 1) {
                     Some(ch) => match ch {
-                      'К' | 'А' | 'И' | 'О' | 'к' | 'а' | 'и' | 'о' => "K",
-                      _ => "c",
+                      'К' | 'А' | 'И' | 'О' | 'к' | 'а' | 'и' | 'о' | ' ' => "K",
+                      _ => "C",
                     },
                     None => "K",
                   },
@@ -276,7 +276,7 @@ fn russian_to_latin(input: String) -> Result<String, ParserError> {
               _ => match input.chars().nth(i - 1) {
                 //Check previous character
                 Some(ch) => match ch {
-                  'К' | 'А' | 'И' | 'О' | 'У' | 'к' | 'а' | 'и' | 'о' | 'у' => "K",
+                  'К' | 'А' | 'И' | 'О' | 'У' | 'к' | 'а' | 'и' | 'о' | 'у' | ' ' => "K",
                   _ => "C",
                 },
                 None => "K",
@@ -299,7 +299,7 @@ fn russian_to_latin(input: String) -> Result<String, ParserError> {
                   _ => match input.chars().nth(i - 1) {
                     //Check previous character
                     Some(ch) => match ch {
-                      'К' | 'А' | 'И' | 'О' | 'к' | 'а' | 'и' | 'о' => "k",
+                      'К' | 'А' | 'И' | 'О' | 'к' | 'а' | 'и' | 'о' | ' ' => "k",
                       _ => "c",
                     },
                     None => "k",
@@ -331,7 +331,7 @@ fn russian_to_latin(input: String) -> Result<String, ParserError> {
               0 => "k",
               _ => match input.chars().nth(i - 1) {
                 Some(ch) => match ch {
-                  'К' | 'А' | 'И' | 'О' | 'У' | 'к' | 'а' | 'и' | 'о' | 'у' => "k",
+                  'К' | 'А' | 'И' | 'О' | 'У' | 'к' | 'а' | 'и' | 'о' | 'у' | ' ' => "k",
                   _ => "c",
                 },
                 None => "k",
@@ -679,7 +679,16 @@ mod tests {
     let output = (translator.to_latin)(input.clone()).unwrap();
     println!("\"{}\" => \"{}\"", input, output);
     assert_eq!(output, "CHECK CHECK");
-    //Special case: k as last character
+    //Special case: k as last character which becomes 'c'
+    let input: String = String::from("рэк к к");
+    let output = (translator.to_latin)(input.clone()).unwrap();
+    println!("\"{}\" => \"{}\"", input, output);
+    assert_eq!(output, "rec k k");
+    let input: String = String::from("РЭК К К");
+    let output = (translator.to_latin)(input.clone()).unwrap();
+    println!("\"{}\" => \"{}\"", input, output);
+    assert_eq!(output, "REC K K");
+    //Special case: k as last character which becomes 'k'
     let input: String = String::from("ок ок");
     let output = (translator.to_latin)(input.clone()).unwrap();
     println!("\"{}\" => \"{}\"", input, output);
