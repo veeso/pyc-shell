@@ -32,6 +32,11 @@ use yaml_rust::{Yaml, YamlLoader};
 //Types
 pub struct Config {
     alias: HashMap<String, String>,
+    pub output_config: OutputConfig
+}
+
+pub struct OutputConfig {
+    pub translate_output: bool
 }
 
 #[derive(Copy, Clone, PartialEq, fmt::Debug)]
@@ -71,6 +76,7 @@ impl Config {
         let alias_config: HashMap<String, String> = HashMap::new();
         Config {
             alias: alias_config,
+            output_config: OutputConfig::default()
         }
     }
 
@@ -135,8 +141,24 @@ impl Config {
                 Err(err) => return Err(err),
             }
         };
+        //Check if output exists
+        let mut output_config_yaml = &yaml_doc["output"];
+        if output_config_yaml.is_badvalue() {
+            //If alias doesn't exist, then use 'аляс'
+            output_config_yaml = &yaml_doc["оутпут"];
+        }
+        let output_config: OutputConfig = if output_config_yaml.is_badvalue() {
+            OutputConfig::default()
+        } else {
+            //Otherwise parse alias object
+            match OutputConfig::parse_config(&output_config_yaml) {
+                Ok(config) => config,
+                Err(err) => return Err(err),
+            }
+        };
         Ok(Config {
             alias: alias_config,
+            output_config: output_config
         })
     }
 
@@ -173,6 +195,38 @@ impl Config {
     }
 }
 
+impl OutputConfig {
+    pub fn default() -> OutputConfig {
+        OutputConfig {
+            translate_output: true
+        }
+    }
+
+    pub fn parse_config(output_yaml: &Yaml) -> Result<OutputConfig, ConfigError> {
+        let mut translate_output_yaml = &output_yaml["translate"];
+        if translate_output_yaml.is_badvalue() {
+            //If translate doesn't exist, then use 'транслатэ'
+            translate_output_yaml = &output_yaml["транслатэ"];
+        }
+        if translate_output_yaml.is_badvalue() {
+            return Err(ConfigError {
+                code: ConfigErrorCode::YamlSyntaxError,
+                message: String::from("Error in 'output' config: Key translate/транслатэ is missing"),
+            })
+        }
+        let translate_output: bool = match translate_output_yaml.as_bool() {
+            Some(flag) => flag,
+            None => return Err(ConfigError {
+                code: ConfigErrorCode::YamlSyntaxError,
+                message: String::from("Error in 'output' config: Key translate/транслатэ is not boolean"),
+            })
+        };
+        Ok(OutputConfig {
+            translate_output: translate_output
+        })
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -182,6 +236,7 @@ mod tests {
     fn test_config_default() {
         let config: Config = Config::default();
         assert!(config.get_alias(&String::from("чд")).is_none());
+        assert_eq!(config.output_config.translate_output, true);
     }
 
     #[test]
@@ -264,6 +319,55 @@ mod tests {
                 error.message, error.code
             ),
         };
+    }
+
+    #[test]
+    fn test_config_output_config() {
+        //Try to parse a configuration file
+        let config_file: tempfile::NamedTempFile = write_config_output_config();
+        let config_file_path: String = String::from(config_file.path().to_str().unwrap());
+        println!("Generated config file: {}", config_file_path);
+        match Config::parse_config(config_file_path) {
+            Ok(config) => {
+                //Verify alias parameters
+                assert!(config.output_config.translate_output)
+            }
+            Err(error) => panic!(
+                "Parse_config should have returned OK, but returned {} ({:?})",
+                error.message, error.code
+            ),
+        };
+        //Try to parse a configuration file
+        let config_file: tempfile::NamedTempFile = write_config_output_config_ru_false();
+        let config_file_path: String = String::from(config_file.path().to_str().unwrap());
+        println!("Generated config file: {}", config_file_path);
+        match Config::parse_config(config_file_path) {
+            Ok(config) => {
+                //Verify alias parameters
+                assert_eq!(config.output_config.translate_output, false)
+            }
+            Err(error) => panic!(
+                "Parse_config should have returned OK, but returned {} ({:?})",
+                error.message, error.code
+            ),
+        };
+    }
+
+    #[test]
+    fn test_config_bad_output_config() {
+        let config_file: tempfile::NamedTempFile = write_config_bad_output_config();
+        let config_file_path: String = String::from(config_file.path().to_str().unwrap());
+        println!("Generated config file: {}", config_file_path);
+        if let Err(err) = Config::parse_config(config_file_path) {
+            match err.code {
+                ConfigErrorCode::YamlSyntaxError => {
+                    println!("Okay, YamlSynaxError has been returned")
+                }
+                _ => panic!("Expected YamlSynaxError, got {}", err.code),
+            }
+        } else {
+            panic!("parse_config of bad syntax returned OK");
+        }
     }
 
     #[test]
@@ -392,6 +496,27 @@ mod tests {
         // Write
         let mut tmpfile: tempfile::NamedTempFile = tempfile::NamedTempFile::new().unwrap();
         write!(tmpfile, "foobar: 5\n").unwrap();
+        tmpfile
+    }
+
+    fn write_config_output_config() -> tempfile::NamedTempFile {
+        // Write
+        let mut tmpfile: tempfile::NamedTempFile = tempfile::NamedTempFile::new().unwrap();
+        write!(tmpfile, "output:\n  translate: true\n").unwrap();
+        tmpfile
+    }
+
+    fn write_config_bad_output_config() -> tempfile::NamedTempFile {
+        // Write
+        let mut tmpfile: tempfile::NamedTempFile = tempfile::NamedTempFile::new().unwrap();
+        write!(tmpfile, "output:\n  foobar: 5\n").unwrap();
+        tmpfile
+    }
+
+    fn write_config_output_config_ru_false() -> tempfile::NamedTempFile {
+        // Write
+        let mut tmpfile: tempfile::NamedTempFile = tempfile::NamedTempFile::new().unwrap();
+        write!(tmpfile, "оутпут:\n  транслатэ: false\n").unwrap();
         tmpfile
     }
 
