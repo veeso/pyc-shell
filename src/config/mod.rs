@@ -32,11 +32,11 @@ use yaml_rust::{Yaml, YamlLoader};
 //Types
 pub struct Config {
     alias: HashMap<String, String>,
-    pub output_config: OutputConfig
+    pub output_config: OutputConfig,
 }
 
 pub struct OutputConfig {
-    pub translate_output: bool
+    pub translate_output: bool,
 }
 
 #[derive(Copy, Clone, PartialEq, fmt::Debug)]
@@ -76,7 +76,7 @@ impl Config {
         let alias_config: HashMap<String, String> = HashMap::new();
         Config {
             alias: alias_config,
-            output_config: OutputConfig::default()
+            output_config: OutputConfig::default(),
         }
     }
 
@@ -158,7 +158,7 @@ impl Config {
         };
         Ok(Config {
             alias: alias_config,
-            output_config: output_config
+            output_config: output_config,
         })
     }
 
@@ -198,7 +198,7 @@ impl Config {
 impl OutputConfig {
     pub fn default() -> OutputConfig {
         OutputConfig {
-            translate_output: true
+            translate_output: true,
         }
     }
 
@@ -211,18 +211,24 @@ impl OutputConfig {
         if translate_output_yaml.is_badvalue() {
             return Err(ConfigError {
                 code: ConfigErrorCode::YamlSyntaxError,
-                message: String::from("Error in 'output' config: Key translate/транслатэ is missing"),
-            })
+                message: String::from(
+                    "Error in 'output' config: Key translate/транслатэ is missing",
+                ),
+            });
         }
         let translate_output: bool = match translate_output_yaml.as_bool() {
             Some(flag) => flag,
-            None => return Err(ConfigError {
-                code: ConfigErrorCode::YamlSyntaxError,
-                message: String::from("Error in 'output' config: Key translate/транслатэ is not boolean"),
-            })
+            None => {
+                return Err(ConfigError {
+                    code: ConfigErrorCode::YamlSyntaxError,
+                    message: String::from(
+                        "Error in 'output' config: Key translate/транслатэ is not boolean",
+                    ),
+                })
+            }
         };
         Ok(OutputConfig {
-            translate_output: translate_output
+            translate_output: translate_output,
         })
     }
 }
@@ -356,6 +362,19 @@ mod tests {
     #[test]
     fn test_config_bad_output_config() {
         let config_file: tempfile::NamedTempFile = write_config_bad_output_config();
+        let config_file_path: String = String::from(config_file.path().to_str().unwrap());
+        println!("Generated config file: {}", config_file_path);
+        if let Err(err) = Config::parse_config(config_file_path) {
+            match err.code {
+                ConfigErrorCode::YamlSyntaxError => {
+                    println!("Okay, YamlSynaxError has been returned")
+                }
+                _ => panic!("Expected YamlSynaxError, got {}", err.code),
+            }
+        } else {
+            panic!("parse_config of bad syntax returned OK");
+        }
+        let config_file: tempfile::NamedTempFile = write_config_output_translate_as_str();
         let config_file_path: String = String::from(config_file.path().to_str().unwrap());
         println!("Generated config file: {}", config_file_path);
         if let Err(err) = Config::parse_config(config_file_path) {
@@ -510,6 +529,13 @@ mod tests {
         // Write
         let mut tmpfile: tempfile::NamedTempFile = tempfile::NamedTempFile::new().unwrap();
         write!(tmpfile, "output:\n  foobar: 5\n").unwrap();
+        tmpfile
+    }
+
+    fn write_config_output_translate_as_str() -> tempfile::NamedTempFile {
+        // Write
+        let mut tmpfile: tempfile::NamedTempFile = tempfile::NamedTempFile::new().unwrap();
+        write!(tmpfile, "output:\n  translate: pippo\n").unwrap();
         tmpfile
     }
 
