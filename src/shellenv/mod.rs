@@ -496,7 +496,7 @@ mod tests {
                 break;
             }
         }
-        sleep(Duration::from_secs(1));
+        sleep(Duration::from_millis(500));
         //Try to write to process
         if let Err(err) = process.write(String::from("Foobar")) {
             assert_eq!(err.kind(), std::io::ErrorKind::BrokenPipe); //Error must be broken pipe
@@ -509,6 +509,37 @@ mod tests {
         } else {
             panic!("Read from terminated process should have returned BrokenPipe, but returned Ok");
         }
+    }
+
+    #[test]
+    fn test_process_stderr_broken_pipe() {
+        let argv: Vec<String> = vec![String::from("echo"), String::from("0")];
+        let mut process: ShellProcess = match ShellProcess::exec(argv) {
+            Ok(p) => p,
+            Err(error) => panic!("Could not start process 'echo foo bar': {}", error),
+        };
+        process.process.stderr = None;
+        if let Err(err) = process.read() {
+            assert_eq!(err.kind(), std::io::ErrorKind::BrokenPipe); //Error must be broken pipe
+        } else {
+            panic!("Read from terminated process should have returned BrokenPipe, but returned Ok");
+        }
+    }
+
+    #[test]
+    fn test_process_signaled() {
+        let argv: Vec<String> = vec![String::from("cat")];
+        let mut process: ShellProcess = match ShellProcess::exec(argv) {
+            Ok(p) => p,
+            Err(error) => panic!("Could not start process 'echo foo bar': {}", error),
+        };
+        let unix_pid: Pid = Pid::from_raw(process.process.pid().unwrap() as i32);
+        signal::kill(unix_pid, signal::Signal::SIGINT).expect("Failed to kill process");
+        sleep(Duration::from_millis(500));
+        //Process should be terminated
+        assert!(!process.is_running());
+        //Exit code should be 2
+        assert_eq!(process.exit_status.unwrap(), 2);
     }
 
     #[test]
