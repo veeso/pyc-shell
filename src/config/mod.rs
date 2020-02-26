@@ -409,7 +409,7 @@ mod tests {
     fn write_config_alias_as_int() -> tempfile::NamedTempFile {
         // Write
         let mut tmpfile: tempfile::NamedTempFile = tempfile::NamedTempFile::new().unwrap();
-        write!(tmpfile, "alias: 5:\n").unwrap();
+        write!(tmpfile, "alias: 5\n").unwrap();
         tmpfile
     }
 
