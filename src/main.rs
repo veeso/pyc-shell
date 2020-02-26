@@ -20,7 +20,7 @@
 */
 
 //TODO: shell format function
-//TODO: handle 'cd' command with cwd (since it is not an executable)
+//TODO: cd to previous directory
 
 const PYC_VERSION: &str = "0.1.0";
 const PYC_BUILD: &str = "??";
@@ -115,6 +115,52 @@ fn process_command(
         argv.push(String::from(arg));
     }
     let command: String = argv[0].clone();
+    if command == "cd" {
+        //@! Handle cd command
+        let path: std::path::PathBuf = if argv.len() > 1 {
+            let mut pathbuf = std::path::PathBuf::new();
+            pathbuf.push(std::path::Path::new(argv[1].as_str()));
+            pathbuf
+        } else {
+            match home_dir() {
+                Some(path) => {
+                    let mut pathbuf = std::path::PathBuf::new();
+                    pathbuf.push(std::path::Path::new(path.as_path()));
+                    pathbuf
+                }
+                None => {
+                    let mut pathbuf = std::path::PathBuf::new();
+                    pathbuf.push(std::path::Path::new("~"));
+                    pathbuf
+                }
+            }
+        };
+        match std::env::set_current_dir(path.as_path()) {
+            Ok(()) => return 0,
+            Err(_) => {
+                let message: String = String::from(format!(
+                    "The directory '{}' does not exist",
+                    path.to_str().unwrap_or("?")
+                ));
+                if config.output_config.translate_output {
+                    eprintln!(
+                        "{}{}{}",
+                        color::Fg(color::Red),
+                        translator.to_cyrillic(message),
+                        color::Fg(color::Reset)
+                    );
+                } else {
+                    eprintln!(
+                        "{}{}{}",
+                        color::Fg(color::Red),
+                        message,
+                        color::Fg(color::Reset)
+                    );
+                }
+                return 255;
+            }
+        };
+    }
     //Start shell process
     let mut process = match shellenv::ShellProcess::exec(argv) {
         Ok(p) => p,
@@ -162,14 +208,29 @@ fn process_command(
         //Read user input
         if let Some(Ok(i)) = stdin.next() {
             input_bytes.push(i);
-            //TODO: pass characters at each input to stdin?
+        //TODO: pass characters at each input to stdin?
         } else {
             //Buffer is empty, if len > 0, send input to program, otherwise there's no input
             if input_bytes.len() > 0 {
                 //Convert bytes to UTF-8 string
-                let input: String = String::from(std::str::from_utf8(input_bytes.as_slice()).unwrap());
+                let input: String =
+                    String::from(std::str::from_utf8(input_bytes.as_slice()).unwrap());
                 if let Err(err) = process.write(input) {
-                    eprintln!("{}", translator.to_cyrillic(err.to_string()));
+                    if config.output_config.translate_output {
+                        eprintln!(
+                            "{}{}{}",
+                            color::Fg(color::Red),
+                            translator.to_cyrillic(err.to_string()),
+                            color::Fg(color::Reset)
+                        );
+                    } else {
+                        eprintln!(
+                            "{}{}{}",
+                            color::Fg(color::Red),
+                            err.to_string(),
+                            color::Fg(color::Reset)
+                        );
+                    }
                 }
                 //Reset input buffer
                 input_bytes = Vec::new();
@@ -186,13 +247,26 @@ fn process_command(
         if let Ok((out, err)) = process.read() {
             if out.is_some() {
                 //Convert out to cyrillic
-                let out: String = translator.to_cyrillic(out.unwrap());
+                let out: String = if config.output_config.translate_output {
+                    translator.to_cyrillic(out.unwrap())
+                } else {
+                    out.unwrap()
+                };
                 print!("{}", out);
             }
             if err.is_some() {
                 //Convert err to cyrillic
-                let err: String = translator.to_cyrillic(err.unwrap());
-                eprint!("{}{}{}", color::Fg(color::Red), translator.to_cyrillic(err.to_string()), color::Fg(color::Reset));
+                let err: String = if config.output_config.translate_output {
+                    translator.to_cyrillic(err.unwrap())
+                } else {
+                    err.unwrap()
+                };
+                eprint!(
+                    "{}{}{}",
+                    color::Fg(color::Red),
+                    translator.to_cyrillic(err.to_string()),
+                    color::Fg(color::Reset)
+                );
             }
         }
         //Fetch signals
@@ -307,6 +381,7 @@ fn main() {
     if oneshot {
         rc = process_command(&translator, &config, argv);
     } else {
+        panic!("Interactive mode hasn't been IMPLEMENTED YET!");
         //TODO: implement loop
         //TODO: catch signals
     }
