@@ -185,7 +185,7 @@ impl ShellProcess {
                     }
                     //Check if fd is set for stderr
                     if rd_fdset.contains(stderr_fd) {
-                        //If stdout ISSET, read stderr
+                        //If stderr ISSET, read stderr
                         let mut output_byte: [u8; 8192] = [0; 8192];
                         if let Err(err) = stderr.read(&mut output_byte) {
                             return Err(err);
