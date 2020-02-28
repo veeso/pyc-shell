@@ -4,7 +4,7 @@
 
 ~ Shell По-Русски ~  
 Developed by Christian Visintin  
-Current version: 0.1.0 (??/??/2020)
+Current version: 0.1.0 (??/??/2020) **STILL UNDER DEVELOPMENT**
 
 ---
 
@@ -16,8 +16,10 @@ Current version: 0.1.0 (??/??/2020)
   - [Configuration](#configuration)
   - [Documentation](#documentation)
     - [Cyrillic to latin](#cyrillic-to-latin)
+    - [Latin to Cyrillic](#latin-to-cyrillic)
   - [Known issues](#known-issues)
     - [Unicode Replacement character while typing (�)](#unicode-replacement-character-while-typing-%ef%bf%bd)
+    - [Cd command in oneshot mode doesn't work](#cd-command-in-oneshot-mode-doesnt-work)
   - [Contributions](#contributions)
   - [Changelog](#changelog)
   - [License](#license)
@@ -56,9 +58,13 @@ Let's see how the configuration is written
   - чд: "cd"
   - пвд: "pwd"
   - уич: "which"
+оутпут:
+  транслатэ: true
 ```
 
 - аляс (or alias): list of alias. When the first word of a command is one of the configured alias, it is automatically replaced with the associated latin expression.
+- оутпут (or output): output configuration
+  - транслатэ (or translate): indicates to pyc whether the output has to be converted to cyrillic or not
 
 ## Documentation
 
@@ -105,6 +111,46 @@ The conversion from cyrillic to latin follows the [GOST 7.79-2000](https://en.wi
 | Ь       | `     |                                                                                                                                                        |
 | №       | #     |                                                                                                                                                        |
 
+### Latin to Cyrillic
+
+| Latin | Russian | Notes                         |
+|-------|---------|-------------------------------|
+| А     | A       |                               |
+| B     | Б       |                               |
+| C     | К       | Unless if followed by H       |
+| CH    | Ч       |                               |
+| Ч     | CH      |                               |
+| D     | Д       |                               |
+| E     | Э       |                               |
+| F     | Ф       |                               |
+| G     | Г       |                               |
+| G     | ДЖ      | If g is followed by Y, E, I   |
+| H     | Х       |                               |
+| I     | И       | Unless if followed be U, A, O |
+| IU    | Ю       |                               |
+| IA    | Я       |                               |
+| IO    | Ё       |                               |
+| J     | Ж       |                               |
+| K     | К       |                               |
+| L     | Л       |                               |
+| M     | М       |                               |
+| N     | Н       |                               |
+| O     | О       |                               |
+| P     | П       |                               |
+| Q     | КЮ      |                               |
+| R     | Р       |                               |
+| S     | С       | Unless if followed by H       |
+| Sh    | Ш       |                               |
+| T     | Т       |                               |
+| TS    | Ц       | Unless if followed by S       |
+| U     | У       |                               |
+| V     | В       |                               |
+| W     | В       |                               |
+| X     | КС      |                               |
+| Y     | Ы       | Unless if followed by E       |
+| YE    | E       |                               |
+| Z     | З       |                               |
+
 ---
 
 ## Known issues
@@ -126,6 +172,11 @@ Regenerate locales:
 ```sh
 sudo locale-gen
 ```
+
+### Cd command in oneshot mode doesn't work
+
+Yep. Unfortunately it seems there's no way to make it work in oneshot mode.
+If you know a possible way to make it work, please contribute to this project to implement it.
 
 ---
 
