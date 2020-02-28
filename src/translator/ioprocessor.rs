@@ -50,7 +50,6 @@ struct ExpressionParserStates {
   escape_block: bool, //Check if we're inside an escaped block (hey, keep out for expressions though)
   backslash: bool,    //Check if backslash is active
   in_expression: bool, //Check is we're inside an expression
-  skip_counter: usize, //The amount of cycles to skip
   previous_state: Option<Box<ExpressionParserStates>>, //Reference to previous state
 }
 
@@ -107,11 +106,6 @@ impl IOProcessor {
     let mut states: ExpressionParserStates = ExpressionParserStates::new(None);
     //Iterate over input
     for c in expression.chars() {
-      if states.skip_counter > 0 {
-        //Skip cycles
-        states.skip_counter -= 1; //Decrement skip counter
-        continue;
-      }
       //If character is '(' an expression block starts (if backlsash is disabled)
       if c == '(' && !states.backslash {
         //Set escape to false
@@ -217,7 +211,6 @@ impl ExpressionParserStates {
       escape_block: false,
       backslash: false,
       in_expression: false,
-      skip_counter: 0,
       previous_state: match previous_state {
         None => None,
         Some(prev_state) => Some(Box::new(prev_state)),
@@ -232,7 +225,6 @@ impl ExpressionParserStates {
       escape_block: strref.escape_block,
       backslash: strref.backslash,
       in_expression: strref.in_expression,
-      skip_counter: strref.skip_counter,
       previous_state: match &strref.previous_state {
         //Recursive clone
         None => None,
