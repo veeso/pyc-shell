@@ -594,11 +594,11 @@ mod tests {
     let output = translator.to_latin(input.clone());
     println!("\"{}\" => \"{}\"", input, output);
     assert_eq!(output, "'`'`");
-    //Number
-    let input: String = String::from("№");
+    //Symbols
+    let input: String = String::from("№ ₽");
     let output = translator.to_latin(input.clone());
     println!("\"{}\" => \"{}\"", input, output);
-    assert_eq!(output, "#");
+    assert_eq!(output, "# $");
   }
 
   #[test]
@@ -750,5 +750,14 @@ mod tests {
     let output = translator.to_cyrillic(input.clone());
     println!("\"{}\" => \"{}\"", input, output);
     assert_eq!(output, "ЫАКК");
+    //Special cases: y part 2
+    let input: String = String::from("y");
+    let output = translator.to_cyrillic(input.clone());
+    println!("\"{}\" => \"{}\"", input, output);
+    assert_eq!(output, "ы");
+    let input: String = String::from("Y");
+    let output = translator.to_cyrillic(input.clone());
+    println!("\"{}\" => \"{}\"", input, output);
+    assert_eq!(output, "Ы");
   }
 }
