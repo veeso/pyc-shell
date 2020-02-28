@@ -25,22 +25,195 @@
 
 use std::fmt;
 
+use super::Translator;
+
+pub struct IOProcessor {
+  translator: Box<dyn Translator>,
+}
+
+/// ### ExpressionParserError
+///
+/// Parser Error represents an error while parsing an expression
+
 #[derive(Copy, Clone, PartialEq, fmt::Debug)]
-pub enum ParserError {
+pub enum ExpressionParserError {
   MissingToken,
 }
 
-struct ParserStates {
+/// ### ExpressionParserStates
+///
+/// Expression Parser states is a struct which represents the current state in converting an expressions into a text
+
+struct ExpressionParserStates {
+  text: String,                                        //Current converted expression text
+  expression_token: String,                            //Current expression token
   escape_block: bool, //Check if we're inside an escaped block (hey, keep out for expressions though)
   backslash: bool,    //Check if backslash is active
   in_expression: bool, //Check is we're inside an expression
   skip_counter: usize, //The amount of cycles to skip
-  previous_state: Option<Box<ParserStates>>, //Reference to previous state
+  previous_state: Option<Box<ExpressionParserStates>>, //Reference to previous state
 }
 
-impl ParserStates {
-  fn new(previous_state: Option<ParserStates>) -> ParserStates {
-    ParserStates {
+/// ### ExpressionConversion
+///
+/// Expression Conversion indicates the type of conversion to perform on the expression
+
+enum ExpressionConversion {
+  ToLatin,
+  ToCyrillic
+}
+
+impl IOProcessor {
+  /// ### new
+  ///
+  /// Instantiates a new IOProcessor with the provided translator
+  pub fn new(translator: Box<dyn Translator>) -> IOProcessor {
+    IOProcessor {
+      translator: translator,
+    }
+  }
+
+  /// ### expression_to_latin
+  ///
+  /// Converts a cyrillic expression into a latin string ready to be performed as a shell process
+  /// An expression must care of backslashes, escapes and inner expressions '(...)'
+  pub fn expression_to_latin(&self, expression: String) -> Result<String, ExpressionParserError> {
+    self.translate_expression(expression, ExpressionConversion::ToLatin)
+  }
+
+  pub fn expression_to_cyrillic(&self, expression: String) -> Result<String, ExpressionParserError> {
+    self.translate_expression(expression, ExpressionConversion::ToCyrillic)
+  }
+
+  /// ### text_to_latin
+  ///
+  /// Converts a cyrillic text into latin using the provided translator
+  pub fn text_to_latin(&self, text: String) -> String {
+    self.translator.to_latin(text)
+  }
+
+  /// ### text_to_cyrillic
+  ///
+  /// Converts a latin text into cyrillic using the provided translator
+  pub fn text_to_cyrillic(&self, text: String) -> String {
+    self.translator.to_cyrillic(text)
+  }
+
+  /// ### translate_expression
+  /// 
+  /// Converts an expression and translate unescaped texts using the desidered translate function
+  fn translate_expression(&self, expression: String, conversion: ExpressionConversion) -> Result<String, ExpressionParserError> {
+    //Instantiate a new Parser State
+    let mut states: ExpressionParserStates = ExpressionParserStates::new(None);
+    //Iterate over input
+    for c in expression.chars() {
+      if states.skip_counter > 0 {
+        //Skip cycles
+        states.skip_counter -= 1; //Decrement skip counter
+        continue;
+      }
+      //If character is '(' an expression block starts (if backlsash is disabled)
+      if c == '(' && !states.backslash {
+        //Set escape to false
+        states.escape_block = false;
+        //Convert current expression to latin and push it to text
+        states.text.push_str(match conversion {
+          ExpressionConversion::ToLatin => self.translator.to_latin(states.expression_token),
+          ExpressionConversion::ToCyrillic => self.translator.to_cyrillic(states.expression_token)
+        }.as_str());
+        //Expression token is reinitialized
+        states.expression_token = String::new();
+        //@! Create new state
+        states = ExpressionParserStates::new(Some(states));
+        states.in_expression = true;
+        //Push '(' to new expression
+        states.expression_token.push(c);
+        continue;
+      }
+      //If character is ')' an expression ends (if backslash is disabled)
+      if c == ')' && !states.backslash {
+        states.in_expression = false;
+        //Push ')' to current expression
+        states.expression_token.push(c);
+        //Convert current expression to latin and push it to text
+        states.text.push_str(match conversion {
+          ExpressionConversion::ToLatin => self.translator.to_latin(states.expression_token.clone()),
+          ExpressionConversion::ToCyrillic => self.translator.to_cyrillic(states.expression_token.clone())
+        }.as_str());
+        //Save text into a tmp variable
+        let expression_output: String = states.text.clone();
+        //If there are still active states, return error 'missing token'
+        if states.backslash || states.in_expression || states.escape_block {
+          //Check if expression has been completely closed
+          return Err(ExpressionParserError::MissingToken);
+        }
+        //@! Restore previous state
+        states = match states.previous_state {
+          Some(_) => states.restore_previous_state(),
+          None => return Err(ExpressionParserError::MissingToken),
+        };
+        //Push converted expression to previous state's text
+        states.text.push_str(expression_output.as_str());
+        continue;
+      } //@! End of expression closed
+        //Handle quotes
+        //Check if escape (and previous character is not backslash)
+      if c == '"' && !states.backslash {
+        if states.escape_block {
+          //Escape block ends, push current token to text WITHOUT CONVERTING IT
+          //Push quote to expression token
+          states.expression_token.push(c);
+          //Push expression token to text without converting it
+          states.text.push_str(states.expression_token.as_str());
+          //Reset expression token
+          states.expression_token = String::new();
+        } else {
+          //Escape block starts
+          //Convert and then Push current expression token to text
+          states.text.push_str(match conversion {
+            ExpressionConversion::ToLatin => self.translator.to_latin(states.expression_token),
+            ExpressionConversion::ToCyrillic => self.translator.to_cyrillic(states.expression_token)
+          }.as_str());
+          //Reset expression token
+          states.expression_token = String::new();
+          //Push quote to expression token
+          states.expression_token.push(c);
+        }
+        //Invert escape block value
+        states.escape_block = !states.escape_block;
+        continue;
+      }
+      //If backslash, enable backslash and push character
+      //NOTE: it's very important this statement is after every other
+      if c == '\\' {
+        states.backslash = true;
+        states.expression_token.push(c);
+        continue;
+      } else {
+        states.backslash = false; //No more in backslash state
+      }
+      //Otheriwse, If it's just a character, Push it to the current expression
+      states.expression_token.push(c);
+    } //@! End of character iterator
+      //Push last expression token to text
+      states.text.push_str(match conversion {
+        ExpressionConversion::ToLatin => self.translator.to_latin(states.expression_token),
+        ExpressionConversion::ToCyrillic => self.translator.to_cyrillic(states.expression_token)
+      }.as_str());
+    //If there are still active states, return error 'missing token'
+    if states.backslash || states.in_expression || states.escape_block || states.previous_state.is_some() {
+      //Check if expression has been completely closed
+      return Err(ExpressionParserError::MissingToken);
+    }
+    Ok(states.text)
+  }
+}
+
+impl ExpressionParserStates {
+  fn new(previous_state: Option<ExpressionParserStates>) -> ExpressionParserStates {
+    ExpressionParserStates {
+      text: String::new(),
+      expression_token: String::new(),
       escape_block: false,
       backslash: false,
       in_expression: false,
@@ -52,8 +225,10 @@ impl ParserStates {
     }
   }
 
-  fn clone(strref: &ParserStates) -> ParserStates {
-    ParserStates {
+  fn clone(strref: &ExpressionParserStates) -> ExpressionParserStates {
+    ExpressionParserStates {
+      text: strref.text.clone(), //Text is restored
+      expression_token: strref.expression_token.clone(), //Expression token is restored
       escape_block: strref.escape_block,
       backslash: strref.backslash,
       in_expression: strref.in_expression,
@@ -61,112 +236,156 @@ impl ParserStates {
       previous_state: match &strref.previous_state {
         //Recursive clone
         None => None,
-        Some(state_box) => Some(Box::new(ParserStates::clone(state_box.as_ref()))),
+        Some(state_box) => Some(Box::new(ExpressionParserStates::clone(state_box.as_ref()))),
       },
     }
   }
 
-  fn restore_previous_state(&mut self) -> ParserStates {
+  fn restore_previous_state(&mut self) -> ExpressionParserStates {
     match &self.previous_state {
       None => panic!("ParserState has no previous state"),
-      Some(prev_state) => ParserStates::clone(prev_state.as_ref()),
+      Some(prev_state) => ExpressionParserStates::clone(prev_state.as_ref()),
     }
   }
 }
 
-/* To reimplment in IO processor
-//Iterate over string
-    let mut states: ParserStates = ParserStates::new(None);
-    for (i, c) in input.chars().enumerate() {
-      if states.skip_counter > 0 {
-        //Skip cycles
-        states.skip_counter -= 1; //Decrement skip counter
-        continue;
-      }
-      //If character is '(' an expression block starts (if backlsash is disabled)
-      if c == '(' && !states.backslash {
-        //If previous character is ₽, then change it into $
-        if output.chars().last().unwrap() == '₽' {
-          output.pop();
-          output.push('$');
-        }
-        //Set escape to false
-        states.escape_block = false;
-        //Create new state
-        states = ParserStates::new(Some(states));
-        states.in_expression = true;
-        output.push(c);
-        continue;
-      }
-      //If backslash, enable backslash and push character
-      if c == '\\' {
-        states.backslash = true;
-        output.push(c);
-        continue;
-      } else {
-        states.backslash = false; //No more in backslash state
-      }
-      //If character is ')' an expression ends (if backslash is disabled)
-      if c == ')' && !states.backslash {
-        states.in_expression = false;
-        //Restore previous state
-        states = match states.previous_state {
-          Some(_) => states.restore_previous_state(),
-          None => return Err(ParserError::MissingToken),
-        };
-        output.push(c);
-        continue;
-      }
-      //Check if escape (and previous character is not backslash or we're inside an expression)
-      if c == '"' && (!states.backslash || states.in_expression) {
-        states.escape_block = !states.escape_block;
-        output.push(c);
-        continue;
-      }
-      //If in escaped block, just push character
-      if states.escape_block {
-        output.push(c);
-        continue;
-      }
+//@! Tests
 
-      ...
-      if states.backslash || states.in_expression || states.previous_state.is_some() {
-      //Check if expression has been completely closed
-      return Err(ParserError::MissingToken);
-    }
-*/
+#[cfg(test)]
+mod tests {
 
+  use super::*;
+  use crate::translator::{new_translator, Language};
 
-  /*
   #[test]
-  fn test_russian_to_latin_syntax_error() {
-    let translator: Box<dyn Translator> = new_translator(Language::Russian);
-    //Missing expression token
-    let input: String = String::from("лс ₽(пвьд");
-    let res: Result<String, ParserError> = translator.to_latin(input.clone());
-    println!("Missing token result: {:?}", res);
-    assert!(res.is_err()); //it must be error
-    assert_eq!(res.err().unwrap(), ParserError::MissingToken); //Must be missing token
-                                                               //Closed expression, but never started one
-    let input: String = String::from("лс пвьд)");
-    let res: Result<String, ParserError> = translator.to_latin(input.clone());
-    println!("Missing token result: {:?}", res);
-    assert!(res.is_err()); //it must be error
-    assert_eq!(res.err().unwrap(), ParserError::MissingToken); //Must be missing token
+  fn to_cyrillic_simple() {
+    //Instantiate IOProcessor
+    let iop: IOProcessor = IOProcessor::new(new_translator(Language::Russian));
+    let input: String = String::from("Привет Мир!");
+    assert_eq!(iop.text_to_latin(input), String::from("Privyet Mir!"));
   }
-  
-  //Try escapes
-    let input: String = String::from("кат \"Привет.ткст\"");
-    let output = translator.to_latin(input.clone());
-    println!("\"{}\" => \"{}\"", input, output);
-    assert_eq!(output, "cat \"Привет.ткст\"");
-    //Escapes with expressions
-    let input: String = String::from("экхо \"хостнамэ: ₽(хостнамэ)\""); //Stuff inside quotes, won't be translated, but content inside expression () will
-    let output = translator.to_latin(input.clone());
-    println!("\"{}\" => \"{}\"", input, output);
-    assert_eq!(output, "echo \"хостнамэ: $(hostname)\"");
-    let input: String = String::from("экхо \"Намэ: ₽(экхо \\\"кристиан\\\")\""); //Double escape block
-    let output = translator.to_latin(input.clone());
-    println!("\"{}\" => \"{}\"", input, output);
-    assert_eq!(output, "echo \"Намэ: $(echo \\\"кристиан\\\")\"");
-  */
+
+  #[test]
+  fn to_cyrillic_expressions() {
+    //Instantiate IOProcessor
+    let iop: IOProcessor = IOProcessor::new(new_translator(Language::Russian));
+    //Simple command
+    let input: String = String::from("экхо фообар");
+    assert_eq!(iop.expression_to_latin(input).unwrap(), String::from("echo foobar"));
+    let input: String = String::from("echo foobar");
+    assert_eq!(iop.expression_to_latin(input).unwrap(), String::from("echo foobar"));
+    //With escape
+    let input: String = String::from("экхо \"привет\"");
+    assert_eq!(iop.expression_to_latin(input).unwrap(), String::from("echo \"привет\""));
+    //With escape + backslash
+    let input: String = String::from("экхо \\\"привет\\\"");
+    assert_eq!(iop.expression_to_latin(input).unwrap(), String::from("echo \\\"privyet\\\""));
+    //With expressions
+    let input: String = String::from("экхо ₽(хостнамэ)");
+    assert_eq!(iop.expression_to_latin(input).unwrap(), String::from("echo $(hostname)"));
+    //With expressions + escapes
+    let input: String = String::from("экхо ₽(кат \"/tmp/РЭАДМЭ.ткст\")");
+    assert_eq!(iop.expression_to_latin(input).unwrap(), String::from("echo $(cat \"/tmp/РЭАДМЭ.ткст\")"));
+    //With expressions + escapes + backslash
+    let input: String = String::from("экхо ₽(кат \"/tmp/Ивана_\\(дочка\\).ткст\")");
+    assert_eq!(iop.expression_to_latin(input).unwrap(), String::from("echo $(cat \"/tmp/Ивана_\\(дочка\\).ткст\")"));
+    //Nested expressions
+    let input: String = String::from("экхо ₽(хостнамэ) ₽(экхо ₽(хомэ)/₽(вьхоами))");
+    assert_eq!(iop.expression_to_latin(input).unwrap(), String::from("echo $(hostname) $(echo $(home)/$(whoami))"));
+  }
+
+  #[test]
+  #[should_panic]
+  fn to_cyrillic_missing_token_parenthesis() {
+    //Instantiate IOProcessor
+    let iop: IOProcessor = IOProcessor::new(new_translator(Language::Russian));
+    //Bad expression
+    let input: String = String::from("экхо ₽(хостнамэ");
+    assert!(iop.expression_to_latin(input).is_ok());
+  }
+
+  #[test]
+  #[should_panic]
+  fn to_cyrillic_missing_token_quotes() {
+    //Instantiate IOProcessor
+    let iop: IOProcessor = IOProcessor::new(new_translator(Language::Russian));
+    //Bad expression
+    let input: String = String::from("экхо \"привет");
+    assert!(iop.expression_to_latin(input).is_ok());
+  }
+
+  #[test]
+  #[should_panic]
+  fn to_cyrillic_missing_token_backslash() {
+    //Instantiate IOProcessor
+    let iop: IOProcessor = IOProcessor::new(new_translator(Language::Russian));
+    //Bad expression
+    let input: String = String::from("экхо \"привет\\");
+    assert!(iop.expression_to_latin(input).is_ok());
+  }
+
+  #[test]
+  fn to_latin_simple() {
+    //Instantiate IOProcessor
+    let iop: IOProcessor = IOProcessor::new(new_translator(Language::Russian));
+    let input: String = String::from("Hello World!");
+    assert_eq!(iop.text_to_cyrillic(input), String::from("Хэлло Уорлд!"));
+  }
+
+  #[test]
+  fn to_latin_expressions() {
+    //Instantiate IOProcessor
+    let iop: IOProcessor = IOProcessor::new(new_translator(Language::Russian));
+    //Simple command
+    let input: String = String::from("echo foobar");
+    assert_eq!(iop.expression_to_cyrillic(input).unwrap(), String::from("эчо фообар"));
+    //With escape
+    let input: String = String::from("echo \"hello world\"");
+    assert_eq!(iop.expression_to_cyrillic(input).unwrap(), String::from("эчо \"hello world\""));
+    //With escape + backslash
+    let input: String = String::from("echo \\\"privyet\\\"");
+    assert_eq!(iop.expression_to_cyrillic(input).unwrap(), String::from("эчо \\\"привет\\\""));
+    //With expressions
+    let input: String = String::from("echo $(hostname)");
+    assert_eq!(iop.expression_to_cyrillic(input).unwrap(), String::from("эчо $(хостнамэ)"));
+    //With expressions + escapes
+    let input: String = String::from("echo $(cat \"/tmp/README.txt\")");
+    assert_eq!(iop.expression_to_cyrillic(input).unwrap(), String::from("эчо $(кат \"/tmp/README.txt\")"));
+    //With expressions + escapes + backslash
+    let input: String = String::from("echo $(cat \"/tmp/john\\(that_guy\\).txt\")");
+    assert_eq!(iop.expression_to_cyrillic(input).unwrap(), String::from("эчо $(кат \"/tmp/john\\(that_guy\\).txt\")"));
+    //Nested expressions
+    let input: String = String::from("echo $(hostname) $(echo $(home)/$(whoami))");
+    assert_eq!(iop.expression_to_cyrillic(input).unwrap(), String::from("эчо $(хостнамэ) $(эчо $(хомэ)/$(ухоами))"));
+  }
+
+  #[test]
+  #[should_panic]
+  fn to_latin_missing_token_parenthesis() {
+    //Instantiate IOProcessor
+    let iop: IOProcessor = IOProcessor::new(new_translator(Language::Russian));
+    //Bad expression
+    let input: String = String::from("echo $(hostname");
+    assert!(iop.expression_to_latin(input).is_ok());
+  }
+
+  #[test]
+  #[should_panic]
+  fn to_latin_missing_token_quotes() {
+    //Instantiate IOProcessor
+    let iop: IOProcessor = IOProcessor::new(new_translator(Language::Russian));
+    //Bad expression
+    let input: String = String::from("echo \"hello");
+    assert!(iop.expression_to_latin(input).is_ok());
+  }
+
+  #[test]
+  #[should_panic]
+  fn to_latin_missing_token_backslash() {
+    //Instantiate IOProcessor
+    let iop: IOProcessor = IOProcessor::new(new_translator(Language::Russian));
+    //Bad expression
+    let input: String = String::from("echo \"hello\\");
+    assert!(iop.expression_to_latin(input).is_ok());
+  }
+}
