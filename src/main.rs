@@ -96,6 +96,7 @@ fn process_command(
     };
     //Join tokens
     let expr: String = argv.join(" ");
+    /*
     let expr: String = match translator.to_latin(expr) {
         Ok(s) => s,
         Err(err) => {
@@ -109,6 +110,8 @@ fn process_command(
             return 255;
         }
     };
+    */
+    let expr: String = translator.to_latin(expr);
     //Convert expression back to argv
     let mut argv: Vec<String> = Vec::with_capacity(expr.matches(" ").count() + 1);
     for arg in expr.split_whitespace() {

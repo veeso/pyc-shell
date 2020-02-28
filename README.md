@@ -36,7 +36,8 @@ Well, basically I started studying russian and to become practical with the cyri
 
 ## Features
 
-- Transliteration of every word according to russian [GOST 7.79-2000](https://en.wikipedia.org/wiki/GOST_7.79-2000) with some differences ([See here](#cyrillic-to-latin))
+- Transliteration of every word according into russian cyrillic [GOST 7.79-2000](https://en.wikipedia.org/wiki/GOST_7.79-2000) with some differences ([See here](#cyrillic-to-latin))
+- Possibility to implement new translators for other cyrillic alphabets.
 - Conversion of both Input and outputs.
 - Escaping for latin strings.
 - Oneshot and interactive modes
