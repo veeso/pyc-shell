@@ -46,7 +46,8 @@ use termion::{async_stdin, color, style};
 mod config;
 mod shellenv;
 mod translator;
-use translator::{ioprocessor::IOProcessor, Language, Translator};
+use shellenv::process::ShellProcess;
+use translator::{ioprocessor::IOProcessor};
 
 /// ### print_usage
 ///
@@ -112,7 +113,7 @@ fn process_command(processor: IOProcessor, config: &config::Config, mut argv: Ve
     }
     let command: String = argv[0].clone();
     //Start shell process
-    let mut process = match shellenv::ShellProcess::exec(argv) {
+    let mut process = match ShellProcess::exec(argv) {
         Ok(p) => p,
         Err(_) => {
             println!(
@@ -160,7 +161,7 @@ fn process_command(processor: IOProcessor, config: &config::Config, mut argv: Ve
         //Read user input
         if let Some(Ok(i)) = stdin.next() {
             input_bytes.push(i);
-        //TODO: pass characters at each input to stdin?
+            //TODO: pass characters at each input to stdin?
         } else {
             //Buffer is empty, if len > 0, send input to program, otherwise there's no input
             if input_bytes.len() > 0 {
