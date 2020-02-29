@@ -24,15 +24,17 @@
 */
 
 //Deps
+extern crate ansi_term;
 extern crate ctrlc;
 extern crate nix;
 extern crate termion;
 
+use ansi_term::Colour;
 use std::io::Read;
 use std::sync::{mpsc, Arc, Mutex};
 use std::thread::sleep;
 use std::time::Duration;
-use termion::{async_stdin, color, style};
+use termion::async_stdin;
 
 use crate::config;
 use crate::shellenv::process::ShellProcess;
@@ -63,10 +65,9 @@ pub fn process_command(
     Ok(cmd) => cmd,
     Err(err) => {
       println!(
-        "{}{}{}",
-        color::Fg(color::Red),
-        processor.text_to_cyrillic(String::from(format!("Bad expression: {:?}", err))),
-        color::Fg(color::Reset)
+        "{}",
+        Colour::Red
+          .paint(processor.text_to_cyrillic(String::from(format!("Bad expression: {:?}", err))))
       );
       return 255;
     }
@@ -81,13 +82,11 @@ pub fn process_command(
   let mut process = match ShellProcess::exec(argv) {
     Ok(p) => p,
     Err(_) => {
-      println!(
-        "{}{}'{}'{}",
-        color::Fg(color::Red),
-        processor.text_to_cyrillic(String::from("Unknown command ")),
-        command,
-        color::Fg(color::Reset)
-      );
+      let err = match config.output_config.translate_output {
+        true => processor.text_to_cyrillic(String::from(format!("Unknown command {}", command))),
+        false => String::from(format!("Unknown command {}", command)),
+      };
+      println!("{}", Colour::Red.paint(err),);
       return 255;
     }
   };
@@ -115,10 +114,9 @@ pub fn process_command(
     }
   }) {
     eprintln!(
-      "{}{}{}",
-      color::Fg(color::Red),
-      processor.text_to_cyrillic(String::from("Could not start signal listener")),
-      color::Fg(color::Reset)
+      "{}",
+      Colour::Red
+        .paint(processor.text_to_cyrillic(String::from("Could not start signal listener")))
     )
   }
   //@! Loop until process has terminated
@@ -135,18 +133,11 @@ pub fn process_command(
         if let Err(err) = process.write(processor.text_to_latin(input)) {
           if config.output_config.translate_output {
             eprintln!(
-              "{}{}{}",
-              color::Fg(color::Red),
-              processor.text_to_cyrillic(err.to_string()),
-              color::Fg(color::Reset)
+              "{}",
+              Colour::Red.paint(processor.text_to_cyrillic(err.to_string()))
             );
           } else {
-            eprintln!(
-              "{}{}{}",
-              color::Fg(color::Red),
-              err.to_string(),
-              color::Fg(color::Reset)
-            );
+            eprintln!("{}", Colour::Red.paint(err.to_string()));
           }
         }
         //Reset input buffer
@@ -178,12 +169,7 @@ pub fn process_command(
         } else {
           err.unwrap()
         };
-        eprint!(
-          "{}{}{}",
-          color::Fg(color::Red),
-          processor.text_to_cyrillic(err.to_string()),
-          color::Fg(color::Reset)
-        );
+        eprint!("{}", Colour::Red.paint(err.to_string()));
       }
     }
     //Fetch signals
@@ -192,10 +178,11 @@ pub fn process_command(
         //Send signals
         if let Err(_) = process.raise(sig) {
           eprintln!(
-            "{}{}{}",
-            color::Fg(color::Red),
-            processor.text_to_cyrillic(String::from("Could not send signal SIGINT to subprocess")),
-            color::Fg(color::Reset)
+            "{}",
+            Colour::Red.paint(
+              processor
+                .text_to_cyrillic(String::from("Could not send signal SIGINT to subprocess"))
+            )
           );
         }
       }
