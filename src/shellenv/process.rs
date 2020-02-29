@@ -249,6 +249,13 @@ impl ShellProcess {
         }
     }
 
+    /// ### pid
+    ///
+    /// Get process pid
+    pub fn pid(&self) -> Option<u32> {
+        self.process.pid()
+    }
+
     /// ### raise
     ///
     /// Send a signal to the running process
@@ -386,6 +393,7 @@ mod tests {
         //Check if running and waiting
         assert!(process.is_running());
         println!("cat process started");
+        assert!(process.pid().is_some());
         //Write something, that should be echoed
         let input: String = String::from("Hello World!\n");
         if let Err(err) = process.write(input.clone()) {
