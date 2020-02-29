@@ -1,6 +1,6 @@
-аляс:
+alias:
   - чд: "cd"
   - пвд: "pwd"
   - уич: "which"
-оутпут:
-  транслатэ: true
+output:
+  translate: true
