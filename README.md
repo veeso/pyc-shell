@@ -40,8 +40,8 @@ Well, basically I started studying russian and to become practical with the cyri
 - Possibility to implement new translators for other cyrillic alphabets.
 - Conversion of both Input and outputs.
 - Escaping for latin strings.
-- Oneshot and interactive modes
-- Customizations for interactive mode and aliases
+- Oneshot and shell modes
+- Customizations and aliases
 
 ## Usage
 

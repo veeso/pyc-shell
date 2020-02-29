@@ -19,8 +19,6 @@
 *
 */
 
-//TODO: shell format function
-
 const PYC_VERSION: &str = "0.1.0";
 const PYC_BUILD: &str = "??";
 
@@ -76,12 +74,13 @@ fn main() {
     let program: String = args[0].clone();
     //Program CLI options
     let config_file: String;
-    //let shell: String;
+    let mut shell: Option<String> = None;
     let oneshot: bool;
     let language: translator::Language;
     let mut opts = Options::new();
     opts.optopt("c", "конфиг", "Specify YAML configuration file", "<config>");
     opts.optopt("l", "ланг", "Specify shell language", "<ru|рус>");
+    opts.optopt("s", "шэлл", "Force the shell used for shell mode", "</bin/bash>");
     opts.optflag("v", "версён", "");
     opts.optflag("h", "хелп", "Print this menu");
     let matches = match opts.parse(&args[1..]) {
@@ -105,6 +104,10 @@ fn main() {
         );
         std::process::exit(255);
     }
+    //Get shell
+    if let Some(sh) = matches.opt_str("s") {
+        shell = Some(sh);
+    };
     //Set translator language
     language = match matches.opt_str("l") {
         Some(lang) => str_to_language(lang),
@@ -157,9 +160,7 @@ fn main() {
     if oneshot {
         rc = runtime::process_command(processor, &config, argv);
     } else {
-        panic!("Interactive mode hasn't been IMPLEMENTED YET!");
-        //TODO: implement loop
-        //TODO: catch signals
+        rc = runtime::shell_exec(processor, &config, shell);
     }
     std::process::exit(rc as i32);
 }

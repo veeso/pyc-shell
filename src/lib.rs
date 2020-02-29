@@ -21,5 +21,5 @@
 
 pub mod config;
 pub mod runtime;
-pub mod shellenv;
+pub(crate) mod shellenv;
 pub mod translator;

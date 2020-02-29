@@ -27,9 +27,11 @@
 extern crate ansi_term;
 extern crate ctrlc;
 extern crate nix;
+extern crate sysinfo;
 extern crate termion;
 
 use ansi_term::Colour;
+use std::env;
 use std::io::Read;
 use std::sync::{mpsc, Arc, Mutex};
 use std::thread::sleep;
@@ -64,10 +66,10 @@ pub fn process_command(
   let expr: String = match processor.expression_to_latin(argv.join(" ")) {
     Ok(cmd) => cmd,
     Err(err) => {
-      println!(
-        "{}",
-        Colour::Red
-          .paint(processor.text_to_cyrillic(String::from(format!("Bad expression: {:?}", err))))
+      print_err(
+        String::from(format!("Bad expression: {:?}", err)),
+        config.output_config.translate_output,
+        &processor,
       );
       return 255;
     }
@@ -82,11 +84,11 @@ pub fn process_command(
   let mut process = match ShellProcess::exec(argv) {
     Ok(p) => p,
     Err(_) => {
-      let err = match config.output_config.translate_output {
-        true => processor.text_to_cyrillic(String::from(format!("Unknown command {}", command))),
-        false => String::from(format!("Unknown command {}", command)),
-      };
-      println!("{}", Colour::Red.paint(err),);
+      print_err(
+        String::from(format!("Unknown command {}", command)),
+        config.output_config.translate_output,
+        &processor,
+      );
       return 255;
     }
   };
@@ -113,11 +115,11 @@ pub fn process_command(
       sleep(Duration::from_millis(50));
     }
   }) {
-    eprintln!(
-      "{}",
-      Colour::Red
-        .paint(processor.text_to_cyrillic(String::from("Could not start signal listener")))
-    )
+    print_err(
+      String::from("Could not start signal listener"),
+      config.output_config.translate_output,
+      &processor,
+    );
   }
   //@! Loop until process has terminated
   while process.is_running() {
@@ -131,14 +133,11 @@ pub fn process_command(
         //Convert bytes to UTF-8 string
         let input: String = String::from(std::str::from_utf8(input_bytes.as_slice()).unwrap());
         if let Err(err) = process.write(processor.text_to_latin(input)) {
-          if config.output_config.translate_output {
-            eprintln!(
-              "{}",
-              Colour::Red.paint(processor.text_to_cyrillic(err.to_string()))
-            );
-          } else {
-            eprintln!("{}", Colour::Red.paint(err.to_string()));
-          }
+          print_err(
+            String::from(err.to_string()),
+            config.output_config.translate_output,
+            &processor,
+          );
         }
         //Reset input buffer
         input_bytes = Vec::new();
@@ -155,21 +154,15 @@ pub fn process_command(
     if let Ok((out, err)) = process.read() {
       if out.is_some() {
         //Convert out to cyrillic
-        let out: String = if config.output_config.translate_output {
-          processor.text_to_cyrillic(out.unwrap())
-        } else {
-          out.unwrap()
-        };
-        print!("{}", out);
+        print_out(out.unwrap(), config.output_config.translate_output, &processor);
       }
       if err.is_some() {
         //Convert err to cyrillic
-        let err: String = if config.output_config.translate_output {
-          processor.text_to_cyrillic(err.unwrap())
-        } else {
-          err.unwrap()
-        };
-        eprint!("{}", Colour::Red.paint(err.to_string()));
+        print_err(
+          err.unwrap().to_string(),
+          config.output_config.translate_output,
+          &processor,
+        );
       }
     }
     //Fetch signals
@@ -177,12 +170,10 @@ pub fn process_command(
       Ok(sig) => {
         //Send signals
         if let Err(_) = process.raise(sig) {
-          eprintln!(
-            "{}",
-            Colour::Red.paint(
-              processor
-                .text_to_cyrillic(String::from("Could not send signal SIGINT to subprocess"))
-            )
+          print_err(
+            String::from("Could not send SIGINT to subprocess"),
+            config.output_config.translate_output,
+            &processor,
           );
         }
       }
@@ -196,4 +187,82 @@ pub fn process_command(
   drop(sig_term); //Otherwise the other thread will never read the state
                   //Return exitcode
   process.exit_status.unwrap_or(255)
+}
+
+/// ### shell_exec
+///
+/// Run pyc in shell mode
+
+pub fn shell_exec(processor: IOProcessor, config: &config::Config, shell: Option<String>) -> u8 {
+  //Determine the shell to use
+  let shell: String = match shell {
+    Some(sh) => sh,
+    None => match get_shell_from_proc() {
+      Ok(sh) => sh,
+      Err(()) => match get_shell_from_env() {
+        Ok(sh) => sh,
+        Err(()) => {
+          print_err(
+            String::from("Could not determine the shell to use"),
+            config.output_config.translate_output,
+            &processor,
+          );
+          return 255;
+        }
+      },
+    },
+  };
+  println!("SELECTED SHELL IS {}", shell);
+  0
+}
+
+/// ### get_shell_from_proc
+///
+/// Try to get the shell path from PPID
+
+fn get_shell_from_proc() -> Result<String, ()> {
+  let pid: u32 = sysinfo::get_current_pid().unwrap() as u32;
+  let proc_stat_file: String = String::from(format!("/proc/{}/stat", pid));
+  if let Ok(stat) = std::fs::read_to_string(proc_stat_file) {
+    //Split stat by space
+    let stat_tokens: Vec<&str> = stat.split_whitespace().collect();
+    if stat_tokens.len() >= 4 {
+      let shell_process_file: String = String::from(format!("/proc/{}/comm", stat_tokens[3]));
+      if let Ok(shell) = std::fs::read_to_string(shell_process_file) {
+        Ok(shell[0..shell.len() - 1].to_string()) //Remove newline
+      } else {
+        Err(())
+      }
+    } else {
+      Err(())
+    }
+  } else {
+    Err(())
+  }
+}
+
+/// ### get_shell_from_env
+///
+/// Try to get the shell path from SHELL environment variable
+
+fn get_shell_from_env() -> Result<String, ()> {
+  if let Ok(val) = env::var("SHELL") {
+    Ok(val)
+  } else {
+    Err(())
+  }
+}
+
+fn print_err(err: String, to_cyrillic: bool, processor: &IOProcessor) {
+  match to_cyrillic {
+    true => eprintln!("{}", Colour::Red.paint(processor.text_to_cyrillic(err))),
+    false => eprintln!("{}", Colour::Red.paint(err)),
+  };
+}
+
+fn print_out(out: String, to_cyrillic: bool, processor: &IOProcessor) {
+  match to_cyrillic {
+    true => print!("{}", processor.text_to_cyrillic(out)),
+    false => print!("{}", out),
+  };
 }
