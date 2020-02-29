@@ -24,3 +24,14 @@
 */
 
 pub mod process;
+
+use std::collections::HashMap;
+
+/// ### ShellEnvironment
+/// 
+/// ShellEnvironment represents the current user shell environment configuration
+
+pub struct ShellEnvironment {
+    user_shell: String,
+    user_alias: HashMap<String, String>
+}

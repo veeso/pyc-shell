@@ -20,34 +20,27 @@
 */
 
 //TODO: shell format function
-//TODO: cd to previous directory
 
 const PYC_VERSION: &str = "0.1.0";
 const PYC_BUILD: &str = "??";
 
 //Crates
-extern crate ctrlc;
+extern crate ansi_term;
 extern crate dirs;
 extern crate getopts;
-extern crate nix;
-extern crate termion;
 
 //External modules
+use ansi_term::{Colour, Style};
 use dirs::home_dir;
 use getopts::Options;
 use std::env;
-use std::io::Read;
-use std::sync::{mpsc, Arc, Mutex};
-use std::thread::sleep;
-use std::time::Duration;
-use termion::{async_stdin, color, style};
 
 //Internal modules
 mod config;
+mod runtime;
 mod shellenv;
 mod translator;
-use shellenv::process::ShellProcess;
-use translator::{ioprocessor::IOProcessor};
+use translator::ioprocessor::IOProcessor;
 
 /// ### print_usage
 ///
@@ -67,186 +60,15 @@ fn str_to_language(lang: String) -> translator::Language {
         "ru" | "рус" => translator::Language::Russian,
         _ => {
             eprintln!(
-                "{}Укноун лангуаж: '{}'; Дэфаултинг то русский{}",
-                color::Fg(color::Red),
-                lang,
-                color::Fg(color::Reset)
+                "{}",
+                Colour::Red.paint(format!(
+                    "Unknown language: '{}'; Setting language to default: ru",
+                    lang
+                ))
             );
             translator::Language::Russian
         }
     }
-}
-
-/// ### process_command
-///
-/// Process a shell command, converting it to latin and then letting the user interacting with it
-/// the command output is converted back to cyrillic
-/// This function is used in oneshot mode only
-
-fn process_command(processor: IOProcessor, config: &config::Config, mut argv: Vec<String>) -> u8 {
-    if argv.len() == 0 {
-        //Prevent empty commands
-        return 255;
-    }
-    //Process arg 0
-    match config.get_alias(&argv[0]) {
-        Some(resolved) => argv[0] = resolved,
-        None => {}
-    };
-    //Join tokens
-    let expr: String = match processor.expression_to_latin(argv.join(" ")) {
-        Ok(cmd) => cmd,
-        Err(err) => {
-            println!(
-                "{}{}{}",
-                color::Fg(color::Red),
-                processor.text_to_cyrillic(String::from(format!("Bad expression: {:?}", err))),
-                color::Fg(color::Reset)
-            );
-            return 255;
-        }
-    };
-    //Convert expression back to argv
-    let mut argv: Vec<String> = Vec::with_capacity(expr.matches(" ").count() + 1);
-    for arg in expr.split_whitespace() {
-        argv.push(String::from(arg));
-    }
-    let command: String = argv[0].clone();
-    //Start shell process
-    let mut process = match ShellProcess::exec(argv) {
-        Ok(p) => p,
-        Err(_) => {
-            println!(
-                "{}{}'{}'{}",
-                color::Fg(color::Red),
-                processor.text_to_cyrillic(String::from("Unknown command ")),
-                command,
-                color::Fg(color::Reset)
-            );
-            return 255;
-        }
-    };
-    //Create input stream
-    let mut stdin = async_stdin().bytes();
-    let mut input_bytes: Vec<u8> = Vec::new();
-    let running = Arc::new(Mutex::new(true));
-    let (sig_tx, sig_rx) = mpsc::channel::<nix::sys::signal::Signal>();
-    let sig_running = Arc::clone(&running);
-    //Start signal handler
-    if let Err(_) = ctrlc::set_handler(move || {
-        let mut terminate: bool = false;
-        while !terminate {
-            {
-                //Inside this block, otherwise does never go out of scope
-                let current_state = sig_running.lock().unwrap();
-                if *current_state == false {
-                    terminate = true;
-                }
-            }
-            if let Err(_) = sig_tx.send(nix::sys::signal::Signal::SIGINT) {
-                break;
-            }
-            sleep(Duration::from_millis(50));
-        }
-    }) {
-        eprintln!(
-            "{}{}{}",
-            color::Fg(color::Red),
-            processor.text_to_cyrillic(String::from("Could not start signal listener")),
-            color::Fg(color::Reset)
-        )
-    }
-    //@! Loop until process has terminated
-    while process.is_running() {
-        //Read user input
-        if let Some(Ok(i)) = stdin.next() {
-            input_bytes.push(i);
-            //TODO: pass characters at each input to stdin?
-        } else {
-            //Buffer is empty, if len > 0, send input to program, otherwise there's no input
-            if input_bytes.len() > 0 {
-                //Convert bytes to UTF-8 string
-                let input: String =
-                    String::from(std::str::from_utf8(input_bytes.as_slice()).unwrap());
-                if let Err(err) = process.write(processor.text_to_latin(input)) {
-                    if config.output_config.translate_output {
-                        eprintln!(
-                            "{}{}{}",
-                            color::Fg(color::Red),
-                            processor.text_to_cyrillic(err.to_string()),
-                            color::Fg(color::Reset)
-                        );
-                    } else {
-                        eprintln!(
-                            "{}{}{}",
-                            color::Fg(color::Red),
-                            err.to_string(),
-                            color::Fg(color::Reset)
-                        );
-                    }
-                }
-                //Reset input buffer
-                input_bytes = Vec::new();
-            }
-        }
-        /*
-        let mut input: String = String::new();
-        stdin.read_to_string(&mut input);
-        if input.len() > 0 {
-            println!("INPUT: {}", input);
-        }
-        */
-        //Read program stdout
-        if let Ok((out, err)) = process.read() {
-            if out.is_some() {
-                //Convert out to cyrillic
-                let out: String = if config.output_config.translate_output {
-                    processor.text_to_cyrillic(out.unwrap())
-                } else {
-                    out.unwrap()
-                };
-                print!("{}", out);
-            }
-            if err.is_some() {
-                //Convert err to cyrillic
-                let err: String = if config.output_config.translate_output {
-                    processor.text_to_cyrillic(err.unwrap())
-                } else {
-                    err.unwrap()
-                };
-                eprint!(
-                    "{}{}{}",
-                    color::Fg(color::Red),
-                    processor.text_to_cyrillic(err.to_string()),
-                    color::Fg(color::Reset)
-                );
-            }
-        }
-        //Fetch signals
-        match sig_rx.try_recv() {
-            Ok(sig) => {
-                //Send signals
-                if let Err(_) = process.raise(sig) {
-                    eprintln!(
-                        "{}{}{}",
-                        color::Fg(color::Red),
-                        processor.text_to_cyrillic(String::from(
-                            "Could not send signal SIGINT to subprocess"
-                        )),
-                        color::Fg(color::Reset)
-                    );
-                }
-            }
-            Err(_) => {}
-        }
-        sleep(Duration::from_millis(10)); //Sleep for 10ms
-    }
-    //Terminate sig hnd
-    let mut sig_term = running.lock().unwrap();
-    *sig_term = true;
-    drop(sig_term); //Otherwise the other thread will never read the state
-                    //Return exitcode
-    process.exit_status.unwrap_or(255)
 }
 
 fn main() {
@@ -265,12 +87,7 @@ fn main() {
     let matches = match opts.parse(&args[1..]) {
         Ok(m) => m,
         Err(f) => {
-            println!(
-                "{}{}{}",
-                color::Fg(color::Red),
-                f.to_string(),
-                color::Fg(color::Reset)
-            );
+            println!("{}", Colour::Red.paint(f.to_string()));
             std::process::exit(255);
         }
     };
@@ -280,11 +97,11 @@ fn main() {
     }
     if matches.opt_present("v") {
         eprintln!(
-            "{}рус - {} ({}) - Developed by Кристиан Визинтин{}",
-            style::Bold,
-            PYC_VERSION,
-            PYC_BUILD,
-            style::Reset
+            "{}",
+            Style::new().bold().paint(format!(
+                "рус - {} ({}) - Developed by Кристиан Визинтин",
+                PYC_VERSION, PYC_BUILD,
+            ))
         );
         std::process::exit(255);
     }
@@ -316,27 +133,29 @@ fn main() {
         Err(err) => match err.code {
             config::ConfigErrorCode::NoSuchFileOrDirectory => {
                 eprintln!(
-                    "{}{} {}; {}{}",
-                    color::Fg(color::Red),
-                    processor.text_to_cyrillic(String::from("No such file or directory")),
-                    config_file,
-                    processor.text_to_cyrillic(String::from("Using default configuration")),
-                    color::Fg(color::Reset)
+                    "{}",
+                    Colour::Red.paint(format!(
+                        "{}: {}; {}",
+                        processor.text_to_cyrillic(String::from("No such file or directory")),
+                        config_file,
+                        processor.text_to_cyrillic(String::from("Using default configuration"))
+                    ))
                 );
                 config::Config::default()
             }
             _ => panic!(
-                "{}{}: {}{}",
-                color::Fg(color::Red),
-                processor.text_to_cyrillic(String::from("Could not parse YAML configuration")),
-                err,
-                color::Fg(color::Reset)
+                "{}",
+                Colour::Red.paint(format!(
+                    "{}: '{}'",
+                    processor.text_to_cyrillic(String::from("Could not parse YAML configuration")),
+                    err
+                ))
             ),
         },
     };
     let mut rc: u8 = 0;
     if oneshot {
-        rc = process_command(processor, &config, argv);
+        rc = runtime::process_command(processor, &config, argv);
     } else {
         panic!("Interactive mode hasn't been IMPLEMENTED YET!");
         //TODO: implement loop

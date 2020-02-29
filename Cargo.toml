@@ -18,6 +18,7 @@ nix = "0.17.0"
 dirs = "2.0.2"
 termion = "1.5.5"
 ctrlc = "3.1.4"
+ansi_term = "0.12.1"
 
 [dev-dependencies]
 tempfile = "3"
