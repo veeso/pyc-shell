@@ -27,7 +27,6 @@
 extern crate ansi_term;
 extern crate ctrlc;
 extern crate nix;
-extern crate sysinfo;
 extern crate termion;
 
 use ansi_term::Colour;
@@ -36,6 +35,7 @@ use std::io::Read;
 use std::sync::{mpsc, Arc, Mutex};
 use std::thread::sleep;
 use std::time::Duration;
+use sysinfo::{RefreshKind, System, SystemExt, ProcessExt};
 use termion::async_stdin;
 
 use crate::config;
@@ -218,27 +218,36 @@ pub fn shell_exec(processor: IOProcessor, config: &config::Config, shell: Option
 
 /// ### get_shell_from_proc
 ///
-/// Try to get the shell path from PPID
+/// Try to get the shell path from parent pid
 
 fn get_shell_from_proc() -> Result<String, ()> {
-  let pid: u32 = sysinfo::get_current_pid().unwrap() as u32;
-  let proc_stat_file: String = String::from(format!("/proc/{}/stat", pid));
-  if let Ok(stat) = std::fs::read_to_string(proc_stat_file) {
-    //Split stat by space
-    let stat_tokens: Vec<&str> = stat.split_whitespace().collect();
-    if stat_tokens.len() >= 4 {
-      let shell_process_file: String = String::from(format!("/proc/{}/comm", stat_tokens[3]));
-      if let Ok(shell) = std::fs::read_to_string(shell_process_file) {
-        Ok(shell[0..shell.len() - 1].to_string()) //Remove newline
-      } else {
-        Err(())
-      }
-    } else {
-      Err(())
-    }
-  } else {
-    Err(())
-  }
+  //Get PID of current process
+  let pid = sysinfo::get_current_pid().unwrap();
+  //Create a system istance
+  let refresh_kind: RefreshKind = RefreshKind::new();
+  let refresh_kind: RefreshKind = refresh_kind.with_processes();
+  let system = System::new_with_specifics(refresh_kind);
+  //Get current process info
+  let process = match system.get_process(pid) {
+    Some(p) => p,
+    None => return Err(())
+  };
+  //Get parent pid
+  let parent_pid = match process.parent() {
+    Some(p) => p,
+    None => return Err(())
+  };
+  //Get parent process info
+  let process = match system.get_process(parent_pid) {
+    Some(p) => p,
+    None => return Err(())
+  };
+  //Return parent process executable
+  let parent_exec: String = match process.exe().to_str() {
+    Some(s) => String::from(s),
+    None => return Err(())
+  };
+  Ok(parent_exec)
 }
 
 /// ### get_shell_from_env
