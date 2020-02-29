@@ -156,7 +156,7 @@ fn main() {
             ),
         },
     };
-    let mut rc: u8 = 0;
+    let rc: u8;
     if oneshot {
         rc = runtime::process_command(processor, &config, argv);
     } else {
