@@ -46,6 +46,7 @@ use termion::{async_stdin, color, style};
 mod config;
 mod shellenv;
 mod translator;
+use translator::{ioprocessor::IOProcessor, Language, Translator};
 
 /// ### print_usage
 ///
@@ -79,12 +80,9 @@ fn str_to_language(lang: String) -> translator::Language {
 ///
 /// Process a shell command, converting it to latin and then letting the user interacting with it
 /// the command output is converted back to cyrillic
+/// This function is used in oneshot mode only
 
-fn process_command(
-    translator: &Box<dyn translator::Translator>,
-    config: &config::Config,
-    mut argv: Vec<String>,
-) -> u8 {
+fn process_command(processor: IOProcessor, config: &config::Config, mut argv: Vec<String>) -> u8 {
     if argv.len() == 0 {
         //Prevent empty commands
         return 255;
@@ -95,82 +93,32 @@ fn process_command(
         None => {}
     };
     //Join tokens
-    let expr: String = argv.join(" ");
-    /*
-    let expr: String = match translator.to_latin(expr) {
-        Ok(s) => s,
+    let expr: String = match processor.expression_to_latin(argv.join(" ")) {
+        Ok(cmd) => cmd,
         Err(err) => {
-            //TODO: rewrite command back to stdin and let user to complete / fix it (if possible)
             println!(
-                "{}Сынтакс эррор: {:?}{}",
+                "{}{}{}",
                 color::Fg(color::Red),
-                err,
+                processor.text_to_cyrillic(String::from(format!("Bad expression: {:?}", err))),
                 color::Fg(color::Reset)
             );
             return 255;
         }
     };
-    */
-    let expr: String = translator.to_latin(expr);
     //Convert expression back to argv
     let mut argv: Vec<String> = Vec::with_capacity(expr.matches(" ").count() + 1);
     for arg in expr.split_whitespace() {
         argv.push(String::from(arg));
     }
     let command: String = argv[0].clone();
-    if command == "cd" {
-        //@! Handle cd command
-        let path: std::path::PathBuf = if argv.len() > 1 {
-            let mut pathbuf = std::path::PathBuf::new();
-            pathbuf.push(std::path::Path::new(argv[1].as_str()));
-            pathbuf
-        } else {
-            match home_dir() {
-                Some(path) => {
-                    let mut pathbuf = std::path::PathBuf::new();
-                    pathbuf.push(std::path::Path::new(path.as_path()));
-                    pathbuf
-                }
-                None => {
-                    let mut pathbuf = std::path::PathBuf::new();
-                    pathbuf.push(std::path::Path::new("~"));
-                    pathbuf
-                }
-            }
-        };
-        match std::env::set_current_dir(path.as_path()) {
-            Ok(()) => return 0,
-            Err(_) => {
-                let message: String = String::from(format!(
-                    "The directory '{}' does not exist",
-                    path.to_str().unwrap_or("?")
-                ));
-                if config.output_config.translate_output {
-                    eprintln!(
-                        "{}{}{}",
-                        color::Fg(color::Red),
-                        translator.to_cyrillic(message),
-                        color::Fg(color::Reset)
-                    );
-                } else {
-                    eprintln!(
-                        "{}{}{}",
-                        color::Fg(color::Red),
-                        message,
-                        color::Fg(color::Reset)
-                    );
-                }
-                return 255;
-            }
-        };
-    }
     //Start shell process
     let mut process = match shellenv::ShellProcess::exec(argv) {
         Ok(p) => p,
         Err(_) => {
             println!(
-                "{}Укноун комманд '{}'{}",
+                "{}{}'{}'{}",
                 color::Fg(color::Red),
+                processor.text_to_cyrillic(String::from("Unknown command ")),
                 command,
                 color::Fg(color::Reset)
             );
@@ -201,8 +149,9 @@ fn process_command(
         }
     }) {
         eprintln!(
-            "{}Коулд нот старт сигнал листенер{}",
+            "{}{}{}",
             color::Fg(color::Red),
+            processor.text_to_cyrillic(String::from("Could not start signal listener")),
             color::Fg(color::Reset)
         )
     }
@@ -218,12 +167,12 @@ fn process_command(
                 //Convert bytes to UTF-8 string
                 let input: String =
                     String::from(std::str::from_utf8(input_bytes.as_slice()).unwrap());
-                if let Err(err) = process.write(input) {
+                if let Err(err) = process.write(processor.text_to_latin(input)) {
                     if config.output_config.translate_output {
                         eprintln!(
                             "{}{}{}",
                             color::Fg(color::Red),
-                            translator.to_cyrillic(err.to_string()),
+                            processor.text_to_cyrillic(err.to_string()),
                             color::Fg(color::Reset)
                         );
                     } else {
@@ -251,7 +200,7 @@ fn process_command(
             if out.is_some() {
                 //Convert out to cyrillic
                 let out: String = if config.output_config.translate_output {
-                    translator.to_cyrillic(out.unwrap())
+                    processor.text_to_cyrillic(out.unwrap())
                 } else {
                     out.unwrap()
                 };
@@ -260,14 +209,14 @@ fn process_command(
             if err.is_some() {
                 //Convert err to cyrillic
                 let err: String = if config.output_config.translate_output {
-                    translator.to_cyrillic(err.unwrap())
+                    processor.text_to_cyrillic(err.unwrap())
                 } else {
                     err.unwrap()
                 };
                 eprint!(
                     "{}{}{}",
                     color::Fg(color::Red),
-                    translator.to_cyrillic(err.to_string()),
+                    processor.text_to_cyrillic(err.to_string()),
                     color::Fg(color::Reset)
                 );
             }
@@ -278,9 +227,11 @@ fn process_command(
                 //Send signals
                 if let Err(_) = process.raise(sig) {
                     eprintln!(
-                        "{}Коулд нот сенд сигнал {} то субпросес!{}",
+                        "{}{}{}",
                         color::Fg(color::Red),
-                        sig,
+                        processor.text_to_cyrillic(String::from(
+                            "Could not send signal SIGINT to subprocess"
+                        )),
                         color::Fg(color::Reset)
                     );
                 }
@@ -306,11 +257,10 @@ fn main() {
     let oneshot: bool;
     let language: translator::Language;
     let mut opts = Options::new();
-    opts.optopt("c", "конфиг", "Спесифы конфигуратён YAML филе", "<конфиг>");
-    opts.optopt("l", "ланг", "Спесифы сырилик лангуажэ", "<ru|рус>");
-    opts.optflag("", "ссср", "");
+    opts.optopt("c", "конфиг", "Specify YAML configuration file", "<config>");
+    opts.optopt("l", "ланг", "Specify shell language", "<ru|рус>");
     opts.optflag("v", "версён", "");
-    opts.optflag("h", "хелп", "принт хелп меню");
+    opts.optflag("h", "хелп", "Print this menu");
     let matches = match opts.parse(&args[1..]) {
         Ok(m) => m,
         Err(f) => {
@@ -342,6 +292,8 @@ fn main() {
         Some(lang) => str_to_language(lang),
         None => translator::Language::Russian,
     };
+    //Set up processor
+    let processor: IOProcessor = IOProcessor::new(translator::new_translator(language));
     //Set config file to '-c' file or to default file
     config_file = match matches.opt_str("c") {
         Some(cfg_override) => cfg_override,
@@ -363,26 +315,27 @@ fn main() {
         Err(err) => match err.code {
             config::ConfigErrorCode::NoSuchFileOrDirectory => {
                 eprintln!(
-                    "{}Но суч филэ ор директоры {}; усинг дефаулт конфигуратион{}",
+                    "{}{} {}; {}{}",
                     color::Fg(color::Red),
+                    processor.text_to_cyrillic(String::from("No such file or directory")),
                     config_file,
+                    processor.text_to_cyrillic(String::from("Using default configuration")),
                     color::Fg(color::Reset)
                 );
                 config::Config::default()
             }
             _ => panic!(
-                "{}Коулд нот парсэ YAML конфигуратион: {}{}",
+                "{}{}: {}{}",
                 color::Fg(color::Red),
+                processor.text_to_cyrillic(String::from("Could not parse YAML configuration")),
                 err,
                 color::Fg(color::Reset)
             ),
         },
     };
-    //Set up translator
-    let translator: Box<dyn translator::Translator> = translator::new_translator(language);
     let mut rc: u8 = 0;
     if oneshot {
-        rc = process_command(&translator, &config, argv);
+        rc = process_command(processor, &config, argv);
     } else {
         panic!("Interactive mode hasn't been IMPLEMENTED YET!");
         //TODO: implement loop
