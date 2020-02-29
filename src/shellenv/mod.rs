@@ -32,6 +32,13 @@ use std::collections::HashMap;
 /// ShellEnvironment represents the current user shell environment configuration
 
 pub struct ShellEnvironment {
-    user_shell: String,
-    user_alias: HashMap<String, String>
+    user_shell: String
+}
+
+impl ShellEnvironment {
+    pub fn new(shell: String) -> ShellEnvironment {
+        ShellEnvironment {
+            user_shell: shell
+        }
+    }
 }
