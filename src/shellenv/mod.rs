@@ -82,7 +82,7 @@ impl ShellEnvironment {
     /// Returns the current Shell state (the state is internally updated when the function is called)
     pub fn get_state(&mut self) -> ShellState {
         //Check if self is running
-        if !self.process.is_running() {
+        if !self.is_running() {
             //Process is no more running
             self.state = ShellState::Terminated;
         } else if self.is_child_running() {
@@ -93,6 +93,19 @@ impl ShellEnvironment {
             self.state = ShellState::Idle;
         }
         self.state
+    }
+
+    /// ### is_running
+    /// 
+    /// Fast check to verify if the shell is still running; this method should be preferred to get_state for fast and iterative checks
+    pub fn is_running(&mut self) -> bool {
+        match self.process.is_running() {
+            true => true,
+            false => {
+                self.state = ShellState::Terminated;
+                false
+            }
+        }
     }
 
     /// ### get_exitcode
