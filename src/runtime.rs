@@ -59,10 +59,7 @@ pub fn process_command(
         return 255;
     }
     //Process arg 0
-    match config.get_alias(&argv[0]) {
-        Some(resolved) => argv[0] = resolved,
-        None => {}
-    };
+    resolve_command(&mut argv, &config);
     //Join tokens
     let expr: String = match processor.expression_to_latin(argv.join(" ")) {
         Ok(cmd) => cmd,
@@ -275,6 +272,15 @@ pub fn shell_exec(processor: IOProcessor, config: &config::Config, shell: Option
                 //If state is Idle, convert expression, otherwise convert text
                 let input: String = match shell_env.get_state() {
                     ShellState::Idle => {
+                        //Resolve alias
+                        let mut argv: Vec<String> = Vec::with_capacity(input.matches(" ").count() + 1);
+                        for arg in input.split_whitespace() {
+                            argv.push(String::from(arg));
+                        }
+                        //Process arg 0
+                        resolve_command(&mut argv, &config);
+                        //Rejoin arguments
+                        let input: String = argv.join(" ") + "\n";
                         match processor.expression_to_latin(input) {
                             Ok(ex) => ex,
                             Err(err) => {
@@ -385,12 +391,32 @@ fn get_shell_from_env() -> Result<String, ()> {
     }
 }
 
+/// ### resolve_command
+///
+/// resolve command according to configured alias
+
+fn resolve_command(argv: &mut Vec<String>, config: &config::Config) {
+    //Process arg 0
+    match config.get_alias(&argv[0]) {
+        Some(resolved) => argv[0] = resolved,
+        None => {}
+    };
+}
+
+/// ### print_err
+/// 
+/// print error message; the message is may converted to cyrillic if translate config is true
+
 fn print_err(err: String, to_cyrillic: bool, processor: &IOProcessor) {
     match to_cyrillic {
         true => eprintln!("{}", Colour::Red.paint(processor.text_to_cyrillic(err))),
         false => eprintln!("{}", Colour::Red.paint(err)),
     };
 }
+
+/// ### print_out
+///
+/// print normal message; the message is may converted to cyrillic if translate config is true
 
 fn print_out(out: String, to_cyrillic: bool, processor: &IOProcessor) {
     match to_cyrillic {

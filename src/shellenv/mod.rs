@@ -59,7 +59,7 @@ impl ShellEnvironment {
     /// Start a new shell instance and instantiates a new ShellEnvironment struct
     pub fn start(shell: String) -> Result<ShellEnvironment, ProcessError> {
         //Start shell
-        let argv: Vec<String> = vec![shell.clone()];
+        let argv: Vec<String> = vec![shell];
         let shell_process: ShellProcess = match ShellProcess::exec(argv) {
             Ok(p) => p,
             Err(err) => return Err(err),
