@@ -468,27 +468,22 @@ mod tests {
     }
 
     #[test]
+    #[should_panic]
     fn test_process_no_argv() {
         let argv: Vec<String> = vec![];
-        if let Err(err) = ShellProcess::exec(argv) {
-            assert_eq!(err, ProcessError::NoArgs);
-        } else {
-            panic!("Process without arguments should have returned NoArgs, but returned OK!");
-        }
+        ShellProcess::exec(argv).ok().unwrap();
     }
 
     #[test]
+    #[should_panic]
     fn test_process_unknown_command() {
         let argv: Vec<String> = vec![String::from("piroporopero")];
-        if let Err(err) = ShellProcess::exec(argv) {
-            assert_eq!(err, ProcessError::CouldNotStartProcess);
-        } else {
-            panic!("Process without arguments should have returned CouldNotStartProcess, but returned OK!");
-        }
+        ShellProcess::exec(argv).ok().unwrap();
     }
 
     #[test]
-    fn test_process_has_terminated_io() {
+    #[should_panic]
+    fn test_process_terminated_write() {
         let argv: Vec<String> = vec![String::from("echo"), String::from("0")];
         let mut process: ShellProcess = match ShellProcess::exec(argv) {
             Ok(p) => p,
@@ -505,21 +500,33 @@ mod tests {
             }
         }
         sleep(Duration::from_millis(500));
-        //Try to write to process
-        if let Err(err) = process.write(String::from("Foobar")) {
-            assert_eq!(err.kind(), std::io::ErrorKind::BrokenPipe); //Error must be broken pipe
-        } else {
-            panic!("Write to terminated process should have returned BrokenPipe, but returned Ok");
-        }
-        //Try to write from process
-        if let Err(err) = process.read() {
-            assert_eq!(err.kind(), std::io::ErrorKind::BrokenPipe); //Error must be broken pipe
-        } else {
-            panic!("Read from terminated process should have returned BrokenPipe, but returned Ok");
-        }
+        process.write(String::from("foobar")).ok().unwrap();
     }
 
     #[test]
+    #[should_panic]
+    fn test_process_terminated_read() {
+        let argv: Vec<String> = vec![String::from("echo"), String::from("0")];
+        let mut process: ShellProcess = match ShellProcess::exec(argv) {
+            Ok(p) => p,
+            Err(error) => panic!("Could not start process 'echo foo bar': {}", error),
+        };
+        let t_start_loop: Instant = Instant::now();
+        loop {
+            if t_start_loop.elapsed().as_millis() >= 5000 {
+                panic!("Echo command timeout"); //It's okay, on travis multi threading is just broken...
+            }
+            if !process.is_running() {
+                println!("Okay, echo has terminated!");
+                break;
+            }
+        }
+        sleep(Duration::from_millis(500));
+        process.read().ok().unwrap();
+    }
+
+    #[test]
+    #[should_panic]
     fn test_process_stderr_broken_pipe() {
         let argv: Vec<String> = vec![String::from("echo"), String::from("0")];
         let mut process: ShellProcess = match ShellProcess::exec(argv) {
@@ -527,11 +534,7 @@ mod tests {
             Err(error) => panic!("Could not start process 'echo foo bar': {}", error),
         };
         process.process.stderr = None;
-        if let Err(err) = process.read() {
-            assert_eq!(err.kind(), std::io::ErrorKind::BrokenPipe); //Error must be broken pipe
-        } else {
-            panic!("Read from terminated process should have returned BrokenPipe, but returned Ok");
-        }
+        process.read().ok().unwrap();
     }
 
     #[test]
