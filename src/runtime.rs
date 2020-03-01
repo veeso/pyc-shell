@@ -35,11 +35,12 @@ use std::io::Read;
 use std::sync::{mpsc, Arc, Mutex};
 use std::thread::sleep;
 use std::time::Duration;
-use sysinfo::{RefreshKind, System, SystemExt, ProcessExt};
+use sysinfo::{ProcessExt, RefreshKind, System, SystemExt};
 use termion::async_stdin;
 
 use crate::config;
 use crate::shellenv::process::ShellProcess;
+use crate::shellenv::{ShellEnvironment, ShellState};
 use crate::translator::ioprocessor::IOProcessor;
 
 /// ### process_command
@@ -49,144 +50,149 @@ use crate::translator::ioprocessor::IOProcessor;
 /// This function is used in oneshot mode only
 
 pub fn process_command(
-  processor: IOProcessor,
-  config: &config::Config,
-  mut argv: Vec<String>,
+    processor: IOProcessor,
+    config: &config::Config,
+    mut argv: Vec<String>,
 ) -> u8 {
-  if argv.len() == 0 {
-    //Prevent empty commands
-    return 255;
-  }
-  //Process arg 0
-  match config.get_alias(&argv[0]) {
-    Some(resolved) => argv[0] = resolved,
-    None => {}
-  };
-  //Join tokens
-  let expr: String = match processor.expression_to_latin(argv.join(" ")) {
-    Ok(cmd) => cmd,
-    Err(err) => {
-      print_err(
-        String::from(format!("Bad expression: {:?}", err)),
-        config.output_config.translate_output,
-        &processor,
-      );
-      return 255;
+    if argv.len() == 0 {
+        //Prevent empty commands
+        return 255;
     }
-  };
-  //Convert expression back to argv
-  let mut argv: Vec<String> = Vec::with_capacity(expr.matches(" ").count() + 1);
-  for arg in expr.split_whitespace() {
-    argv.push(String::from(arg));
-  }
-  let command: String = argv[0].clone();
-  //Start shell process
-  let mut process = match ShellProcess::exec(argv) {
-    Ok(p) => p,
-    Err(_) => {
-      print_err(
-        String::from(format!("Unknown command {}", command)),
-        config.output_config.translate_output,
-        &processor,
-      );
-      return 255;
-    }
-  };
-  //Create input stream
-  let mut stdin = async_stdin().bytes();
-  let mut input_bytes: Vec<u8> = Vec::new();
-  let running = Arc::new(Mutex::new(true));
-  let (sig_tx, sig_rx) = mpsc::channel::<nix::sys::signal::Signal>();
-  let sig_running = Arc::clone(&running);
-  //Start signal handler
-  if let Err(_) = ctrlc::set_handler(move || {
-    let mut terminate: bool = false;
-    while !terminate {
-      {
-        //Inside this block, otherwise does never go out of scope
-        let current_state = sig_running.lock().unwrap();
-        if *current_state == false {
-          terminate = true;
+    //Process arg 0
+    match config.get_alias(&argv[0]) {
+        Some(resolved) => argv[0] = resolved,
+        None => {}
+    };
+    //Join tokens
+    let expr: String = match processor.expression_to_latin(argv.join(" ")) {
+        Ok(cmd) => cmd,
+        Err(err) => {
+            print_err(
+                String::from(format!("Bad expression: {:?}", err)),
+                config.output_config.translate_output,
+                &processor,
+            );
+            return 255;
         }
-      }
-      if let Err(_) = sig_tx.send(nix::sys::signal::Signal::SIGINT) {
-        break;
-      }
-      sleep(Duration::from_millis(50));
+    };
+    //Convert expression back to argv
+    let mut argv: Vec<String> = Vec::with_capacity(expr.matches(" ").count() + 1);
+    for arg in expr.split_whitespace() {
+        argv.push(String::from(arg));
     }
-  }) {
-    print_err(
-      String::from("Could not start signal listener"),
-      config.output_config.translate_output,
-      &processor,
-    );
-  }
-  //@! Loop until process has terminated
-  while process.is_running() {
-    //Read user input
-    if let Some(Ok(i)) = stdin.next() {
-      input_bytes.push(i);
-    //TODO: pass characters at each input to stdin?
-    } else {
-      //Buffer is empty, if len > 0, send input to program, otherwise there's no input
-      if input_bytes.len() > 0 {
-        //Convert bytes to UTF-8 string
-        let input: String = String::from(std::str::from_utf8(input_bytes.as_slice()).unwrap());
-        if let Err(err) = process.write(processor.text_to_latin(input)) {
-          print_err(
-            String::from(err.to_string()),
-            config.output_config.translate_output,
-            &processor,
-          );
+    let command: String = argv[0].clone();
+    //Start shell process
+    let mut process = match ShellProcess::exec(argv) {
+        Ok(p) => p,
+        Err(_) => {
+            print_err(
+                String::from(format!("Unknown command {}", command)),
+                config.output_config.translate_output,
+                &processor,
+            );
+            return 255;
         }
-        //Reset input buffer
-        input_bytes = Vec::new();
-      }
-    }
-    /*
-    let mut input: String = String::new();
-    stdin.read_to_string(&mut input);
-    if input.len() > 0 {
-        println!("INPUT: {}", input);
-    }
-    */
-    //Read program stdout
-    if let Ok((out, err)) = process.read() {
-      if out.is_some() {
-        //Convert out to cyrillic
-        print_out(out.unwrap(), config.output_config.translate_output, &processor);
-      }
-      if err.is_some() {
-        //Convert err to cyrillic
+    };
+    //Create input stream
+    let mut stdin = async_stdin().bytes();
+    let mut input_bytes: Vec<u8> = Vec::new();
+    let running = Arc::new(Mutex::new(true));
+    let (sig_tx, sig_rx) = mpsc::channel::<nix::sys::signal::Signal>();
+    let sig_running = Arc::clone(&running);
+    //Start signal handler
+    if let Err(_) = ctrlc::set_handler(move || {
+        let mut terminate: bool = false;
+        while !terminate {
+            {
+                //Inside this block, otherwise does never go out of scope
+                let current_state = sig_running.lock().unwrap();
+                if *current_state == false {
+                    terminate = true;
+                }
+            }
+            if let Err(_) = sig_tx.send(nix::sys::signal::Signal::SIGINT) {
+                break;
+            }
+            sleep(Duration::from_millis(50));
+        }
+    }) {
         print_err(
-          err.unwrap().to_string(),
-          config.output_config.translate_output,
-          &processor,
-        );
-      }
-    }
-    //Fetch signals
-    match sig_rx.try_recv() {
-      Ok(sig) => {
-        //Send signals
-        if let Err(_) = process.raise(sig) {
-          print_err(
-            String::from("Could not send SIGINT to subprocess"),
+            String::from("Could not start signal listener"),
             config.output_config.translate_output,
             &processor,
-          );
-        }
-      }
-      Err(_) => {}
+        );
     }
-    sleep(Duration::from_millis(10)); //Sleep for 10ms
-  }
-  //Terminate sig hnd
-  let mut sig_term = running.lock().unwrap();
-  *sig_term = true;
-  drop(sig_term); //Otherwise the other thread will never read the state
-                  //Return exitcode
-  process.exit_status.unwrap_or(255)
+    //@! Loop until process has terminated
+    while process.is_running() {
+        //Read user input
+        if let Some(Ok(i)) = stdin.next() {
+            input_bytes.push(i);
+            //TODO: pass characters at each input to stdin?
+        } else {
+            //Buffer is empty, if len > 0, send input to program, otherwise there's no input
+            if input_bytes.len() > 0 {
+                //Convert bytes to UTF-8 string
+                let input: String =
+                    String::from(std::str::from_utf8(input_bytes.as_slice()).unwrap());
+                if let Err(err) = process.write(processor.text_to_latin(input)) {
+                    print_err(
+                        String::from(err.to_string()),
+                        config.output_config.translate_output,
+                        &processor,
+                    );
+                }
+                //Reset input buffer
+                input_bytes = Vec::new();
+            }
+        }
+        /*
+        let mut input: String = String::new();
+        stdin.read_to_string(&mut input);
+        if input.len() > 0 {
+            println!("INPUT: {}", input);
+        }
+        */
+        //Read program stdout
+        if let Ok((out, err)) = process.read() {
+            if out.is_some() {
+                //Convert out to cyrillic
+                print_out(
+                    out.unwrap(),
+                    config.output_config.translate_output,
+                    &processor,
+                );
+            }
+            if err.is_some() {
+                //Convert err to cyrillic
+                print_err(
+                    err.unwrap().to_string(),
+                    config.output_config.translate_output,
+                    &processor,
+                );
+            }
+        }
+        //Fetch signals
+        match sig_rx.try_recv() {
+            Ok(sig) => {
+                //Send signals
+                if let Err(_) = process.raise(sig) {
+                    print_err(
+                        String::from("Could not send SIGINT to subprocess"),
+                        config.output_config.translate_output,
+                        &processor,
+                    );
+                }
+            }
+            Err(_) => {}
+        }
+        sleep(Duration::from_millis(10)); //Sleep for 10ms
+    }
+    //Terminate sig hnd
+    let mut sig_term = running.lock().unwrap();
+    *sig_term = true;
+    drop(sig_term); //Otherwise the other thread will never read the state
+                    //Return exitcode
+    process.exit_status.unwrap_or(255)
 }
 
 /// ### shell_exec
@@ -194,26 +200,143 @@ pub fn process_command(
 /// Run pyc in shell mode
 
 pub fn shell_exec(processor: IOProcessor, config: &config::Config, shell: Option<String>) -> u8 {
-  //Determine the shell to use
-  let shell: String = match shell {
-    Some(sh) => sh,
-    None => match get_shell_from_proc() {
-      Ok(sh) => sh,
-      Err(()) => match get_shell_from_env() {
+    //Determine the shell to use
+    let shell: String = match shell {
+        Some(sh) => sh,
+        None => match get_shell_from_proc() {
+            Ok(sh) => sh,
+            Err(()) => match get_shell_from_env() {
+                Ok(sh) => sh,
+                Err(()) => {
+                    print_err(
+                        String::from("Could not determine the shell to use"),
+                        config.output_config.translate_output,
+                        &processor,
+                    );
+                    return 255;
+                }
+            },
+        },
+    };
+    //Intantiate and start a new shell
+    let mut shell_env: ShellEnvironment = match ShellEnvironment::start(shell) {
         Ok(sh) => sh,
-        Err(()) => {
-          print_err(
-            String::from("Could not determine the shell to use"),
+        Err(err) => {
+            print_err(
+                String::from(format!("Could not start shell: {}", err)),
+                config.output_config.translate_output,
+                &processor,
+            );
+            return 255;
+        }
+    };
+    //Create input stream
+    let mut stdin = async_stdin().bytes();
+    let mut input_bytes: Vec<u8> = Vec::new();
+    let running = Arc::new(Mutex::new(true));
+    let (sig_tx, sig_rx) = mpsc::channel::<()>();
+    let sig_running = Arc::clone(&running);
+    //Start signal handler
+    if let Err(_) = ctrlc::set_handler(move || {
+        let mut terminate: bool = false;
+        while !terminate {
+            {
+                //Inside this block, otherwise does never go out of scope
+                let current_state = sig_running.lock().unwrap();
+                if *current_state == false {
+                    terminate = true;
+                }
+            }
+            if let Err(_) = sig_tx.send(()) {
+                break;
+            }
+            sleep(Duration::from_millis(50));
+        }
+    }) {
+        print_err(
+            String::from("Could not start signal listener"),
             config.output_config.translate_output,
             &processor,
-          );
-          return 255;
+        );
+    }
+    //@! Main loop
+    while shell_env.is_running() {
+        //TODO: Echo $PS1 or prompt when state is Idle
+        //TODO: handle current directory
+        //Read user input
+        if let Some(Ok(i)) = stdin.next() {
+            input_bytes.push(i);
+            //TODO: pass characters at each input to stdin?
+        } else {
+            //Buffer is empty, if len > 0, send input to program, otherwise there's no input
+            if input_bytes.len() > 0 {
+                //Convert bytes to UTF-8 string
+                let input: String = String::from(std::str::from_utf8(input_bytes.as_slice()).unwrap());
+                //If state is Idle, convert expression, otherwise convert text
+                let input: String = match shell_env.get_state() {
+                    ShellState::Idle => {
+                        match processor.expression_to_latin(input) {
+                            Ok(ex) => ex,
+                            Err(err) => {
+                                print_err(String::from(format!("Input error: {:?}", err)), config.output_config.translate_output, &processor);
+                                continue;
+                            }
+                        }
+                    },
+                    ShellState::SubprocessRunning => processor.text_to_latin(input),
+                    ShellState::Terminated => continue
+                };
+                if let Err(err) = shell_env.write(input) {
+                    print_err(
+                        String::from(err.to_string()),
+                        config.output_config.translate_output,
+                        &processor,
+                    );
+                }
+                //Reset input buffer
+                input_bytes = Vec::new();
+            }
         }
-      },
-    },
-  };
-  println!("SELECTED SHELL IS {}", shell);
-  0
+        //Read program stdout
+        if let Ok((out, err)) = shell_env.read() {
+            if out.is_some() {
+                //Convert out to cyrillic
+                print_out(
+                    out.unwrap(),
+                    config.output_config.translate_output,
+                    &processor,
+                );
+            }
+            if err.is_some() {
+                //Convert err to cyrillic
+                print_err(
+                    err.unwrap().to_string(),
+                    config.output_config.translate_output,
+                    &processor,
+                );
+            }
+        }
+        //Fetch signals
+        match sig_rx.try_recv() {
+            Ok(()) => {
+                //Send signals
+                if let Err(_) = shell_env.sigint() {
+                    print_err(
+                        String::from("Could not send SIGINT to subprocess"),
+                        config.output_config.translate_output,
+                        &processor,
+                    );
+                }
+            }
+            Err(_) => {}
+        }
+        sleep(Duration::from_millis(10)); //Sleep for 10ms
+    }
+    //Return shell exitcode
+    match shell_env.get_exitcode() {
+        Some(rc) => rc,
+        None => 255
+    }
 }
 
 /// ### get_shell_from_proc
@@ -221,33 +344,33 @@ pub fn shell_exec(processor: IOProcessor, config: &config::Config, shell: Option
 /// Try to get the shell path from parent pid
 
 fn get_shell_from_proc() -> Result<String, ()> {
-  //Get PID of current process
-  let pid = sysinfo::get_current_pid().unwrap();
-  //Create a system istance
-  let refresh_kind: RefreshKind = RefreshKind::new();
-  let refresh_kind: RefreshKind = refresh_kind.with_processes();
-  let system = System::new_with_specifics(refresh_kind);
-  //Get current process info
-  let process = match system.get_process(pid) {
-    Some(p) => p,
-    None => return Err(())
-  };
-  //Get parent pid
-  let parent_pid = match process.parent() {
-    Some(p) => p,
-    None => return Err(())
-  };
-  //Get parent process info
-  let process = match system.get_process(parent_pid) {
-    Some(p) => p,
-    None => return Err(())
-  };
-  //Return parent process executable
-  let parent_exec: String = match process.exe().to_str() {
-    Some(s) => String::from(s),
-    None => return Err(())
-  };
-  Ok(parent_exec)
+    //Get PID of current process
+    let pid = sysinfo::get_current_pid().unwrap();
+    //Create a system istance
+    let refresh_kind: RefreshKind = RefreshKind::new();
+    let refresh_kind: RefreshKind = refresh_kind.with_processes();
+    let system = System::new_with_specifics(refresh_kind);
+    //Get current process info
+    let process = match system.get_process(pid) {
+        Some(p) => p,
+        None => return Err(()),
+    };
+    //Get parent pid
+    let parent_pid = match process.parent() {
+        Some(p) => p,
+        None => return Err(()),
+    };
+    //Get parent process info
+    let process = match system.get_process(parent_pid) {
+        Some(p) => p,
+        None => return Err(()),
+    };
+    //Return parent process executable
+    let parent_exec: String = match process.exe().to_str() {
+        Some(s) => String::from(s),
+        None => return Err(()),
+    };
+    Ok(parent_exec)
 }
 
 /// ### get_shell_from_env
@@ -255,23 +378,23 @@ fn get_shell_from_proc() -> Result<String, ()> {
 /// Try to get the shell path from SHELL environment variable
 
 fn get_shell_from_env() -> Result<String, ()> {
-  if let Ok(val) = env::var("SHELL") {
-    Ok(val)
-  } else {
-    Err(())
-  }
+    if let Ok(val) = env::var("SHELL") {
+        Ok(val)
+    } else {
+        Err(())
+    }
 }
 
 fn print_err(err: String, to_cyrillic: bool, processor: &IOProcessor) {
-  match to_cyrillic {
-    true => eprintln!("{}", Colour::Red.paint(processor.text_to_cyrillic(err))),
-    false => eprintln!("{}", Colour::Red.paint(err)),
-  };
+    match to_cyrillic {
+        true => eprintln!("{}", Colour::Red.paint(processor.text_to_cyrillic(err))),
+        false => eprintln!("{}", Colour::Red.paint(err)),
+    };
 }
 
 fn print_out(out: String, to_cyrillic: bool, processor: &IOProcessor) {
-  match to_cyrillic {
-    true => print!("{}", processor.text_to_cyrillic(out)),
-    false => print!("{}", out),
-  };
+    match to_cyrillic {
+        true => print!("{}", processor.text_to_cyrillic(out)),
+        false => print!("{}", out),
+    };
 }
