@@ -315,16 +315,8 @@ mod tests {
         let config_file: tempfile::NamedTempFile = write_config_no_alias();
         let config_file_path: String = String::from(config_file.path().to_str().unwrap());
         println!("Generated config file: {}", config_file_path);
-        match Config::parse_config(config_file_path) {
-            Ok(config) => {
-                //Verify alias parameters
-                assert!(config.get_alias(&String::from("чд")).is_none());
-            }
-            Err(error) => panic!(
-                "Parse_config should have returned OK, but returned {} ({:?})",
-                error.message, error.code
-            ),
-        };
+        let config: Config = Config::parse_config(config_file_path).ok().unwrap();
+        assert!(config.get_alias(&String::from("чд")).is_none());
     }
 
     #[test]
@@ -333,30 +325,14 @@ mod tests {
         let config_file: tempfile::NamedTempFile = write_config_output_config();
         let config_file_path: String = String::from(config_file.path().to_str().unwrap());
         println!("Generated config file: {}", config_file_path);
-        match Config::parse_config(config_file_path) {
-            Ok(config) => {
-                //Verify alias parameters
-                assert!(config.output_config.translate_output)
-            }
-            Err(error) => panic!(
-                "Parse_config should have returned OK, but returned {} ({:?})",
-                error.message, error.code
-            ),
-        };
+        let config: Config = Config::parse_config(config_file_path).ok().unwrap();
+        assert!(config.output_config.translate_output);
         //Try to parse a configuration file
         let config_file: tempfile::NamedTempFile = write_config_output_config_ru_false();
         let config_file_path: String = String::from(config_file.path().to_str().unwrap());
         println!("Generated config file: {}", config_file_path);
-        match Config::parse_config(config_file_path) {
-            Ok(config) => {
-                //Verify alias parameters
-                assert_eq!(config.output_config.translate_output, false)
-            }
-            Err(error) => panic!(
-                "Parse_config should have returned OK, but returned {} ({:?})",
-                error.message, error.code
-            ),
-        };
+        let config: Config = Config::parse_config(config_file_path).ok().unwrap();
+        assert!(!config.output_config.translate_output);
     }
 
     #[test]
@@ -364,29 +340,11 @@ mod tests {
         let config_file: tempfile::NamedTempFile = write_config_bad_output_config();
         let config_file_path: String = String::from(config_file.path().to_str().unwrap());
         println!("Generated config file: {}", config_file_path);
-        if let Err(err) = Config::parse_config(config_file_path) {
-            match err.code {
-                ConfigErrorCode::YamlSyntaxError => {
-                    println!("Okay, YamlSynaxError has been returned")
-                }
-                _ => panic!("Expected YamlSynaxError, got {}", err.code),
-            }
-        } else {
-            panic!("parse_config of bad syntax returned OK");
-        }
+        assert_eq!(Config::parse_config(config_file_path).err().unwrap().code, ConfigErrorCode::YamlSyntaxError);
         let config_file: tempfile::NamedTempFile = write_config_output_translate_as_str();
         let config_file_path: String = String::from(config_file.path().to_str().unwrap());
         println!("Generated config file: {}", config_file_path);
-        if let Err(err) = Config::parse_config(config_file_path) {
-            match err.code {
-                ConfigErrorCode::YamlSyntaxError => {
-                    println!("Okay, YamlSynaxError has been returned")
-                }
-                _ => panic!("Expected YamlSynaxError, got {}", err.code),
-            }
-        } else {
-            panic!("parse_config of bad syntax returned OK");
-        }
+        assert_eq!(Config::parse_config(config_file_path).err().unwrap().code, ConfigErrorCode::YamlSyntaxError);
     }
 
     #[test]
@@ -394,16 +352,7 @@ mod tests {
         let config_file: tempfile::NamedTempFile = write_config_bad_syntax();
         let config_file_path: String = String::from(config_file.path().to_str().unwrap());
         println!("Generated config file: {}", config_file_path);
-        if let Err(err) = Config::parse_config(config_file_path) {
-            match err.code {
-                ConfigErrorCode::YamlSyntaxError => {
-                    println!("Okay, YamlSynaxError has been returned")
-                }
-                _ => panic!("Expected YamlSynaxError, got {}", err.code),
-            }
-        } else {
-            panic!("parse_config of bad syntax returned OK");
-        }
+        assert_eq!(Config::parse_config(config_file_path).err().unwrap().code, ConfigErrorCode::YamlSyntaxError);
     }
 
     #[test]
@@ -411,42 +360,17 @@ mod tests {
         let config_file: tempfile::NamedTempFile = write_config_alias_as_int();
         let config_file_path: String = String::from(config_file.path().to_str().unwrap());
         println!("Generated config file: {}", config_file_path);
-        if let Err(err) = Config::parse_config(config_file_path) {
-            match err.code {
-                ConfigErrorCode::YamlSyntaxError => {
-                    println!("Okay, YamlSynaxError has been returned")
-                }
-                _ => panic!("Expected YamlSynaxError, got {}", err.code),
-            }
-        } else {
-            panic!("parse_config of bad syntax returned OK");
-        }
+        assert_eq!(Config::parse_config(config_file_path).err().unwrap().code, ConfigErrorCode::YamlSyntaxError);
     }
 
     #[test]
     fn test_no_file() {
-        if let Err(err) = Config::parse_config(String::from("config.does.not.exist.yml")) {
-            match err.code {
-                ConfigErrorCode::NoSuchFileOrDirectory => {
-                    println!("Okay, nosuchfileordirectory is correct!")
-                }
-                _ => panic!("Expected NoSuchFileOrDirectory, but returned {}", err.code),
-            }
-        } else {
-            panic!("parse_config of not existing file returned OK");
-        }
+        assert_eq!(Config::parse_config(String::from("config.does.not.exist.yml")).err().unwrap().code, ConfigErrorCode::NoSuchFileOrDirectory);
     }
 
     #[test]
     fn test_not_accessible() {
-        if let Err(err) = Config::parse_config(String::from("/dev/ttyS0")) {
-            match err.code {
-                ConfigErrorCode::CouldNotReadFile => println!("Okay, CouldNotReadFile is correct!"),
-                _ => panic!("Expected CouldNotReadFile, but returned {}", err.code),
-            }
-        } else {
-            panic!("parse_config of not not accessible file returned OK");
-        }
+        assert_eq!(Config::parse_config(String::from("/dev/ttyS0")).err().unwrap().code, ConfigErrorCode::CouldNotReadFile);
     }
 
     #[test]
@@ -454,16 +378,7 @@ mod tests {
         let config_file: tempfile::NamedTempFile = write_config_empty();
         let config_file_path: String = String::from(config_file.path().to_str().unwrap());
         println!("Generated config file: {}", config_file_path);
-        if let Err(err) = Config::parse_config(config_file_path) {
-            match err.code {
-                ConfigErrorCode::YamlSyntaxError => {
-                    println!("Okay, YamlSynaxError has been returned")
-                }
-                _ => panic!("Expected YamlSynaxError, got {}", err.code),
-            }
-        } else {
-            panic!("parse_config of bad syntax returned OK");
-        }
+        assert_eq!(Config::parse_config(config_file_path).err().unwrap().code, ConfigErrorCode::YamlSyntaxError);
     }
 
     #[test]
