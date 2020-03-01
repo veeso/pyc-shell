@@ -250,7 +250,7 @@ mod tests {
         //Terminate the shell gracefully
         let command: String = String::from("exit\n");
         assert!(shell_env.write(command).is_ok());
-        //Wait shell for finishing
+        //Wait shell to terminate
         sleep(Duration::from_millis(100));
         //Verify shell has terminated
         assert_eq!(shell_env.get_state(), ShellState::Terminated);
@@ -265,5 +265,20 @@ mod tests {
         let shell: String = String::from("pipponbash");
         //Instantiate and start a shell
         ShellEnvironment::start(shell).ok().unwrap(); //Should panic
+    }
+
+    #[test]
+    fn shell_sigint() {
+        //Use universal accepted shell
+        let shell: String = String::from("sh");
+        //Instantiate and start a shell
+        let mut shell_env: ShellEnvironment = ShellEnvironment::start(shell).ok().unwrap();
+        assert!(shell_env.sigint().is_ok());
+        //Wait shell to terminate
+        sleep(Duration::from_millis(100));
+        //Verify shell has terminated
+        assert_eq!(shell_env.get_state(), ShellState::Terminated);
+        //Verify exitcode to be 0
+        assert_eq!(shell_env.get_exitcode().unwrap(), 2);
     }
 }
