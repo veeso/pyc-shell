@@ -37,6 +37,7 @@ use nix::sys::time::TimeVal;
 use nix::sys::time::TimeValLike;
 use nix::unistd::Pid;
 use std::os::unix::io::IntoRawFd;
+use std::os::unix::io::RawFd;
 //Subprocess
 use subprocess::{ExitStatus, Popen, PopenConfig, Redirection};
 
@@ -49,6 +50,8 @@ pub struct ShellProcess {
     pub command: String,
     pub args: Vec<String>,
     pub exit_status: Option<u8>,
+    stdout_fd: Option<RawFd>,
+    stderr_fd: Option<RawFd>,
     process: Popen,
 }
 
@@ -102,6 +105,8 @@ impl ShellProcess {
             command: command,
             args: args,
             process: process,
+            stdout_fd: None,
+            stderr_fd: None,
             exit_status: None,
         })
     }
@@ -143,21 +148,27 @@ impl ShellProcess {
             Some(err) => err,
             None => return Err(std::io::Error::from(std::io::ErrorKind::BrokenPipe)),
         };
-        //Copy file descriptors
-        let stdout_copy: std::fs::File = match stdout.try_clone() {
-            Ok(f) => f,
-            Err(err) => return Err(err),
-        };
-        let stderr_copy: std::fs::File = match stderr.try_clone() {
-            Ok(f) => f,
-            Err(err) => return Err(err),
-        };
+        //Set file descriptors if None
+        if self.stderr_fd.is_none() {
+            //Copy file descriptors and convert to raw fd
+            let stderr_copy: std::fs::File = match stderr.try_clone() {
+                Ok(f) => f,
+                Err(err) => return Err(err),
+            };
+            self.stderr_fd = Some(stderr_copy.into_raw_fd());
+        }
+        if self.stdout_fd.is_none() {
+            //Copy file descriptors and convert to raw fd
+            let stdout_copy: std::fs::File = match stdout.try_clone() {
+                Ok(f) => f,
+                Err(err) => return Err(err),
+            };
+            self.stdout_fd = Some(stdout_copy.into_raw_fd());
+        }
         //Prepare FD Set
         let mut rd_fdset: select::FdSet = select::FdSet::new();
-        let stdout_fd = stdout_copy.into_raw_fd();
-        let stderr_fd = stderr_copy.into_raw_fd();
-        rd_fdset.insert(stdout_fd);
-        rd_fdset.insert(stderr_fd);
+        rd_fdset.insert(self.stdout_fd.unwrap());
+        rd_fdset.insert(self.stderr_fd.unwrap());
         let mut timeout = TimeVal::milliseconds(50);
         let select_result = select::select(None, &mut rd_fdset, None, None, &mut timeout);
         //Select
@@ -169,7 +180,7 @@ impl ShellProcess {
                 -1 => return Err(std::io::Error::from(std::io::ErrorKind::InvalidData)),
                 _ => {
                     //Check if fd is set for stdout
-                    if rd_fdset.contains(stdout_fd) {
+                    if rd_fdset.contains(self.stdout_fd.unwrap()) {
                         //If stdout ISSET, read stdout
                         let mut output_byte: [u8; 8192] = [0; 8192];
                         if let Err(err) = stdout.read(&mut output_byte) {
@@ -184,7 +195,7 @@ impl ShellProcess {
                         stdout_str = Some(String::from(raw_output.trim_matches(char::from(0))));
                     }
                     //Check if fd is set for stderr
-                    if rd_fdset.contains(stderr_fd) {
+                    if rd_fdset.contains(self.stderr_fd.unwrap()) {
                         //If stderr ISSET, read stderr
                         let mut output_byte: [u8; 8192] = [0; 8192];
                         if let Err(err) = stderr.read(&mut output_byte) {
