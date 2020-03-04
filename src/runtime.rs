@@ -266,7 +266,7 @@ pub fn shell_exec(processor: IOProcessor, config: &config::Config, shell: Option
             //TODO: pass characters at each input to stdin?
         } else {
             //Buffer is empty, if len > 0, send input to program, otherwise there's no input
-            if input_bytes.len() > 0 {
+            if input_bytes.len() > 1 {
                 //Convert bytes to UTF-8 string
                 let input: String = String::from(std::str::from_utf8(input_bytes.as_slice()).unwrap());
                 //If state is Idle, convert expression, otherwise convert text
@@ -300,6 +300,9 @@ pub fn shell_exec(processor: IOProcessor, config: &config::Config, shell: Option
                     );
                 }
                 //Reset input buffer
+                input_bytes = Vec::new();
+            } else {
+                //If length is 1, there is only a new line
                 input_bytes = Vec::new();
             }
         }
