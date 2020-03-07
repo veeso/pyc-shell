@@ -25,6 +25,9 @@
 
 extern crate yaml_rust;
 
+mod configparser;
+
+use configparser::ConfigParser;
 use std::collections::HashMap;
 use std::fmt;
 use yaml_rust::{Yaml, YamlLoader};
@@ -80,72 +83,6 @@ impl fmt::Display for ConfigErrorCode {
 impl fmt::Display for ConfigError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{} ({})", self.message, self.code)
-    }
-}
-
-/// ### Config Parser
-struct ConfigParser {}
-
-impl ConfigParser {
-    /// ### get_child
-    ///
-    /// Get child from YAML
-    pub fn get_child(yaml_doc: &Yaml, child: String) -> Result<&Yaml, ConfigError> {
-        match yaml_doc[child.as_str()].is_badvalue() {
-            true => Err(ConfigError {
-                code: ConfigErrorCode::YamlSyntaxError,
-                message: String::from(format!("Missing key '{}'", child)),
-            }),
-            false => Ok(&yaml_doc[child.as_str()]),
-        }
-    }
-
-    /// ### get_bool
-    ///
-    /// get YAML value as bool
-    pub fn get_bool(yaml_doc: &Yaml, key: String) -> Result<bool, ConfigError> {
-        match ConfigParser::get_child(&yaml_doc, key.clone()) {
-            Ok(child) => match child.as_bool() {
-                Some(v) => Ok(v),
-                None => Err(ConfigError {
-                    code: ConfigErrorCode::YamlSyntaxError,
-                    message: String::from(format!("'{}' is not a bool", key)),
-                }),
-            },
-            Err(err) => Err(err),
-        }
-    }
-
-    /// ### get_usize
-    ///
-    /// get YAML value as usize
-    pub fn get_usize(yaml_doc: &Yaml, key: String) -> Result<usize, ConfigError> {
-        match ConfigParser::get_child(&yaml_doc, key.clone()) {
-            Ok(child) => match child.as_i64() {
-                Some(v) => Ok(v as usize),
-                None => Err(ConfigError {
-                    code: ConfigErrorCode::YamlSyntaxError,
-                    message: String::from(format!("'{}' is not a number", key)),
-                }),
-            },
-            Err(err) => Err(err),
-        }
-    }
-
-    /// ### get_string
-    ///
-    /// get YAML value as string
-    pub fn get_string(yaml_doc: &Yaml, key: String) -> Result<String, ConfigError> {
-        match ConfigParser::get_child(&yaml_doc, key.clone()) {
-            Ok(child) => match child.as_str() {
-                Some(s) => Ok(String::from(s)),
-                None => Err(ConfigError {
-                    code: ConfigErrorCode::YamlSyntaxError,
-                    message: String::from(format!("'{}' is not a string", key)),
-                }),
-            },
-            Err(err) => Err(err),
-        }
     }
 }
 
