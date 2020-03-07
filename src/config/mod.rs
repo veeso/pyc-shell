@@ -34,10 +34,24 @@ pub struct Config {
     pub language: String,
     alias: HashMap<String, String>,
     pub output_config: OutputConfig,
+    pub prompt_config: PromptConfig,
 }
 
 pub struct OutputConfig {
     pub translate_output: bool,
+}
+
+pub struct PromptConfig {
+    pub prompt_line: String,
+    pub history_size: usize,
+    pub translate: bool,
+    pub break_enabled: bool,
+    pub break_str: String,
+    pub min_duration: usize,
+    pub rc_ok: String,
+    pub rc_err: String,
+    pub git_branch: String,
+    pub git_commit_ref: usize,
 }
 
 #[derive(Copy, Clone, PartialEq, fmt::Debug)]
@@ -69,6 +83,72 @@ impl fmt::Display for ConfigError {
     }
 }
 
+/// ### Config Parser
+struct ConfigParser {}
+
+impl ConfigParser {
+    /// ### get_child
+    ///
+    /// Get child from YAML
+    pub fn get_child(yaml_doc: &Yaml, child: String) -> Result<&Yaml, ConfigError> {
+        match yaml_doc[child.as_str()].is_badvalue() {
+            true => Err(ConfigError {
+                code: ConfigErrorCode::YamlSyntaxError,
+                message: String::from(format!("Missing key '{}'", child)),
+            }),
+            false => Ok(&yaml_doc[child.as_str()]),
+        }
+    }
+
+    /// ### get_bool
+    ///
+    /// get YAML value as bool
+    pub fn get_bool(yaml_doc: &Yaml, key: String) -> Result<bool, ConfigError> {
+        match ConfigParser::get_child(&yaml_doc, key.clone()) {
+            Ok(child) => match child.as_bool() {
+                Some(v) => Ok(v),
+                None => Err(ConfigError {
+                    code: ConfigErrorCode::YamlSyntaxError,
+                    message: String::from(format!("'{}' is not a bool", key)),
+                }),
+            },
+            Err(err) => Err(err),
+        }
+    }
+
+    /// ### get_usize
+    ///
+    /// get YAML value as usize
+    pub fn get_usize(yaml_doc: &Yaml, key: String) -> Result<usize, ConfigError> {
+        match ConfigParser::get_child(&yaml_doc, key.clone()) {
+            Ok(child) => match child.as_i64() {
+                Some(v) => Ok(v as usize),
+                None => Err(ConfigError {
+                    code: ConfigErrorCode::YamlSyntaxError,
+                    message: String::from(format!("'{}' is not a number", key)),
+                }),
+            },
+            Err(err) => Err(err),
+        }
+    }
+
+    /// ### get_string
+    ///
+    /// get YAML value as string
+    pub fn get_string(yaml_doc: &Yaml, key: String) -> Result<String, ConfigError> {
+        match ConfigParser::get_child(&yaml_doc, key.clone()) {
+            Ok(child) => match child.as_str() {
+                Some(s) => Ok(String::from(s)),
+                None => Err(ConfigError {
+                    code: ConfigErrorCode::YamlSyntaxError,
+                    message: String::from(format!("'{}' is not a string", key)),
+                }),
+            },
+            Err(err) => Err(err),
+        }
+    }
+}
+
 impl Config {
     /// ### default
     ///
@@ -79,6 +159,7 @@ impl Config {
             language: String::from("ru"),
             alias: alias_config,
             output_config: OutputConfig::default(),
+            prompt_config: PromptConfig::default(),
         }
     }
 
@@ -86,10 +167,9 @@ impl Config {
     ///
     /// `parse_config` parse a YAML configuration file and return a Config struct
     pub fn parse_config(config_file: String) -> Result<Config, ConfigError> {
-        let config_str: String;
         //Read configuration file
-        match std::fs::read_to_string(config_file.clone()) {
-            Ok(config) => config_str = config,
+        let config_str: String = match std::fs::read_to_string(config_file.clone()) {
+            Ok(config) => config,
             Err(err) => match err.kind() {
                 std::io::ErrorKind::NotFound => {
                     return Err(ConfigError {
@@ -109,13 +189,20 @@ impl Config {
                 }
             },
         };
+        Config::parse_config_str(config_str)
+    }
+
+    /// ### parse_config_str
+    ///
+    /// Parse configuration as string
+    fn parse_config_str(config: String) -> Result<Config, ConfigError> {
         //Parse YAML file
-        let yaml_docs: Vec<Yaml> = match YamlLoader::load_from_str(config_str.as_str()) {
+        let yaml_docs: Vec<Yaml> = match YamlLoader::load_from_str(config.as_str()) {
             Ok(doc) => doc,
             Err(_) => {
                 return Err(ConfigError {
                     code: ConfigErrorCode::YamlSyntaxError,
-                    message: String::from(["Could not parse file", config_file.as_str()].join(" ")),
+                    message: String::from("Configuration is not a valid YAML"),
                 });
             }
         };
@@ -128,42 +215,46 @@ impl Config {
         };
         let yaml_doc: &Yaml = &yaml_docs[0];
         //Look for keys and get configuration parts
-        //Check if language exists
-        let language_yaml = &yaml_doc["language"];
-        let language: String = if language_yaml.is_badvalue() {
-            String::from("ru")
-        } else {
-            match Config::parse_language(&language_yaml) {
+        //Get language
+        let language: String = match ConfigParser::get_child(&yaml_doc, String::from("language")) {
+            Ok(node) => match Config::parse_language(&node) {
                 Ok(l) => l,
-                Err(err) => return Err(err)
-            }
-        };
-        //Check if alias exists
-        let alias_config_yaml = &yaml_doc["alias"];
-        let alias_config: HashMap<String, String> = if alias_config_yaml.is_badvalue() {
-            HashMap::new()
-        } else {
-            //Otherwise parse alias object
-            match Config::parse_alias(&alias_config_yaml) {
-                Ok(config) => config,
                 Err(err) => return Err(err),
-            }
+            },
+            Err(_) => String::from("ru"),
         };
-        //Check if output exists
-        let output_config_yaml = &yaml_doc["output"];
-        let output_config: OutputConfig = if output_config_yaml.is_badvalue() {
-            OutputConfig::default()
-        } else {
-            //Otherwise parse alias object
-            match OutputConfig::parse_config(&output_config_yaml) {
-                Ok(config) => config,
-                Err(err) => return Err(err),
-            }
-        };
+        //Get alias
+        let alias_config: HashMap<String, String> =
+            match ConfigParser::get_child(&yaml_doc, String::from("alias")) {
+                Ok(node) => match Config::parse_alias(&node) {
+                    Ok(cfg) => cfg,
+                    Err(err) => return Err(err),
+                },
+                Err(_) => HashMap::new(),
+            };
+        //Get output config
+        let output_config: OutputConfig =
+            match ConfigParser::get_child(&yaml_doc, String::from("output")) {
+                Ok(node) => match OutputConfig::parse_config(&node) {
+                    Ok(config) => config,
+                    Err(err) => return Err(err),
+                },
+                Err(_) => OutputConfig::default(),
+            };
+        //Get prompt config
+        let prompt_config: PromptConfig =
+            match ConfigParser::get_child(&yaml_doc, String::from("prompt")) {
+                Ok(node) => match PromptConfig::parse_config(&node) {
+                    Ok(config) => config,
+                    Err(err) => return Err(err),
+                },
+                Err(_) => PromptConfig::default(),
+            };
         Ok(Config {
             language: language,
             alias: alias_config,
             output_config: output_config,
+            prompt_config: prompt_config,
         })
     }
 
@@ -200,15 +291,15 @@ impl Config {
     }
 
     /// ### parse_language
-    /// 
+    ///
     /// Parse language YAML object
     fn parse_language(language_yaml: &Yaml) -> Result<String, ConfigError> {
         match language_yaml.as_str() {
-            Some(l) => Ok(String::from(l)),
+            Some(s) => Ok(String::from(s)),
             None => Err(ConfigError {
                 code: ConfigErrorCode::YamlSyntaxError,
-                message: String::from("'language' is not a string")
-            })
+                message: String::from("'language' is not a string"),
+            }),
         }
     }
 }
@@ -221,28 +312,127 @@ impl OutputConfig {
     }
 
     pub fn parse_config(output_yaml: &Yaml) -> Result<OutputConfig, ConfigError> {
-        let translate_output_yaml = &output_yaml["translate"];
-        if translate_output_yaml.is_badvalue() {
-            return Err(ConfigError {
-                code: ConfigErrorCode::YamlSyntaxError,
-                message: String::from(
-                    "Error in 'output' config: Key translate/транслатэ is missing",
-                ),
-            });
-        }
-        let translate_output: bool = match translate_output_yaml.as_bool() {
-            Some(flag) => flag,
-            None => {
-                return Err(ConfigError {
-                    code: ConfigErrorCode::YamlSyntaxError,
-                    message: String::from(
-                        "Error in 'output' config: Key translate/транслатэ is not boolean",
-                    ),
-                })
-            }
-        };
+        let translate_output: bool =
+            match ConfigParser::get_bool(&output_yaml, String::from("translate")) {
+                Ok(t) => t,
+                Err(err) => return Err(err),
+            };
         Ok(OutputConfig {
             translate_output: translate_output,
+        })
+    }
+}
+
+impl PromptConfig {
+    /// ### default
+    ///
+    /// Instantiate a default PromptConfig struct
+    pub fn default() -> PromptConfig {
+        PromptConfig {
+            prompt_line: String::from("${USER}@${HOSTNAME}:${WRKDIR}$"),
+            history_size: 256,
+            translate: false,
+            break_enabled: false,
+            break_str: String::from("❯"),
+            min_duration: 2000,
+            rc_ok: String::from("✔"),
+            rc_err: String::from("✖"),
+            git_branch: String::from("on "),
+            git_commit_ref: 8,
+        }
+    }
+
+    /// ### parse_config
+    ///
+    /// Parse a PromptConfig from YAML configuration file
+    pub fn parse_config(prompt_config_yaml: &Yaml) -> Result<PromptConfig, ConfigError> {
+        //Prompt line
+        let prompt_line: String =
+            match ConfigParser::get_string(&prompt_config_yaml, String::from("prompt_line")) {
+                Ok(ret) => ret,
+                Err(err) => return Err(err),
+            };
+        //History size
+        let history_size: usize =
+            match ConfigParser::get_usize(&prompt_config_yaml, String::from("history_size")) {
+                Ok(ret) => ret,
+                Err(err) => return Err(err),
+            };
+        //History size
+        let translate: bool =
+            match ConfigParser::get_bool(&prompt_config_yaml, String::from("translate")) {
+                Ok(ret) => ret,
+                Err(err) => return Err(err),
+            };
+        //Break
+        let brk: &Yaml = match ConfigParser::get_child(&prompt_config_yaml, String::from("break")) {
+            Ok(ret) => ret,
+            Err(err) => return Err(err),
+        };
+        //Break enabled
+        let break_enabled: bool = match ConfigParser::get_bool(&brk, String::from("enabled")) {
+            Ok(ret) => ret,
+            Err(err) => return Err(err),
+        };
+        //Break with
+        let break_str: String = match ConfigParser::get_string(&brk, String::from("with")) {
+            Ok(ret) => ret,
+            Err(err) => return Err(err),
+        };
+        //Duration
+        let duration: &Yaml =
+            match ConfigParser::get_child(&prompt_config_yaml, String::from("duration")) {
+                Ok(ret) => ret,
+                Err(err) => return Err(err),
+            };
+        //Minimum duration
+        let min_duration: usize =
+            match ConfigParser::get_usize(&duration, String::from("min_elapsed_time")) {
+                Ok(ret) => ret,
+                Err(err) => return Err(err),
+            };
+        //Rc
+        let rc: &Yaml = match ConfigParser::get_child(&prompt_config_yaml, String::from("rc")) {
+            Ok(ret) => ret,
+            Err(err) => return Err(err),
+        };
+        //Rc_ok
+        let rc_ok: String = match ConfigParser::get_string(&rc, String::from("ok")) {
+            Ok(ret) => ret,
+            Err(err) => return Err(err),
+        };
+        //Rc err
+        let rc_err: String = match ConfigParser::get_string(&rc, String::from("error")) {
+            Ok(ret) => ret,
+            Err(err) => return Err(err),
+        };
+        //Git
+        let git: &Yaml = match ConfigParser::get_child(&prompt_config_yaml, String::from("git")) {
+            Ok(ret) => ret,
+            Err(err) => return Err(err),
+        };
+        //Git branch
+        let git_branch: String = match ConfigParser::get_string(&git, String::from("branch")) {
+            Ok(ret) => ret,
+            Err(err) => return Err(err),
+        };
+        //Git commit ref
+        let git_commit_ref: usize =
+            match ConfigParser::get_usize(&git, String::from("commit_ref_len")) {
+                Ok(ret) => ret,
+                Err(err) => return Err(err),
+            };
+        Ok(PromptConfig {
+            prompt_line: prompt_line,
+            history_size: history_size,
+            translate: translate,
+            break_enabled: break_enabled,
+            break_str: break_str,
+            min_duration: min_duration,
+            rc_ok: rc_ok,
+            rc_err: rc_err,
+            git_branch: git_branch,
+            git_commit_ref: git_commit_ref,
         })
     }
 }
@@ -258,15 +448,57 @@ mod tests {
         assert!(config.get_alias(&String::from("чд")).is_none());
         assert_eq!(config.output_config.translate_output, true);
         assert_eq!(config.language, String::from("ru"));
+        let prompt_config: PromptConfig = config.prompt_config;
+        assert_eq!(prompt_config.prompt_line, String::from("${USER}@${HOSTNAME}:${WRKDIR}$"));
+        assert_eq!(prompt_config.break_enabled, false);
+        assert_eq!(prompt_config.break_str, String::from("❯"));
+        assert_eq!(prompt_config.git_branch, String::from("on "));
+        assert_eq!(prompt_config.git_commit_ref, 8);
+        assert_eq!(prompt_config.history_size, 256);
+        assert_eq!(prompt_config.min_duration, 2000);
+        assert_eq!(prompt_config.rc_err, String::from("✖"));
+        assert_eq!(prompt_config.rc_ok, String::from("✔"));
+        assert_eq!(prompt_config.translate, false);
+    }
+
+    #[test]
+    fn test_config_file() {
+        //Try to parse a configuration file
+        let config_file: tempfile::NamedTempFile = write_config_file_en();
+        let config_file_path: String = String::from(config_file.path().to_str().unwrap());
+        println!("Generated config file: {}", config_file_path);
+        assert!(Config::parse_config(config_file_path).is_ok())
+    }
+
+    #[test]
+    fn test_no_file() {
+        assert_eq!(
+            Config::parse_config(String::from("config.does.not.exist.yml"))
+                .err()
+                .unwrap()
+                .code,
+            ConfigErrorCode::NoSuchFileOrDirectory
+        );
+    }
+
+    #[cfg(not(target_os = "macos"))]
+    #[test]
+    fn test_not_accessible() {
+        assert_eq!(
+            Config::parse_config(String::from("/dev/ttyS0"))
+                .err()
+                .unwrap()
+                .code,
+            ConfigErrorCode::CouldNotReadFile
+        );
     }
 
     #[test]
     fn test_config_en_alias() {
         //Try to parse a configuration file
-        let config_file: tempfile::NamedTempFile = write_config_file_en();
-        let config_file_path: String = String::from(config_file.path().to_str().unwrap());
-        println!("Generated config file: {}", config_file_path);
-        match Config::parse_config(config_file_path) {
+        let config: String =
+            String::from("alias:\n  - чд: \"cd\"\n  - пвд: \"pwd\"\n  - уич: \"which\"");
+        match Config::parse_config_str(config) {
             Ok(config) => {
                 //Verify alias parameters
                 assert_eq!(
@@ -295,101 +527,155 @@ mod tests {
     #[test]
     fn test_config_no_alias() {
         //Try to parse a configuration file
-        let config_file: tempfile::NamedTempFile = write_config_no_alias();
-        let config_file_path: String = String::from(config_file.path().to_str().unwrap());
-        println!("Generated config file: {}", config_file_path);
-        let config: Config = Config::parse_config(config_file_path).ok().unwrap();
+        let config: String = String::from("language: ru\n");
+        let config: Config = Config::parse_config_str(config).ok().unwrap();
         assert!(config.get_alias(&String::from("чд")).is_none());
     }
 
     #[test]
+    fn test_alias_not_array() {
+        let config: String = String::from("alias: 5\n");
+        assert_eq!(
+            Config::parse_config_str(config).err().unwrap().code,
+            ConfigErrorCode::YamlSyntaxError
+        );
+    }
+
+    #[test]
     fn test_config_output_config() {
-        //Try to parse a configuration file
-        let config_file: tempfile::NamedTempFile = write_config_output_config();
-        let config_file_path: String = String::from(config_file.path().to_str().unwrap());
-        println!("Generated config file: {}", config_file_path);
-        let config: Config = Config::parse_config(config_file_path).ok().unwrap();
+        let config: String =
+            String::from("alias:\n  - чд: \"cd\"\n  - пвд: \"pwd\"\n  - уич: \"which\"");
+        let config: Config = Config::parse_config_str(config).ok().unwrap();
         assert!(config.output_config.translate_output);
         //Try to parse a configuration file
-        let config_file: tempfile::NamedTempFile = write_config_output_config_false();
-        let config_file_path: String = String::from(config_file.path().to_str().unwrap());
-        println!("Generated config file: {}", config_file_path);
-        let config: Config = Config::parse_config(config_file_path).ok().unwrap();
+        let config: String = String::from("output:\n  translate: false\n");
+        let config: Config = Config::parse_config_str(config).ok().unwrap();
         assert!(!config.output_config.translate_output);
     }
 
     #[test]
     fn test_config_bad_output_config() {
-        let config_file: tempfile::NamedTempFile = write_config_bad_output_config();
-        let config_file_path: String = String::from(config_file.path().to_str().unwrap());
-        println!("Generated config file: {}", config_file_path);
-        assert_eq!(Config::parse_config(config_file_path).err().unwrap().code, ConfigErrorCode::YamlSyntaxError);
-        let config_file: tempfile::NamedTempFile = write_config_output_translate_as_str();
-        let config_file_path: String = String::from(config_file.path().to_str().unwrap());
-        println!("Generated config file: {}", config_file_path);
-        assert_eq!(Config::parse_config(config_file_path).err().unwrap().code, ConfigErrorCode::YamlSyntaxError);
+        let config: String = String::from("output: 5\n");
+        assert_eq!(
+            Config::parse_config_str(config).err().unwrap().code,
+            ConfigErrorCode::YamlSyntaxError
+        );
+        let config: String = String::from("output:\n  translate: foobar\n");
+        assert_eq!(
+            Config::parse_config_str(config).err().unwrap().code,
+            ConfigErrorCode::YamlSyntaxError
+        );
+        let config: String = String::from("output:\n  trsnlate: true\n");
+        assert_eq!(
+            Config::parse_config_str(config).err().unwrap().code,
+            ConfigErrorCode::YamlSyntaxError
+        );
     }
 
     #[test]
     fn test_config_language() {
-        let config_file: tempfile::NamedTempFile = write_config_language_config();
-        let config_file_path: String = String::from(config_file.path().to_str().unwrap());
-        println!("Generated config file: {}", config_file_path);
-        let config: Config = Config::parse_config(config_file_path).ok().unwrap();
+        let config: String = String::from("language: bg\n");
+        let config: Config = Config::parse_config_str(config).ok().unwrap();
         assert_eq!(config.language, String::from("bg"));
     }
 
     #[test]
     fn test_config_language_missing() {
-        let config_file: tempfile::NamedTempFile = write_config_language_config_missing();
-        let config_file_path: String = String::from(config_file.path().to_str().unwrap());
-        println!("Generated config file: {}", config_file_path);
-        let config: Config = Config::parse_config(config_file_path).ok().unwrap();
+        let config: String = String::from("output:\n  translate: false\n");
+        let config: Config = Config::parse_config_str(config).ok().unwrap();
         assert_eq!(config.language, String::from("ru"));
     }
 
     #[test]
     #[should_panic]
     fn test_config_language_badvalue() {
-        let config_file: tempfile::NamedTempFile = write_config_language_config_badvalue();
-        let config_file_path: String = String::from(config_file.path().to_str().unwrap());
-        println!("Generated config file: {}", config_file_path);
-        assert!(Config::parse_config(config_file_path).is_ok());
+        let config: String = String::from("language:\n  name: ru\n");
+        assert!(Config::parse_config_str(config).is_ok());
+    }
+
+    #[test]
+    fn test_config_prompt_default() {
+        let config: String = String::from("language:\n  ru\n");
+        let config: Config = Config::parse_config_str(config).ok().unwrap();
+        let prompt_config: PromptConfig = config.prompt_config;
+        assert_eq!(prompt_config.prompt_line, String::from("${USER}@${HOSTNAME}:${WRKDIR}$"));
+        assert_eq!(prompt_config.break_enabled, false);
+        assert_eq!(prompt_config.break_str, String::from("❯"));
+        assert_eq!(prompt_config.git_branch, String::from("on "));
+        assert_eq!(prompt_config.git_commit_ref, 8);
+        assert_eq!(prompt_config.history_size, 256);
+        assert_eq!(prompt_config.min_duration, 2000);
+        assert_eq!(prompt_config.rc_err, String::from("✖"));
+        assert_eq!(prompt_config.rc_ok, String::from("✔"));
+        assert_eq!(prompt_config.translate, false);
+    }
+
+    #[test]
+    fn test_config_prompt() {
+        let config: String = String::from("prompt:\n  prompt_line: \"${USER} on ${HOSTNAME} in ${WRKDIR} ${GIT_BRANCH} (${GIT_COMMIT}) ${CMD_TIME}\"\n  history_size: 1024\n  translate: true\n  break:\n    enabled: false\n    with: \">\"\n  duration:\n    min_elapsed_time: 5000\n  rc:\n    ok: \"^_^\"\n    error: \"x_x\"\n  git:\n    branch: \"on \"\n    commit_ref_len: 4\n");
+        let config: Config = Config::parse_config_str(config).ok().unwrap();
+        //Verify config parameters
+        let prompt_config: PromptConfig = config.prompt_config;
+        assert_eq!(prompt_config.prompt_line, String::from("${USER} on ${HOSTNAME} in ${WRKDIR} ${GIT_BRANCH} (${GIT_COMMIT}) ${CMD_TIME}"));
+        assert_eq!(prompt_config.break_enabled, false);
+        assert_eq!(prompt_config.break_str, String::from(">"));
+        assert_eq!(prompt_config.git_branch, String::from("on "));
+        assert_eq!(prompt_config.git_commit_ref, 4);
+        assert_eq!(prompt_config.history_size, 1024);
+        assert_eq!(prompt_config.min_duration, 5000);
+        assert_eq!(prompt_config.rc_err, String::from("x_x"));
+        assert_eq!(prompt_config.rc_ok, String::from("^_^"));
+        assert_eq!(prompt_config.translate, true);
+    }
+
+    #[test]
+    fn test_config_prompt_bad() {
+        let config: String = String::from("prompt:\n  prompt_le: \"${USER} on ${HOSTNAME} in ${WRKDIR} ${GIT_BRANCH} (${GIT_COMMIT}) ${CMD_TIME}\"\n  history_size: 1024\n  translate: true\n  break:\n    enabled: false\n    with: \">\"\n  duration:\n    min_elapsed_time: 5000\n  rc:\n    ok: \"^_^\"\n    error: \"x_x\"\n  git:\n    branch: \"on \"\n    commit_ref_len: 4\n");
+        assert!(Config::parse_config_str(config).is_err());
+        let config: String = String::from("prompt:\n  prompt_line: \"${USER} on ${HOSTNAME} in ${WRKDIR} ${GIT_BRANCH} (${GIT_COMMIT}) ${CMD_TIME}\"\n  histosize: 1024\n  translate: true\n  break:\n    enabled: false\n    with: \">\"\n  duration:\n    min_elapsed_time: 5000\n  rc:\n    ok: \"^_^\"\n    error: \"x_x\"\n  git:\n    branch: \"on \"\n    commit_ref_len: 4\n");
+        assert!(Config::parse_config_str(config).is_err());
+        let config: String = String::from("prompt:\n  prompt_line: \"${USER} on ${HOSTNAME} in ${WRKDIR} ${GIT_BRANCH} (${GIT_COMMIT}) ${CMD_TIME}\"\n  history_size: 1024\n  trslate: true\n  break:\n    enabled: false\n    with: \">\"\n  duration:\n    min_elapsed_time: 5000\n  rc:\n    ok: \"^_^\"\n    error: \"x_x\"\n  git:\n    branch: \"on \"\n    commit_ref_len: 4\n");
+        assert!(Config::parse_config_str(config).is_err());
+        let config: String = String::from("prompt:\n  prompt_line: \"${USER} on ${HOSTNAME} in ${WRKDIR} ${GIT_BRANCH} (${GIT_COMMIT}) ${CMD_TIME}\"\n  history_size: 1024\n  translate: true\n  bak:\n    enabled: false\n    with: \">\"\n  duration:\n    min_elapsed_time: 5000\n  rc:\n    ok: \"^_^\"\n    error: \"x_x\"\n  git:\n    branch: \"on \"\n    commit_ref_len: 4\n");
+        assert!(Config::parse_config_str(config).is_err());
+        let config: String = String::from("prompt:\n  prompt_line: \"${USER} on ${HOSTNAME} in ${WRKDIR} ${GIT_BRANCH} (${GIT_COMMIT}) ${CMD_TIME}\"\n  history_size: 1024\n  translate: true\n  break:\n    eled: false\n    with: \">\"\n  duration:\n    min_elapsed_time: 5000\n  rc:\n    ok: \"^_^\"\n    error: \"x_x\"\n  git:\n    branch: \"on \"\n    commit_ref_len: 4\n");
+        assert!(Config::parse_config_str(config).is_err());
+        let config: String = String::from("prompt:\n  prompt_line: \"${USER} on ${HOSTNAME} in ${WRKDIR} ${GIT_BRANCH} (${GIT_COMMIT}) ${CMD_TIME}\"\n  history_size: 1024\n  translate: true\n  break:\n    enabled: false\n    th: \">\"\n  duration:\n    min_elapsed_time: 5000\n  rc:\n    ok: \"^_^\"\n    error: \"x_x\"\n  git:\n    branch: \"on \"\n    commit_ref_len: 4\n");
+        assert!(Config::parse_config_str(config).is_err());
+        let config: String = String::from("prompt:\n  prompt_line: \"${USER} on ${HOSTNAME} in ${WRKDIR} ${GIT_BRANCH} (${GIT_COMMIT}) ${CMD_TIME}\"\n  history_size: 1024\n  translate: true\n  break:\n    enabled: false\n    with: \">\"\n  dution:\n    min_elapsed_time: 5000\n  rc:\n    ok: \"^_^\"\n    error: \"x_x\"\n  git:\n    branch: \"on \"\n    commit_ref_len: 4\n");
+        assert!(Config::parse_config_str(config).is_err());
+        let config: String = String::from("prompt:\n  prompt_line: \"${USER} on ${HOSTNAME} in ${WRKDIR} ${GIT_BRANCH} (${GIT_COMMIT}) ${CMD_TIME}\"\n  history_size: 1024\n  translate: true\n  break:\n    enabled: false\n    with: \">\"\n  duration:\n    min_elapsime: 5000\n  rc:\n    ok: \"^_^\"\n    error: \"x_x\"\n  git:\n    branch: \"on \"\n    commit_ref_len: 4\n");
+        assert!(Config::parse_config_str(config).is_err());
+        let config: String = String::from("prompt:\n  prompt_line: \"${USER} on ${HOSTNAME} in ${WRKDIR} ${GIT_BRANCH} (${GIT_COMMIT}) ${CMD_TIME}\"\n  history_size: 1024\n  translate: true\n  break:\n    enabled: false\n    with: \">\"\n  duration:\n    min_elapsed_time: 5000\n  r:\n    ok: \"^_^\"\n    error: \"x_x\"\n  git:\n    branch: \"on \"\n    commit_ref_len: 4\n");
+        assert!(Config::parse_config_str(config).is_err());
+        let config: String = String::from("prompt:\n  prompt_line: \"${USER} on ${HOSTNAME} in ${WRKDIR} ${GIT_BRANCH} (${GIT_COMMIT}) ${CMD_TIME}\"\n  history_size: 1024\n  translate: true\n  break:\n    enabled: false\n    with: \">\"\n  duration:\n    min_elapsed_time: 5000\n  rc:\n    o: \"^_^\"\n    error: \"x_x\"\n  git:\n    branch: \"on \"\n    commit_ref_len: 4\n");
+        assert!(Config::parse_config_str(config).is_err());
+        let config: String = String::from("prompt:\n  prompt_line: \"${USER} on ${HOSTNAME} in ${WRKDIR} ${GIT_BRANCH} (${GIT_COMMIT}) ${CMD_TIME}\"\n  history_size: 1024\n  translate: true\n  break:\n    enabled: false\n    with: \">\"\n  duration:\n    min_elapsed_time: 5000\n  rc:\n    ok: \"^_^\"\n    err: \"x_x\"\n  git:\n    branch: \"on \"\n    commit_ref_len: 4\n");
+        assert!(Config::parse_config_str(config).is_err());
+        let config: String = String::from("prompt:\n  prompt_line: \"${USER} on ${HOSTNAME} in ${WRKDIR} ${GIT_BRANCH} (${GIT_COMMIT}) ${CMD_TIME}\"\n  history_size: 1024\n  translate: true\n  break:\n    enabled: false\n    with: \">\"\n  duration:\n    min_elapsed_time: 5000\n  rc:\n    ok: \"^_^\"\n    error: \"x_x\"\n  gi:\n    branch: \"on \"\n    commit_ref_len: 4\n");
+        assert!(Config::parse_config_str(config).is_err());
+        let config: String = String::from("prompt:\n  prompt_line: \"${USER} on ${HOSTNAME} in ${WRKDIR} ${GIT_BRANCH} (${GIT_COMMIT}) ${CMD_TIME}\"\n  history_size: 1024\n  translate: true\n  break:\n    enabled: false\n    with: \">\"\n  duration:\n    min_elapsed_time: 5000\n  rc:\n    ok: \"^_^\"\n    error: \"x_x\"\n  git:\n    brch: \"on \"\n    commit_ref_len: 4\n");
+        assert!(Config::parse_config_str(config).is_err());
+        let config: String = String::from("prompt:\n  prompt_line: \"${USER} on ${HOSTNAME} in ${WRKDIR} ${GIT_BRANCH} (${GIT_COMMIT}) ${CMD_TIME}\"\n  history_size: 1024\n  translate: true\n  break:\n    enabled: false\n    with: \">\"\n  duration:\n    min_elapsed_time: 5000\n  rc:\n    ok: \"^_^\"\n    error: \"x_x\"\n  git:\n    branch: \"on \"\n    com_ref_len: 4\n");
+        assert!(Config::parse_config_str(config).is_err());
     }
 
     #[test]
     fn test_bad_syntax() {
-        let config_file: tempfile::NamedTempFile = write_config_bad_syntax();
-        let config_file_path: String = String::from(config_file.path().to_str().unwrap());
-        println!("Generated config file: {}", config_file_path);
-        assert_eq!(Config::parse_config(config_file_path).err().unwrap().code, ConfigErrorCode::YamlSyntaxError);
-    }
-
-    #[test]
-    fn test_alias_not_array() {
-        let config_file: tempfile::NamedTempFile = write_config_alias_as_int();
-        let config_file_path: String = String::from(config_file.path().to_str().unwrap());
-        println!("Generated config file: {}", config_file_path);
-        assert_eq!(Config::parse_config(config_file_path).err().unwrap().code, ConfigErrorCode::YamlSyntaxError);
-    }
-
-    #[test]
-    fn test_no_file() {
-        assert_eq!(Config::parse_config(String::from("config.does.not.exist.yml")).err().unwrap().code, ConfigErrorCode::NoSuchFileOrDirectory);
-    }
-
-    #[cfg(not(target_os = "macos"))]
-    #[test]
-    fn test_not_accessible() {
-        assert_eq!(Config::parse_config(String::from("/dev/ttyS0")).err().unwrap().code, ConfigErrorCode::CouldNotReadFile);
+        let config: String = String::from("foobar: 5:\n");
+        assert_eq!(
+            Config::parse_config_str(config).err().unwrap().code,
+            ConfigErrorCode::YamlSyntaxError
+        );
     }
 
     #[test]
     fn test_empty_yaml() {
-        let config_file: tempfile::NamedTempFile = write_config_empty();
-        let config_file_path: String = String::from(config_file.path().to_str().unwrap());
-        println!("Generated config file: {}", config_file_path);
-        assert_eq!(Config::parse_config(config_file_path).err().unwrap().code, ConfigErrorCode::YamlSyntaxError);
+        let config: String = String::from("\n");
+        assert_eq!(
+            Config::parse_config_str(config).err().unwrap().code,
+            ConfigErrorCode::YamlSyntaxError
+        );
     }
 
     #[test]
@@ -419,91 +705,6 @@ mod tests {
             "alias:\n  - чд: \"cd\"\n  - пвд: \"pwd\"\n  - уич: \"which\""
         )
         .unwrap();
-        tmpfile
-    }
-
-    /// ### write_config_no_alias
-    /// Write configuration file to a temporary directory and return the file path
-    fn write_config_no_alias() -> tempfile::NamedTempFile {
-        // Write
-        let mut tmpfile: tempfile::NamedTempFile = tempfile::NamedTempFile::new().unwrap();
-        write!(tmpfile, "foobar: 5\n").unwrap();
-        tmpfile
-    }
-
-    fn write_config_output_config() -> tempfile::NamedTempFile {
-        // Write
-        let mut tmpfile: tempfile::NamedTempFile = tempfile::NamedTempFile::new().unwrap();
-        write!(tmpfile, "output:\n  translate: true\n").unwrap();
-        tmpfile
-    }
-
-    fn write_config_bad_output_config() -> tempfile::NamedTempFile {
-        // Write
-        let mut tmpfile: tempfile::NamedTempFile = tempfile::NamedTempFile::new().unwrap();
-        write!(tmpfile, "output:\n  foobar: 5\n").unwrap();
-        tmpfile
-    }
-
-    fn write_config_output_translate_as_str() -> tempfile::NamedTempFile {
-        // Write
-        let mut tmpfile: tempfile::NamedTempFile = tempfile::NamedTempFile::new().unwrap();
-        write!(tmpfile, "output:\n  translate: pippo\n").unwrap();
-        tmpfile
-    }
-
-    fn write_config_output_config_false() -> tempfile::NamedTempFile {
-        // Write
-        let mut tmpfile: tempfile::NamedTempFile = tempfile::NamedTempFile::new().unwrap();
-        write!(tmpfile, "output:\n  translate: false\n").unwrap();
-        tmpfile
-    }
-
-    fn write_config_language_config() -> tempfile::NamedTempFile {
-        // Write
-        let mut tmpfile: tempfile::NamedTempFile = tempfile::NamedTempFile::new().unwrap();
-        write!(tmpfile, "language: bg\n").unwrap();
-        tmpfile
-    }
-
-    fn write_config_language_config_missing() -> tempfile::NamedTempFile {
-        // Write
-        let mut tmpfile: tempfile::NamedTempFile = tempfile::NamedTempFile::new().unwrap();
-        write!(tmpfile, "output:\n  translate: false\n").unwrap();
-        tmpfile
-    }
-
-    fn write_config_language_config_badvalue() -> tempfile::NamedTempFile {
-        // Write
-        let mut tmpfile: tempfile::NamedTempFile = tempfile::NamedTempFile::new().unwrap();
-        write!(tmpfile, "language:\n  name: ru\n").unwrap();
-        tmpfile
-    }
-
-    /// ### write_config_bad_syntax
-    /// Write configuration file to a temporary directory and return the file path
-    fn write_config_bad_syntax() -> tempfile::NamedTempFile {
-        // Write
-        let mut tmpfile: tempfile::NamedTempFile = tempfile::NamedTempFile::new().unwrap();
-        write!(tmpfile, "foobar: 5:\n").unwrap();
-        tmpfile
-    }
-
-    /// ### write_config_alias_as_int
-    /// Write configuration file to a temporary directory and return the file path
-    fn write_config_alias_as_int() -> tempfile::NamedTempFile {
-        // Write
-        let mut tmpfile: tempfile::NamedTempFile = tempfile::NamedTempFile::new().unwrap();
-        write!(tmpfile, "alias: 5\n").unwrap();
-        tmpfile
-    }
-
-    /// ### Write empty yaml file
-    /// Write configuration file to a temporary directory and return the file path
-    fn write_config_empty() -> tempfile::NamedTempFile {
-        // Write
-        let mut tmpfile: tempfile::NamedTempFile = tempfile::NamedTempFile::new().unwrap();
-        write!(tmpfile, "\n").unwrap();
         tmpfile
     }
 }

@@ -5,3 +5,18 @@ alias:
   - уич: which
 output:
   translate: true
+prompt:
+  prompt_line: "${KYEL}${USER}${KRST} on ${KGRN}${HOSTNAME}${KRST} in ${KCYN}${WRKDIR}${KRST} ${KMAG}${GIT_BRANCH} (${GIT_COMMIT})${KRST} ${KYEL}${CMD_TIME}${KRST}"
+  history_size: 256
+  translate: false
+  break:
+    enabled: true
+    with: "❯"
+  duration:
+    min_elapsed_time: 2000
+  rc:
+    ok: "✔"
+    error: "✖"
+  git:
+    branch: "on "
+    commit_ref_len: 8

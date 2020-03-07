@@ -14,6 +14,7 @@ Current version: 0.1.0 (??/??/2020) **STILL UNDER DEVELOPMENT**
   - [Features](#features)
   - [Usage](#usage)
   - [Configuration](#configuration)
+    - [Prompt Line Configuration](#prompt-line-configuration)
   - [Documentation](#documentation)
   - [Known issues](#known-issues)
     - [Unicode Replacement character while typing (�)](#unicode-replacement-character-while-typing-%ef%bf%bd)
@@ -60,12 +61,80 @@ alias:
   - уич: which
 output:
   translate: true
+prompt:
+  prompt_line: "${USER} on ${HOSTNAME} in ${WRKDIR} ${GIT_BRANCH} (${GIT_COMMIT}) ${CMD_TIME}"
+  history_size: 256
+  translate: false
+  break:
+    enabled: true
+    with: "❯"
+  duration:
+    min_elapsed_time: 2000
+  rc:
+    ok: "✔"
+    error: "✖"
+  git:
+    branch: "on  "
+    commit_ref_len: 8
 ```
 
 - alias: list of alias. When the first word of a command is one of the configured alias, it is automatically replaced with the associated latin expression.
 - language: Pyc default language (can be overridden with cli options)
 - output: output configuration
   - translate: indicates to pyc whether the output has to be converted to cyrillic or not
+- prompt: Prompt configuration (See [Prompt Configuration](#prompt-line-configuration))
+  - prompt_line: String describing the prompt line syntax
+  - history_size: Pyc history size
+  - translate: should the prompt line be translated
+  - break: Break line after prompt
+    - enabled: should the prompt break or not?
+  - duration: command duration configuration
+    - enabled: module enabled
+    - with: break with provided string
+  - rc: return code module
+    - ok: string to write in case of successful command
+    - error: string to write in case of error
+  - git: git module
+    - branch: string to write before writing branch name
+    - commit_ref_len: length of commit reference
+
+### Prompt Line Configuration
+
+The prompt configuration is used to setup the prompt line when using the interactive mode.
+The prompt configuration provides parameters to customize the line printed when interacting with the shell.
+In addition to the parameters described before, here the prompt line keys are illustrated.
+
+Each prompt line key must have the following syntax ```${VAR_NAME}```
+
+**General** keys
+
+| Key      | Description                                                              |
+|----------|--------------------------------------------------------------------------|
+| USER     | Username                                                                 |
+| HOSTNAME | Hostname                                                                 |
+| WRKDIR   | Current directory                                                        |
+| LANG     | The language configured for Pyc in flag colors of the associated country |
+| CMD_TIME | Execution time of the last command if >= min_elapsed_time                |
+| RC       | Shows the string associated to a successful exitcode or to an error      |
+
+**Colors** keys
+
+| Key      | Description |
+|----------|-------------|
+| KYEL     | Yellow      |
+| KRED     | Red         |
+| KBLU     | Blue        |
+| KMAG     | Magenta     |
+| KGRN     | Green       |
+| KWHT     | White       |
+| KRST     | Reset       |
+
+**Git** keys
+
+| Key        | Description                 |
+|------------|-----------------------------|
+| GIT_BRANCH | The current git branch      |
+| GIT_COMMIT | The current git commit  ref |
 
 ## Documentation
 
@@ -94,6 +163,10 @@ Regenerate locales:
 ```sh
 sudo locale-gen
 ```
+
+If this didn't solve your problem it's probably an issue of your terminal. Up to now I've found out that some terminals just don't let you type non-ascii characters when executing an application. These are the terminals which I've used or have been reported which **DON'T** work.
+
+- Windows Terminal
 
 ### Cd command in oneshot mode doesn't work
 
