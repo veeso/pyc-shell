@@ -25,10 +25,12 @@
 
 use std::fmt;
 
+use super::Language;
 use super::Translator;
 
 pub struct IOProcessor {
   translator: Box<dyn Translator>,
+  pub language: Language
 }
 
 /// ### ExpressionParserError
@@ -57,6 +59,7 @@ struct ExpressionParserStates {
 ///
 /// Expression Conversion indicates the type of conversion to perform on the expression
 
+#[allow(dead_code)]
 enum ExpressionConversion {
   ToLatin,
   ToCyrillic
@@ -66,9 +69,10 @@ impl IOProcessor {
   /// ### new
   ///
   /// Instantiates a new IOProcessor with the provided translator
-  pub fn new(translator: Box<dyn Translator>) -> IOProcessor {
+  pub fn new(language: Language, translator: Box<dyn Translator>) -> IOProcessor {
     IOProcessor {
       translator: translator,
+      language: language
     }
   }
 
@@ -80,6 +84,7 @@ impl IOProcessor {
     self.translate_expression(expression, ExpressionConversion::ToLatin)
   }
 
+  #[allow(dead_code)]
   pub fn expression_to_cyrillic(&self, expression: String) -> Result<String, ExpressionParserError> {
     self.translate_expression(expression, ExpressionConversion::ToCyrillic)
   }
@@ -252,7 +257,8 @@ mod tests {
   #[test]
   fn to_cyrillic_simple() {
     //Instantiate IOProcessor
-    let iop: IOProcessor = IOProcessor::new(new_translator(Language::Russian));
+    let iop: IOProcessor = IOProcessor::new(Language::Russian, new_translator(Language::Russian));
+    assert_eq!(iop.language, Language::Russian);
     let input: String = String::from("Привет Мир!");
     assert_eq!(iop.text_to_latin(input), String::from("Privyet Mir!"));
   }
@@ -260,7 +266,8 @@ mod tests {
   #[test]
   fn to_cyrillic_expressions() {
     //Instantiate IOProcessor
-    let iop: IOProcessor = IOProcessor::new(new_translator(Language::Russian));
+    let iop: IOProcessor = IOProcessor::new(Language::Russian, new_translator(Language::Russian));
+    assert_eq!(iop.language, Language::Russian);
     //Simple command
     let input: String = String::from("экхо фообар");
     assert_eq!(iop.expression_to_latin(input).unwrap(), String::from("echo foobar"));
@@ -290,7 +297,8 @@ mod tests {
   #[should_panic]
   fn to_cyrillic_missing_token_parenthesis() {
     //Instantiate IOProcessor
-    let iop: IOProcessor = IOProcessor::new(new_translator(Language::Russian));
+    let iop: IOProcessor = IOProcessor::new(Language::Russian, new_translator(Language::Russian));
+    assert_eq!(iop.language, Language::Russian);
     //Bad expression
     let input: String = String::from("экхо ₽(хостнамэ");
     assert!(iop.expression_to_latin(input).is_ok());
@@ -300,7 +308,8 @@ mod tests {
   #[should_panic]
   fn to_cyrillic_missing_token_quotes() {
     //Instantiate IOProcessor
-    let iop: IOProcessor = IOProcessor::new(new_translator(Language::Russian));
+    let iop: IOProcessor = IOProcessor::new(Language::Russian, new_translator(Language::Russian));
+    assert_eq!(iop.language, Language::Russian);
     //Bad expression
     let input: String = String::from("экхо \"привет");
     assert!(iop.expression_to_latin(input).is_ok());
@@ -310,7 +319,8 @@ mod tests {
   #[should_panic]
   fn to_cyrillic_missing_token_backslash() {
     //Instantiate IOProcessor
-    let iop: IOProcessor = IOProcessor::new(new_translator(Language::Russian));
+    let iop: IOProcessor = IOProcessor::new(Language::Russian, new_translator(Language::Russian));
+    assert_eq!(iop.language, Language::Russian);
     //Bad expression
     let input: String = String::from("экхо \"привет\\");
     assert!(iop.expression_to_latin(input).is_ok());
@@ -319,7 +329,8 @@ mod tests {
   #[test]
   fn to_latin_simple() {
     //Instantiate IOProcessor
-    let iop: IOProcessor = IOProcessor::new(new_translator(Language::Russian));
+    let iop: IOProcessor = IOProcessor::new(Language::Russian, new_translator(Language::Russian));
+    assert_eq!(iop.language, Language::Russian);
     let input: String = String::from("Hello World!");
     assert_eq!(iop.text_to_cyrillic(input), String::from("Хэлло Уорлд!"));
   }
@@ -327,7 +338,8 @@ mod tests {
   #[test]
   fn to_latin_expressions() {
     //Instantiate IOProcessor
-    let iop: IOProcessor = IOProcessor::new(new_translator(Language::Russian));
+    let iop: IOProcessor = IOProcessor::new(Language::Russian, new_translator(Language::Russian));
+    assert_eq!(iop.language, Language::Russian);
     //Simple command
     let input: String = String::from("echo foobar");
     assert_eq!(iop.expression_to_cyrillic(input).unwrap(), String::from("эчо фообар"));
@@ -355,7 +367,8 @@ mod tests {
   #[should_panic]
   fn to_latin_missing_token_parenthesis() {
     //Instantiate IOProcessor
-    let iop: IOProcessor = IOProcessor::new(new_translator(Language::Russian));
+    let iop: IOProcessor = IOProcessor::new(Language::Russian, new_translator(Language::Russian));
+    assert_eq!(iop.language, Language::Russian);
     //Bad expression
     let input: String = String::from("echo $(hostname");
     assert!(iop.expression_to_latin(input).is_ok());
@@ -365,7 +378,8 @@ mod tests {
   #[should_panic]
   fn to_latin_missing_token_quotes() {
     //Instantiate IOProcessor
-    let iop: IOProcessor = IOProcessor::new(new_translator(Language::Russian));
+    let iop: IOProcessor = IOProcessor::new(Language::Russian, new_translator(Language::Russian));
+    assert_eq!(iop.language, Language::Russian);
     //Bad expression
     let input: String = String::from("echo \"hello");
     assert!(iop.expression_to_latin(input).is_ok());
@@ -375,7 +389,8 @@ mod tests {
   #[should_panic]
   fn to_latin_missing_token_backslash() {
     //Instantiate IOProcessor
-    let iop: IOProcessor = IOProcessor::new(new_translator(Language::Russian));
+    let iop: IOProcessor = IOProcessor::new(Language::Russian, new_translator(Language::Russian));
+    assert_eq!(iop.language, Language::Russian);
     //Bad expression
     let input: String = String::from("echo \"hello\\");
     assert!(iop.expression_to_latin(input).is_ok());

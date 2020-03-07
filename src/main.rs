@@ -160,7 +160,7 @@ fn main() {
         None => str_to_language(config.language.clone())
     };
     //Set up processor
-    let processor: IOProcessor = IOProcessor::new(translator::new_translator(language));
+    let processor: IOProcessor = IOProcessor::new(language, translator::new_translator(language));
     //Start runtime
     let rc: u8;
     if oneshot {

@@ -36,6 +36,14 @@ pub enum Language {
   Russian,
 }
 
+impl ToString for Language {
+  fn to_string(&self) -> String {
+    match self {
+      Language::Russian => String::from("рус")
+    }
+  }
+}
+
 /// ## Languages
 ///
 /// Languages are empty structs which must implement the Translator trait
@@ -69,4 +77,17 @@ pub fn new_translator(language: Language) -> Box<dyn Translator> {
   match language {
     Language::Russian => Box::new(Russian {}),
   }
+}
+
+#[cfg(test)]
+mod tests {
+
+  use super::*;
+
+  #[test]
+  fn test_language() {
+    let language: Language = Language::Russian;
+    assert_eq!(language.to_string(), String::from("рус"))
+  }
+
 }

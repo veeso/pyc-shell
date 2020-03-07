@@ -127,6 +127,7 @@ Each prompt line key must have the following syntax ```${VAR_NAME}```
 | KMAG     | Magenta     |
 | KGRN     | Green       |
 | KWHT     | White       |
+| KGRY     | Gray        |
 | KRST     | Reset       |
 
 **Git** keys
