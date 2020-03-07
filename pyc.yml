@@ -1,6 +1,7 @@
+language: ru
 alias:
-  - чд: "cd"
-  - пвд: "pwd"
-  - уич: "which"
+  - чд: cd
+  - пвд: pwd
+  - уич: which
 output:
   translate: true

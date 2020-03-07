@@ -31,6 +31,7 @@ use yaml_rust::{Yaml, YamlLoader};
 
 //Types
 pub struct Config {
+    pub language: String,
     alias: HashMap<String, String>,
     pub output_config: OutputConfig,
 }
@@ -75,6 +76,7 @@ impl Config {
     pub fn default() -> Config {
         let alias_config: HashMap<String, String> = HashMap::new();
         Config {
+            language: String::from("ru"),
             alias: alias_config,
             output_config: OutputConfig::default(),
         }
@@ -126,6 +128,16 @@ impl Config {
         };
         let yaml_doc: &Yaml = &yaml_docs[0];
         //Look for keys and get configuration parts
+        //Check if language exists
+        let language_yaml = &yaml_doc["language"];
+        let language: String = if language_yaml.is_badvalue() {
+            String::from("ru")
+        } else {
+            match Config::parse_language(&language_yaml) {
+                Ok(l) => l,
+                Err(err) => return Err(err)
+            }
+        };
         //Check if alias exists
         let alias_config_yaml = &yaml_doc["alias"];
         let alias_config: HashMap<String, String> = if alias_config_yaml.is_badvalue() {
@@ -149,6 +161,7 @@ impl Config {
             }
         };
         Ok(Config {
+            language: language,
             alias: alias_config,
             output_config: output_config,
         })
@@ -184,6 +197,19 @@ impl Config {
             }
         }
         Ok(alias_table)
+    }
+
+    /// ### parse_language
+    /// 
+    /// Parse language YAML object
+    fn parse_language(language_yaml: &Yaml) -> Result<String, ConfigError> {
+        match language_yaml.as_str() {
+            Some(l) => Ok(String::from(l)),
+            None => Err(ConfigError {
+                code: ConfigErrorCode::YamlSyntaxError,
+                message: String::from("'language' is not a string")
+            })
+        }
     }
 }
 
@@ -231,6 +257,7 @@ mod tests {
         let config: Config = Config::default();
         assert!(config.get_alias(&String::from("чд")).is_none());
         assert_eq!(config.output_config.translate_output, true);
+        assert_eq!(config.language, String::from("ru"));
     }
 
     #[test]
@@ -301,6 +328,33 @@ mod tests {
         let config_file_path: String = String::from(config_file.path().to_str().unwrap());
         println!("Generated config file: {}", config_file_path);
         assert_eq!(Config::parse_config(config_file_path).err().unwrap().code, ConfigErrorCode::YamlSyntaxError);
+    }
+
+    #[test]
+    fn test_config_language() {
+        let config_file: tempfile::NamedTempFile = write_config_language_config();
+        let config_file_path: String = String::from(config_file.path().to_str().unwrap());
+        println!("Generated config file: {}", config_file_path);
+        let config: Config = Config::parse_config(config_file_path).ok().unwrap();
+        assert_eq!(config.language, String::from("bg"));
+    }
+
+    #[test]
+    fn test_config_language_missing() {
+        let config_file: tempfile::NamedTempFile = write_config_language_config_missing();
+        let config_file_path: String = String::from(config_file.path().to_str().unwrap());
+        println!("Generated config file: {}", config_file_path);
+        let config: Config = Config::parse_config(config_file_path).ok().unwrap();
+        assert_eq!(config.language, String::from("ru"));
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_config_language_badvalue() {
+        let config_file: tempfile::NamedTempFile = write_config_language_config_badvalue();
+        let config_file_path: String = String::from(config_file.path().to_str().unwrap());
+        println!("Generated config file: {}", config_file_path);
+        assert!(Config::parse_config(config_file_path).is_ok());
     }
 
     #[test]
@@ -402,6 +456,27 @@ mod tests {
         // Write
         let mut tmpfile: tempfile::NamedTempFile = tempfile::NamedTempFile::new().unwrap();
         write!(tmpfile, "output:\n  translate: false\n").unwrap();
+        tmpfile
+    }
+
+    fn write_config_language_config() -> tempfile::NamedTempFile {
+        // Write
+        let mut tmpfile: tempfile::NamedTempFile = tempfile::NamedTempFile::new().unwrap();
+        write!(tmpfile, "language: bg\n").unwrap();
+        tmpfile
+    }
+
+    fn write_config_language_config_missing() -> tempfile::NamedTempFile {
+        // Write
+        let mut tmpfile: tempfile::NamedTempFile = tempfile::NamedTempFile::new().unwrap();
+        write!(tmpfile, "output:\n  translate: false\n").unwrap();
+        tmpfile
+    }
+
+    fn write_config_language_config_badvalue() -> tempfile::NamedTempFile {
+        // Write
+        let mut tmpfile: tempfile::NamedTempFile = tempfile::NamedTempFile::new().unwrap();
+        write!(tmpfile, "language:\n  name: ru\n").unwrap();
         tmpfile
     }
 

@@ -45,7 +45,7 @@ use translator::ioprocessor::IOProcessor;
 /// Print usage
 
 fn print_usage(program: &String, opts: Options) {
-    let brief = format!("Усаж: {} [ОПТИОНС]... [КОММАНД]...", program);
+    let brief = format!("Usage: {} [Options]... [Command]...", program);
     print!("{}", opts.usage(&brief));
 }
 
@@ -76,13 +76,13 @@ fn main() {
     let config_file: String;
     let mut shell: Option<String> = None;
     let oneshot: bool;
-    let language: translator::Language;
+    let language: Option<translator::Language>;
     let mut opts = Options::new();
-    opts.optopt("c", "конфиг", "Specify YAML configuration file", "<config>");
-    opts.optopt("l", "ланг", "Specify shell language", "<ru|рус>");
-    opts.optopt("s", "шэлл", "Force the shell used for shell mode", "</bin/bash>");
-    opts.optflag("v", "версён", "");
-    opts.optflag("h", "хелп", "Print this menu");
+    opts.optopt("c", "config", "Specify YAML configuration file", "<config>");
+    opts.optopt("l", "lang", "Specify shell language", "<ru|рус>");
+    opts.optopt("s", "shell", "Force the shell used for shell mode", "</bin/bash>");
+    opts.optflag("v", "version", "");
+    opts.optflag("h", "help", "Print this menu");
     let matches = match opts.parse(&args[1..]) {
         Ok(m) => m,
         Err(f) => {
@@ -110,11 +110,9 @@ fn main() {
     };
     //Set translator language
     language = match matches.opt_str("l") {
-        Some(lang) => str_to_language(lang),
-        None => translator::Language::Russian,
+        Some(lang) => Some(str_to_language(lang)),
+        None => None,
     };
-    //Set up processor
-    let processor: IOProcessor = IOProcessor::new(translator::new_translator(language));
     //Set config file to '-c' file or to default file
     config_file = match matches.opt_str("c") {
         Some(cfg_override) => cfg_override,
@@ -139,9 +137,9 @@ fn main() {
                     "{}",
                     Colour::Red.paint(format!(
                         "{}: {}; {}",
-                        processor.text_to_cyrillic(String::from("No such file or directory")),
+                        String::from("No such file or directory"),
                         config_file,
-                        processor.text_to_cyrillic(String::from("Using default configuration"))
+                        String::from("Using default configuration")
                     ))
                 );
                 config::Config::default()
@@ -150,12 +148,20 @@ fn main() {
                 "{}",
                 Colour::Red.paint(format!(
                     "{}: '{}'",
-                    processor.text_to_cyrillic(String::from("Could not parse YAML configuration")),
+                    String::from("Could not parse YAML configuration"),
                     err
                 ))
             ),
         },
     };
+    //Set language
+    let language: translator::Language = match language {
+        Some(l) => l,
+        None => str_to_language(config.language.clone())
+    };
+    //Set up processor
+    let processor: IOProcessor = IOProcessor::new(translator::new_translator(language));
+    //Start runtime
     let rc: u8;
     if oneshot {
         rc = runtime::process_command(processor, &config, argv);

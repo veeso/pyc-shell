@@ -53,17 +53,19 @@ The configuration must be stored at ```$HOME/.config/pyc/pyc.yml```. A default c
 Let's see how the configuration is written
 
 ```yaml
+language: ru
 alias:
-  - чд: "cd"
-  - пвд: "pwd"
-  - уич: "which"
+  - чд: cd
+  - пвд: pwd
+  - уич: which
 output:
   translate: true
 ```
 
-- alias (or аляс): list of alias. When the first word of a command is one of the configured alias, it is automatically replaced with the associated latin expression.
-- output (or оутпут): output configuration
-  - translate (or транслатэ): indicates to pyc whether the output has to be converted to cyrillic or not
+- alias: list of alias. When the first word of a command is one of the configured alias, it is automatically replaced with the associated latin expression.
+- language: Pyc default language (can be overridden with cli options)
+- output: output configuration
+  - translate: indicates to pyc whether the output has to be converted to cyrillic or not
 
 ## Documentation
 
