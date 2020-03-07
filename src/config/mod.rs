@@ -127,11 +127,7 @@ impl Config {
         let yaml_doc: &Yaml = &yaml_docs[0];
         //Look for keys and get configuration parts
         //Check if alias exists
-        let mut alias_config_yaml = &yaml_doc["alias"];
-        if alias_config_yaml.is_badvalue() {
-            //If alias doesn't exist, then use 'аляс'
-            alias_config_yaml = &yaml_doc["аляс"];
-        }
+        let alias_config_yaml = &yaml_doc["alias"];
         let alias_config: HashMap<String, String> = if alias_config_yaml.is_badvalue() {
             HashMap::new()
         } else {
@@ -142,11 +138,7 @@ impl Config {
             }
         };
         //Check if output exists
-        let mut output_config_yaml = &yaml_doc["output"];
-        if output_config_yaml.is_badvalue() {
-            //If alias doesn't exist, then use 'аляс'
-            output_config_yaml = &yaml_doc["оутпут"];
-        }
+        let output_config_yaml = &yaml_doc["output"];
         let output_config: OutputConfig = if output_config_yaml.is_badvalue() {
             OutputConfig::default()
         } else {
@@ -203,11 +195,7 @@ impl OutputConfig {
     }
 
     pub fn parse_config(output_yaml: &Yaml) -> Result<OutputConfig, ConfigError> {
-        let mut translate_output_yaml = &output_yaml["translate"];
-        if translate_output_yaml.is_badvalue() {
-            //If translate doesn't exist, then use 'транслатэ'
-            translate_output_yaml = &output_yaml["транслатэ"];
-        }
+        let translate_output_yaml = &output_yaml["translate"];
         if translate_output_yaml.is_badvalue() {
             return Err(ConfigError {
                 code: ConfigErrorCode::YamlSyntaxError,
@@ -243,38 +231,6 @@ mod tests {
         let config: Config = Config::default();
         assert!(config.get_alias(&String::from("чд")).is_none());
         assert_eq!(config.output_config.translate_output, true);
-    }
-
-    #[test]
-    fn test_config_ru_alias() {
-        //Try to parse a configuration file
-        let config_file: tempfile::NamedTempFile = write_config_file_ru();
-        let config_file_path: String = String::from(config_file.path().to_str().unwrap());
-        println!("Generated config file: {}", config_file_path);
-        match Config::parse_config(config_file_path) {
-            Ok(config) => {
-                //Verify alias parameters
-                assert_eq!(
-                    config.get_alias(&String::from("чд")).unwrap(),
-                    String::from("cd")
-                );
-                assert_eq!(
-                    config.get_alias(&String::from("пвд")).unwrap(),
-                    String::from("pwd")
-                );
-                assert_eq!(
-                    config.get_alias(&String::from("уич")).unwrap(),
-                    String::from("which")
-                );
-                assert!(config
-                    .get_alias(&String::from("thiskeydoesnotexist"))
-                    .is_none());
-            }
-            Err(error) => panic!(
-                "Parse_config should have returned OK, but returned {} ({:?})",
-                error.message, error.code
-            ),
-        };
     }
 
     #[test]
@@ -328,7 +284,7 @@ mod tests {
         let config: Config = Config::parse_config(config_file_path).ok().unwrap();
         assert!(config.output_config.translate_output);
         //Try to parse a configuration file
-        let config_file: tempfile::NamedTempFile = write_config_output_config_ru_false();
+        let config_file: tempfile::NamedTempFile = write_config_output_config_false();
         let config_file_path: String = String::from(config_file.path().to_str().unwrap());
         println!("Generated config file: {}", config_file_path);
         let config: Config = Config::parse_config(config_file_path).ok().unwrap();
@@ -368,6 +324,7 @@ mod tests {
         assert_eq!(Config::parse_config(String::from("config.does.not.exist.yml")).err().unwrap().code, ConfigErrorCode::NoSuchFileOrDirectory);
     }
 
+    #[cfg(not(target_os = "macos"))]
     #[test]
     fn test_not_accessible() {
         assert_eq!(Config::parse_config(String::from("/dev/ttyS0")).err().unwrap().code, ConfigErrorCode::CouldNotReadFile);
@@ -396,19 +353,6 @@ mod tests {
                 message: String::from("No such file or directory ~/.config/pyc/pyc.yml")
             }
         );
-    }
-
-    /// ### write_config_file_ru
-    /// Write configuration file to a temporary directory and return the file path
-    fn write_config_file_ru() -> tempfile::NamedTempFile {
-        // Write
-        let mut tmpfile: tempfile::NamedTempFile = tempfile::NamedTempFile::new().unwrap();
-        write!(
-            tmpfile,
-            "аляс:\n  - чд: \"cd\"\n  - пвд: \"pwd\"\n  - уич: \"which\""
-        )
-        .unwrap();
-        tmpfile
     }
 
     /// ### write_config_file_en
@@ -454,10 +398,10 @@ mod tests {
         tmpfile
     }
 
-    fn write_config_output_config_ru_false() -> tempfile::NamedTempFile {
+    fn write_config_output_config_false() -> tempfile::NamedTempFile {
         // Write
         let mut tmpfile: tempfile::NamedTempFile = tempfile::NamedTempFile::new().unwrap();
-        write!(tmpfile, "оутпут:\n  транслатэ: false\n").unwrap();
+        write!(tmpfile, "output:\n  translate: false\n").unwrap();
         tmpfile
     }
 
