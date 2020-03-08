@@ -584,6 +584,37 @@ mod tests {
         println!("\n");
     }
 
+    #[test]
+    fn test_prompt_unresolved() {
+        let mut prompt_config_default = PromptConfig::default();
+        //Update prompt line
+        prompt_config_default.prompt_line = String::from("${USER}@${HOSTNAME}:${WRKDIR} ${FOOBAR}");
+        let mut prompt: ShellPrompt = ShellPrompt::new(&prompt_config_default);
+        let iop: IOProcessor = get_ioprocessor();
+        let mut shellenv: ShellEnvironment = get_shellenv();
+        shellenv.elapsed_time = Duration::from_millis(5100);
+        shellenv.wrkdir = String::from("/");
+        shellenv.rc = 255;
+        //Print first in latin
+        prompt.print(&shellenv, &iop);
+        prompt.translate = true;
+        //Then in cyrillic
+        prompt.print(&shellenv, &iop);
+        //Get prompt line
+        let prompt_line: String = prompt.process_prompt(&shellenv, &iop);
+        let expected_prompt_line = String::from(format!(
+            "{}@{}:{} {}",
+            shellenv.username.clone(),
+            shellenv.hostname.clone(),
+            shellenv.wrkdir.clone(),
+            "${FOOBAR}"
+        ));
+        assert_eq!(prompt_line, expected_prompt_line);
+        //Terminate shell at the end of a test
+        terminate_shell(&mut shellenv);
+        println!("\n");
+    }
+
     fn get_ioprocessor() -> IOProcessor {
         IOProcessor::new(Language::Russian, new_translator(Language::Russian))
     }
