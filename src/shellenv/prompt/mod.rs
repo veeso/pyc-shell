@@ -28,11 +28,11 @@ extern crate regex;
 mod cache;
 mod modules;
 
+use super::ShellEnvironment;
+use crate::config::PromptConfig;
+use crate::translator::ioprocessor::IOProcessor;
 use cache::PromptCache;
 use modules::*;
-use crate::config::PromptConfig;
-use super::ShellEnvironment;
-use crate::translator::ioprocessor::IOProcessor;
 
 use regex::Regex;
 use std::time::Duration;
@@ -61,86 +61,86 @@ const PROMPT_GIT_BRANCH: &str = "${GIT_BRANCH}";
 const PROMPT_GIT_COMMIT: &str = "${GIT_COMMIT}";
 
 /// ## ShellPrompt
-/// 
+///
 /// ShellPrompt is the struct which contains the current shell prompt configuration
 pub struct ShellPrompt {
     prompt_line: String,
-    language: String,
     translate: bool,
     break_opt: Option<BreakOptions>,
     duration_opt: Option<DurationOptions>,
     rc_opt: Option<RcOptions>,
     git_opt: Option<GitOptions>,
-    cache: PromptCache
+    cache: PromptCache,
 }
 
 /// ## ShellPrompt
-/// 
+///
 /// ShellPrompt is the struct which contains the current shell prompt configuration
 struct BreakOptions {
-    pub break_with: String
+    pub break_with: String,
 }
 
 /// ## DurationOptions
-/// 
+///
 /// DurationOptions is the struct which contains the current duration configuration
 struct DurationOptions {
-    pub minimum: Duration
+    pub minimum: Duration,
 }
 
 /// ## RcOptions
-/// 
+///
 /// RcOptions is the struct which contains the return code configuration
 struct RcOptions {
     pub ok: String,
-    pub err: String
+    pub err: String,
 }
 
 /// ## GitOptions
-/// 
+///
 /// GitOptions is the struct which contains the current git module configuration
 struct GitOptions {
     pub branch: String,
-    pub commit_ref_len: usize
+    pub commit_ref_len: usize,
 }
 
 impl ShellPrompt {
-
     /// ### new
-    /// 
+    ///
     /// Instantiate a new ShellPrompt with the provided parameters
-    pub fn new(language: &String, prompt_opt: &PromptConfig) -> ShellPrompt {
-
+    pub fn new(prompt_opt: &PromptConfig) -> ShellPrompt {
         let break_opt: Option<BreakOptions> = match prompt_opt.break_enabled {
             true => Some(BreakOptions::new(&prompt_opt.break_str)),
-            false => None
+            false => None,
         };
-        let duration_opt: Option<DurationOptions> = match DurationOptions::should_enable(&prompt_opt.prompt_line) {
-            true => Some(DurationOptions::new(prompt_opt.min_duration)),
-            false => None
-        };
+        let duration_opt: Option<DurationOptions> =
+            match DurationOptions::should_enable(&prompt_opt.prompt_line) {
+                true => Some(DurationOptions::new(prompt_opt.min_duration)),
+                false => None,
+            };
         let rc_opt: Option<RcOptions> = match RcOptions::should_enable(&prompt_opt.prompt_line) {
             true => Some(RcOptions::new(&prompt_opt.rc_ok, &prompt_opt.rc_err)),
-            false => None
+            false => None,
         };
         let git_opt: Option<GitOptions> = match GitOptions::should_enable(&prompt_opt.prompt_line) {
-            true => Some(GitOptions::new(&prompt_opt.git_branch, prompt_opt.git_commit_ref)),
-            false => None
+            true => Some(GitOptions::new(
+                &prompt_opt.git_branch,
+                prompt_opt.git_commit_ref,
+            )),
+            false => None,
         };
         ShellPrompt {
             prompt_line: prompt_opt.prompt_line.clone(),
-            language: language.clone(),
             translate: prompt_opt.translate,
             break_opt: break_opt,
             duration_opt: duration_opt,
             rc_opt: rc_opt,
             git_opt: git_opt,
-            cache: PromptCache::new()
+            cache: PromptCache::new(),
         }
     }
 
     /// ### print
-    /// 
+    ///
     /// Print prompt with resolved values
     pub fn print(&mut self, shell_env: &ShellEnvironment, processor: &IOProcessor) {
         let mut prompt_line: String = self.process_prompt(shell_env, processor);
@@ -149,16 +149,16 @@ impl ShellPrompt {
             prompt_line = processor.text_to_cyrillic(prompt_line);
         }
         //Write prompt
-        println!("{}", prompt_line);
+        print!("{} ", prompt_line);
     }
 
     /// ### process_prompt
-    /// 
+    ///
     /// Process prompt keys and resolve prompt line
     /// Returns the processed prompt line
     /// This function is optimized to try to cache the previous values
     fn process_prompt(&mut self, shell_env: &ShellEnvironment, processor: &IOProcessor) -> String {
-        let mut prompt_line: String = String::new();
+        let mut prompt_line: String = self.prompt_line.clone();
         //Iterate over keys through regex ```\${(.*?)}```
         lazy_static! {
             static ref RE: Regex = Regex::new(PROMPT_KEY_REGEX).unwrap();
@@ -168,6 +168,13 @@ impl ShellPrompt {
             let replace_with: String = self.resolve_key(shell_env, processor, &mtch);
             prompt_line = prompt_line.replace(mtch.as_str(), replace_with.as_str());
         }
+        //Trim prompt line
+        prompt_line = String::from(prompt_line.trim());
+        //If break, break line
+        if let Some(brkopt) = &self.break_opt {
+            prompt_line += "\n";
+            prompt_line += brkopt.break_with.trim();
+        }
         //Invalidate cache
         self.cache.invalidate();
         //Return prompt line
@@ -175,9 +182,14 @@ impl ShellPrompt {
     }
 
     /// ### resolve_key
-    /// 
+    ///
     /// Replace the provided key with the resolved value
-    fn resolve_key(&mut self, shell_env: &ShellEnvironment, processor: &IOProcessor, key: &String) -> String {
+    fn resolve_key(
+        &mut self,
+        shell_env: &ShellEnvironment,
+        processor: &IOProcessor,
+        key: &String,
+    ) -> String {
         match key.as_str() {
             PROMPT_CMDTIME => {
                 let elapsed_time: Duration = shell_env.elapsed_time;
@@ -185,175 +197,149 @@ impl ShellPrompt {
                     Some(opt) => {
                         if elapsed_time.as_millis() >= opt.minimum.as_millis() {
                             let millis: u128 = elapsed_time.as_millis();
-                            let secs: f64 = (millis / 1000) as f64;
+                            let secs: f64 = (millis as f64 / 1000 as f64) as f64;
                             String::from(format!("took {:.1}s", secs))
                         } else {
                             String::from("")
                         }
-                    },
-                    None => String::from("")
+                    }
+                    None => String::from(""),
                 }
-            },
+            }
             PROMPT_GIT_BRANCH => {
                 if self.git_opt.is_none() {
-                    return String::from("")
+                    return String::from("");
                 }
                 //If repository is not cached, find repository
                 if self.cache.get_cached_git().is_none() {
                     let repo_opt = git::find_repository(&shell_env.wrkdir);
                     match repo_opt {
                         Some(repo) => self.cache.cache_git(repo),
-                        None => return String::from("")
+                        None => return String::from(""),
                     };
                 }
                 //Get branch (unwrap without fear; can't be None here)
                 let branch: String = match git::get_branch(self.cache.get_cached_git().unwrap()) {
                     Some(branch) => branch,
-                    None => return String::from("")
+                    None => return String::from(""),
                 };
                 //Format branch
-                String::from(format!("{}{}", self.git_opt.as_ref().unwrap().branch.clone(), branch))
-            },
+                String::from(format!(
+                    "{}{}",
+                    self.git_opt.as_ref().unwrap().branch.clone(),
+                    branch
+                ))
+            }
             PROMPT_GIT_COMMIT => {
                 if self.git_opt.is_none() {
-                    return String::from("")
+                    return String::from("");
                 }
                 //If repository is not cached, find repository
                 if self.cache.get_cached_git().is_none() {
                     let repo_opt = git::find_repository(&shell_env.wrkdir);
                     match repo_opt {
                         Some(repo) => self.cache.cache_git(repo),
-                        None => return String::from("")
+                        None => return String::from(""),
                     };
                 }
                 //Get commit (unwrap without fear; can't be None here)
-                match git::get_commit(self.cache.get_cached_git().unwrap(), self.git_opt.as_ref().unwrap().commit_ref_len) {
+                match git::get_commit(
+                    self.cache.get_cached_git().unwrap(),
+                    self.git_opt.as_ref().unwrap().commit_ref_len,
+                ) {
                     Some(commit) => commit,
-                    None => String::from("")
+                    None => String::from(""),
                 }
+            }
+            PROMPT_HOSTNAME => shell_env.hostname.clone(),
+            PROMPT_KBLK => colors::PromptColor::Black.to_string(),
+            PROMPT_KBLU => colors::PromptColor::Blue.to_string(),
+            PROMPT_KCYN => colors::PromptColor::Cyan.to_string(),
+            PROMPT_KGRN => colors::PromptColor::Green.to_string(),
+            PROMPT_KGRY => colors::PromptColor::Gray.to_string(),
+            PROMPT_KMAG => colors::PromptColor::Magenta.to_string(),
+            PROMPT_KRED => colors::PromptColor::Red.to_string(),
+            PROMPT_KRST => colors::PromptColor::Reset.to_string(),
+            PROMPT_KWHT => colors::PromptColor::White.to_string(),
+            PROMPT_KYEL => colors::PromptColor::Yellow.to_string(),
+            PROMPT_LANG => language::language_to_str(processor.language),
+            PROMPT_RC => match &self.rc_opt {
+                Some(opt) => match shell_env.rc {
+                    0 => opt.ok.clone(),
+                    _ => opt.err.clone(),
+                },
+                None => String::from(""),
             },
-            PROMPT_HOSTNAME => {
-                shell_env.hostname.clone()
-            },
-            PROMPT_KBLK => {
-                colors::PromptColor::Black.to_string()
-            },
-            PROMPT_KBLU => {
-                colors::PromptColor::Blue.to_string()
-            },
-            PROMPT_KCYN => {
-                colors::PromptColor::Cyan.to_string()
-            },
-            PROMPT_KGRN => {
-                colors::PromptColor::Green.to_string()
-            },
-            PROMPT_KGRY => {
-                colors::PromptColor::Gray.to_string()
-            },
-            PROMPT_KMAG => {
-                colors::PromptColor::Magenta.to_string()
-            },
-            PROMPT_KRED => {
-                colors::PromptColor::Red.to_string()
-            },
-            PROMPT_KRST => {
-                colors::PromptColor::Reset.to_string()
-            },
-            PROMPT_KWHT => {
-                colors::PromptColor::White.to_string()
-            },
-            PROMPT_KYEL => {
-                colors::PromptColor::Yellow.to_string()
-            },
-            PROMPT_LANG => {
-                language::language_to_str(processor.language)
-            },
-            PROMPT_RC => {
-                match &self.rc_opt {
-                    Some(opt) => {
-                        match shell_env.rc {
-                            0 => opt.ok.clone(),
-                            _ => opt.err.clone()
-                        }
-                    },
-                    None => String::from("")
-                }
-            },
-            PROMPT_USER => {
-                shell_env.username.clone()
-            },
-            PROMPT_WRKDIR => {
-                shell_env.wrkdir.clone()
-            },
-            _ => key.clone() //Keep unresolved keys
+            PROMPT_USER => shell_env.username.clone(),
+            PROMPT_WRKDIR => shell_env.wrkdir.clone(),
+            _ => key.clone(), //Keep unresolved keys
         }
     }
 }
 
 impl BreakOptions {
     /// ### new
-    /// 
+    ///
     /// Instantiate a new BreakOptions with the provided parameters
     pub fn new(break_with: &String) -> BreakOptions {
         BreakOptions {
-            break_with: break_with.clone()
+            break_with: break_with.clone(),
         }
     }
 }
 
 impl DurationOptions {
-
     /// ### should_enable
-    /// 
+    ///
     /// helper which says if duration module should be enabled
     pub fn should_enable(prompt_line: &String) -> bool {
         prompt_line.contains(PROMPT_CMDTIME)
     }
 
     /// ### new
-    /// 
+    ///
     /// Instantiate a new DurationOptions with the provided parameters
     pub fn new(min_duration: usize) -> DurationOptions {
         DurationOptions {
-            minimum: Duration::from_millis(min_duration as u64)
+            minimum: Duration::from_millis(min_duration as u64),
         }
     }
 }
 
 impl RcOptions {
     /// ### should_enable
-    /// 
+    ///
     /// helper which says if rc module should be enabled
     pub fn should_enable(prompt_line: &String) -> bool {
         prompt_line.contains(PROMPT_RC)
     }
 
     /// ### new
-    /// 
+    ///
     /// Instantiate a new RcOptions with the provided parameters
     pub fn new(ok_str: &String, err_str: &String) -> RcOptions {
         RcOptions {
             ok: ok_str.clone(),
-            err: err_str.clone()
+            err: err_str.clone(),
         }
     }
 }
 
 impl GitOptions {
     /// ### should_enable
-    /// 
+    ///
     /// helper which says if git module should be enabled
     pub fn should_enable(prompt_line: &String) -> bool {
         prompt_line.contains(PROMPT_GIT_BRANCH) || prompt_line.contains(PROMPT_GIT_COMMIT)
     }
 
     /// ### new
-    /// 
+    ///
     /// Instantiate a new GitOptions with the provided parameters
     pub fn new(branch: &String, commit: usize) -> GitOptions {
         GitOptions {
             branch: branch.clone(),
-            commit_ref_len: commit
+            commit_ref_len: commit,
         }
     }
 }
@@ -362,9 +348,253 @@ impl GitOptions {
 mod tests {
 
     use super::*;
+    use crate::config::PromptConfig;
+    use crate::shellenv::{ShellEnvironment, ShellState};
+    use crate::translator::ioprocessor::IOProcessor;
+    use crate::translator::new_translator;
+    use crate::translator::Language;
+    use colors::PromptColor;
+
+    use git2::Repository;
+    use std::thread::sleep;
+    use std::time::Duration;
 
     #[test]
-    fn test_prompt() {
+    fn test_prompt_simple() {
+        let prompt_config_default = PromptConfig::default();
+        let mut prompt: ShellPrompt = ShellPrompt::new(&prompt_config_default);
+        let iop: IOProcessor = get_ioprocessor();
+        let mut shellenv: ShellEnvironment = get_shellenv();
+        //Print first in latin
+        prompt.print(&shellenv, &iop);
+        prompt.translate = true;
+        //Then in cyrillic
+        prompt.print(&shellenv, &iop);
+        //Get prompt line
+        let prompt_line: String = prompt.process_prompt(&shellenv, &iop);
+        let expected_prompt_line = String::from(format!(
+            "{}@{}:{}$",
+            shellenv.username.clone(),
+            shellenv.hostname.clone(),
+            shellenv.wrkdir.clone()
+        ));
+        assert_eq!(prompt_line, expected_prompt_line);
+        //Terminate shell at the end of a test
+        terminate_shell(&mut shellenv);
+        println!("\n");
+    }
 
+    #[test]
+    fn test_prompt_colors() {
+        let mut prompt_config_default = PromptConfig::default();
+        //Update prompt line
+        prompt_config_default.prompt_line = String::from("${KRED}RED${KYEL}YEL${KBLU}BLU${KGRN}GRN${KWHT}WHT${KGRY}GRY${KBLK}BLK${KMAG}MAG${KCYN}CYN${KRST}");
+        let mut prompt: ShellPrompt = ShellPrompt::new(&prompt_config_default);
+        let iop: IOProcessor = get_ioprocessor();
+        let mut shellenv: ShellEnvironment = get_shellenv();
+        //Print first in latin
+        prompt.print(&shellenv, &iop);
+        prompt.translate = true;
+        //Then in cyrillic
+        prompt.print(&shellenv, &iop);
+        //Get prompt line
+        let prompt_line: String = prompt.process_prompt(&shellenv, &iop);
+        let expected_prompt_line = String::from(format!(
+            "{}RED{}YEL{}BLU{}GRN{}WHT{}GRY{}BLK{}MAG{}CYN{}",
+            PromptColor::Red.to_string(),
+            PromptColor::Yellow.to_string(),
+            PromptColor::Blue.to_string(),
+            PromptColor::Green.to_string(),
+            PromptColor::White.to_string(),
+            PromptColor::Gray.to_string(),
+            PromptColor::Black.to_string(),
+            PromptColor::Magenta.to_string(),
+            PromptColor::Cyan.to_string(),
+            PromptColor::Reset.to_string()
+        ));
+        assert_eq!(prompt_line, expected_prompt_line);
+        //Terminate shell at the end of a test
+        terminate_shell(&mut shellenv);
+        println!("\n");
+    }
+
+    #[test]
+    fn test_prompt_lang_time_with_break() {
+        let mut prompt_config_default = PromptConfig::default();
+        //Update prompt line
+        prompt_config_default.prompt_line = String::from("${LANG} ~ ${KYEL}${USER}${KRST} on ${KGRN}${HOSTNAME}${KRST} in ${KCYN}${WRKDIR}${KRST} ${KYEL}${CMD_TIME}${KRST}");
+        prompt_config_default.break_enabled = true;
+        let mut prompt: ShellPrompt = ShellPrompt::new(&prompt_config_default);
+        let iop: IOProcessor = get_ioprocessor();
+        let mut shellenv: ShellEnvironment = get_shellenv();
+        shellenv.elapsed_time = Duration::from_millis(5100);
+        shellenv.wrkdir = String::from("/tmp/");
+        //Print first in latin
+        prompt.print(&shellenv, &iop);
+        prompt.translate = true;
+        //Then in cyrillic
+        prompt.print(&shellenv, &iop);
+        //Get prompt line
+        let prompt_line: String = prompt.process_prompt(&shellenv, &iop);
+        let expected_prompt_line = String::from(format!(
+            "{} ~ {}{}{} on {}{}{} in {}{}{} {}took 5.1s{}\n❯",
+            language::language_to_str(Language::Russian),
+            PromptColor::Yellow.to_string(),
+            shellenv.username.clone(),
+            PromptColor::Reset.to_string(),
+            PromptColor::Green.to_string(),
+            shellenv.hostname.clone(),
+            PromptColor::Reset.to_string(),
+            PromptColor::Cyan.to_string(),
+            shellenv.wrkdir.clone(),
+            PromptColor::Reset.to_string(),
+            PromptColor::Yellow.to_string(),
+            PromptColor::Reset.to_string()
+        ));
+        assert_eq!(prompt_line, expected_prompt_line);
+        //Terminate shell at the end of a test
+        terminate_shell(&mut shellenv);
+        println!("\n");
+    }
+
+    #[test]
+    fn test_prompt_git() {
+        //Get current git info
+        //Initialize module
+        let repo: Repository = git::find_repository(&String::from("./")).unwrap();
+        //Branch should be none
+        let branch: String = git::get_branch(&repo).unwrap();
+        let commit: String = git::get_commit(&repo, 8).unwrap();
+        let mut prompt_config_default = PromptConfig::default();
+        //Update prompt line
+        prompt_config_default.prompt_line =
+            String::from("${USER}@${HOSTNAME}:${WRKDIR} ${GIT_BRANCH}:${GIT_COMMIT}");
+        let mut prompt: ShellPrompt = ShellPrompt::new(&prompt_config_default);
+        let iop: IOProcessor = get_ioprocessor();
+        let mut shellenv: ShellEnvironment = get_shellenv();
+        shellenv.elapsed_time = Duration::from_millis(5100);
+        shellenv.wrkdir = String::from("./");
+        //Print first in latin
+        prompt.print(&shellenv, &iop);
+        prompt.translate = true;
+        //Then in cyrillic
+        prompt.print(&shellenv, &iop);
+        //Get prompt line
+        let prompt_line: String = prompt.process_prompt(&shellenv, &iop);
+        let expected_prompt_line = String::from(format!(
+            "{}@{}:{} on {}:{}",
+            shellenv.username.clone(),
+            shellenv.hostname.clone(),
+            shellenv.wrkdir.clone(),
+            branch,
+            commit
+        ));
+        assert_eq!(prompt_line, expected_prompt_line);
+        //Terminate shell at the end of a test
+        terminate_shell(&mut shellenv);
+        println!("\n");
+    }
+
+    #[test]
+    fn test_prompt_git_not_in_repo() {
+        let mut prompt_config_default = PromptConfig::default();
+        //Update prompt line
+        prompt_config_default.prompt_line =
+            String::from("${USER}@${HOSTNAME}:${WRKDIR} ${GIT_BRANCH} ${GIT_COMMIT}");
+        let mut prompt: ShellPrompt = ShellPrompt::new(&prompt_config_default);
+        let iop: IOProcessor = get_ioprocessor();
+        let mut shellenv: ShellEnvironment = get_shellenv();
+        shellenv.elapsed_time = Duration::from_millis(5100);
+        shellenv.wrkdir = String::from("/");
+        //Print first in latin
+        prompt.print(&shellenv, &iop);
+        prompt.translate = true;
+        //Then in cyrillic
+        prompt.print(&shellenv, &iop);
+        //Get prompt line
+        let prompt_line: String = prompt.process_prompt(&shellenv, &iop);
+        let expected_prompt_line = String::from(format!(
+            "{}@{}:{}",
+            shellenv.username.clone(),
+            shellenv.hostname.clone(),
+            shellenv.wrkdir.clone()
+        ));
+        assert_eq!(prompt_line, expected_prompt_line);
+        //Terminate shell at the end of a test
+        terminate_shell(&mut shellenv);
+        println!("\n");
+    }
+
+    #[test]
+    fn test_prompt_rc_ok() {
+        let mut prompt_config_default = PromptConfig::default();
+        //Update prompt line
+        prompt_config_default.prompt_line = String::from("${RC} ${USER}@${HOSTNAME}:${WRKDIR}");
+        let mut prompt: ShellPrompt = ShellPrompt::new(&prompt_config_default);
+        let iop: IOProcessor = get_ioprocessor();
+        let mut shellenv: ShellEnvironment = get_shellenv();
+        shellenv.elapsed_time = Duration::from_millis(5100);
+        shellenv.wrkdir = String::from("/");
+        //Print first in latin
+        prompt.print(&shellenv, &iop);
+        prompt.translate = true;
+        //Then in cyrillic
+        prompt.print(&shellenv, &iop);
+        //Get prompt line
+        let prompt_line: String = prompt.process_prompt(&shellenv, &iop);
+        let expected_prompt_line = String::from(format!(
+            "✔ {}@{}:{}",
+            shellenv.username.clone(),
+            shellenv.hostname.clone(),
+            shellenv.wrkdir.clone()
+        ));
+        assert_eq!(prompt_line, expected_prompt_line);
+        //Terminate shell at the end of a test
+        terminate_shell(&mut shellenv);
+        println!("\n");
+    }
+
+    #[test]
+    fn test_prompt_rc_error() {
+        let mut prompt_config_default = PromptConfig::default();
+        //Update prompt line
+        prompt_config_default.prompt_line = String::from("${RC} ${USER}@${HOSTNAME}:${WRKDIR}");
+        let mut prompt: ShellPrompt = ShellPrompt::new(&prompt_config_default);
+        let iop: IOProcessor = get_ioprocessor();
+        let mut shellenv: ShellEnvironment = get_shellenv();
+        shellenv.elapsed_time = Duration::from_millis(5100);
+        shellenv.wrkdir = String::from("/");
+        shellenv.rc = 255;
+        //Print first in latin
+        prompt.print(&shellenv, &iop);
+        prompt.translate = true;
+        //Then in cyrillic
+        prompt.print(&shellenv, &iop);
+        //Get prompt line
+        let prompt_line: String = prompt.process_prompt(&shellenv, &iop);
+        let expected_prompt_line = String::from(format!(
+            "✖ {}@{}:{}",
+            shellenv.username.clone(),
+            shellenv.hostname.clone(),
+            shellenv.wrkdir.clone()
+        ));
+        assert_eq!(prompt_line, expected_prompt_line);
+        //Terminate shell at the end of a test
+        terminate_shell(&mut shellenv);
+        println!("\n");
+    }
+
+    fn get_ioprocessor() -> IOProcessor {
+        IOProcessor::new(Language::Russian, new_translator(Language::Russian))
+    }
+
+    fn get_shellenv() -> ShellEnvironment {
+        ShellEnvironment::start(String::from("/bin/sh")).unwrap()
+    }
+
+    fn terminate_shell(shell: &mut ShellEnvironment) {
+        assert!(shell.write(String::from("exit\n")).is_ok());
+        sleep(Duration::from_millis(500));
+        assert_eq!(shell.get_state(), ShellState::Terminated);
     }
 }
