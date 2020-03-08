@@ -34,13 +34,14 @@ use std::env;
 use std::io::Read;
 use std::sync::{mpsc, Arc, Mutex};
 use std::thread::sleep;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 use sysinfo::{ProcessExt, RefreshKind, System, SystemExt};
 use termion::async_stdin;
 
 use crate::config;
 use crate::shellenv::process::ShellProcess;
 use crate::shellenv::{ShellEnvironment, ShellState};
+use crate::shellenv::prompt::ShellPrompt;
 use crate::translator::ioprocessor::IOProcessor;
 
 /// ### process_command
@@ -256,11 +257,36 @@ pub fn shell_exec(processor: IOProcessor, config: &config::Config, shell: Option
             &processor,
         );
     }
+    //Instantiate shell prompt
+    let mut shell_prompt: ShellPrompt = ShellPrompt::new(&config.prompt_config);
     //@! Main loop
+    let check_interval: Duration = Duration::from_millis(500); //State is checked each 500ms
+    let mut last_state_check: Instant = Instant::now();
+    let mut last_state: ShellState = ShellState::Idle;
+    let mut state_changed: bool = true; //Start with state changed, this determines whether the prompt should be printed
     while shell_env.is_running() {
-        //TODO: Echo $PS1 or prompt when state is Idle
-        //TODO: handle current directory
-        //Read user input
+        //@! Check if state must be refreshed again
+        if last_state_check.elapsed().as_millis() >= check_interval.as_millis() {
+            last_state_check = Instant::now(); //Reset last check
+            //Refresh state
+            shell_env.refresh_env();
+            let new_state = shell_env.get_state(); //Force last state to be changed
+            if new_state != last_state {
+                last_state = new_state;
+                state_changed = true;
+            }
+        }
+        //@! Print prompt if state is Idle and state has changed
+        if state_changed && last_state == ShellState::Idle {
+            //Force shellenv to refresh info
+            shell_env.refresh_env();
+            //Print prompt
+            shell_prompt.print(&shell_env, &processor);
+            state_changed = false; //Force state changed to false
+        } else if state_changed {
+            state_changed = false; //Check has been done, nothing to do
+        }
+        //@!Read user input
         if let Some(Ok(i)) = stdin.next() {
             input_bytes.push(i);
             //TODO: pass characters at each input to stdin?
@@ -269,8 +295,16 @@ pub fn shell_exec(processor: IOProcessor, config: &config::Config, shell: Option
             if input_bytes.len() > 1 {
                 //Convert bytes to UTF-8 string
                 let input: String = String::from(std::str::from_utf8(input_bytes.as_slice()).unwrap());
+                //Get shell env state
+                let new_state = shell_env.get_state(); //Force last state to be changed
+                if new_state != last_state {
+                    last_state = new_state;
+                    state_changed = true;
+                }
+                //Reset last check
+                last_state_check = Instant::now();
                 //If state is Idle, convert expression, otherwise convert text
-                let input: String = match shell_env.get_state() {
+                let input: String = match last_state {
                     ShellState::Idle => {
                         //Resolve alias
                         let mut argv: Vec<String> = Vec::with_capacity(input.matches(" ").count() + 1);
@@ -279,6 +313,9 @@ pub fn shell_exec(processor: IOProcessor, config: &config::Config, shell: Option
                         }
                         //Process arg 0
                         resolve_command(&mut argv, &config);
+                        //State must be set to Subprocess
+                        last_state = ShellState::SubprocessRunning;
+                        state_changed = true;
                         //Rejoin arguments
                         let input: String = argv.join(" ") + "\n";
                         match processor.expression_to_latin(input) {
@@ -301,9 +338,13 @@ pub fn shell_exec(processor: IOProcessor, config: &config::Config, shell: Option
                 }
                 //Reset input buffer
                 input_bytes = Vec::new();
-            } else {
+            } else if input_bytes.len() == 1 {
                 //If length is 1, there is only a new line
                 input_bytes = Vec::new();
+                //In this case, prompt must be printed if shell state is Idle
+                if last_state == ShellState::Idle {
+                    shell_prompt.print(&shell_env, &processor);
+                }
             }
         }
         //Read program stdout

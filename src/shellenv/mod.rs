@@ -192,6 +192,7 @@ impl ShellEnvironment {
         if let Some(p) = system.get_process(self.pid as i32) {
             //Get working directory
             self.wrkdir = String::from(p.cwd().to_str().unwrap());
+            //TODO: fix cwd doesn't work
             //TODO: get exitcode for previous process
         };
         //Get process username
@@ -271,6 +272,9 @@ mod tests {
         println!("Username: {}", shell_env.username);
         println!("Hostname: {}", shell_env.hostname);
         println!("Working directory: {}", shell_env.wrkdir);
+        assert!(shell_env.username.len() > 0);
+        assert!(shell_env.hostname.len() > 0);
+        assert!(shell_env.wrkdir.len() > 0);
         //Refresh environment
         shell_env.refresh_env();
         //Verify exitcode UNSET
