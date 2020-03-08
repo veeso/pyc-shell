@@ -274,7 +274,7 @@ impl PromptConfig {
             min_duration: 2000,
             rc_ok: String::from("✔"),
             rc_err: String::from("✖"),
-            git_branch: String::from("on "),
+            git_branch: String::from("on "),
             git_commit_ref: 8,
         }
     }
@@ -389,7 +389,7 @@ mod tests {
         assert_eq!(prompt_config.prompt_line, String::from("${USER}@${HOSTNAME}:${WRKDIR}$"));
         assert_eq!(prompt_config.break_enabled, false);
         assert_eq!(prompt_config.break_str, String::from("❯"));
-        assert_eq!(prompt_config.git_branch, String::from("on "));
+        assert_eq!(prompt_config.git_branch, String::from("on "));
         assert_eq!(prompt_config.git_commit_ref, 8);
         assert_eq!(prompt_config.history_size, 256);
         assert_eq!(prompt_config.min_duration, 2000);
@@ -538,7 +538,7 @@ mod tests {
         assert_eq!(prompt_config.prompt_line, String::from("${USER}@${HOSTNAME}:${WRKDIR}$"));
         assert_eq!(prompt_config.break_enabled, false);
         assert_eq!(prompt_config.break_str, String::from("❯"));
-        assert_eq!(prompt_config.git_branch, String::from("on "));
+        assert_eq!(prompt_config.git_branch, String::from("on "));
         assert_eq!(prompt_config.git_commit_ref, 8);
         assert_eq!(prompt_config.history_size, 256);
         assert_eq!(prompt_config.min_duration, 2000);
