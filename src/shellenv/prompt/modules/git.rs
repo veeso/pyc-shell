@@ -29,50 +29,57 @@ use git2::Repository;
 use std::path::Path;
 
 /// ### find_repository
-/// 
+///
 /// Find repository in the current path
 pub fn find_repository(wrkdir: &String) -> Option<Repository> {
     let wrkdir_path: &Path = Path::new(wrkdir.as_str());
     //Find repository
     match Repository::discover(wrkdir_path) {
         Ok(repo) => Some(repo),
-        Err(_) => None
+        Err(_) => None,
     }
 }
 
 /// ### get_branch
-/// 
+///
 /// Get current branch from provided repository
 pub fn get_branch(repository: &Repository) -> Option<String> {
     let git_head = match repository.head() {
         Ok(head) => head,
-        Err(_) => return None
+        Err(_) => return None,
     };
     let shorthand = git_head.shorthand();
     shorthand.map(std::string::ToString::to_string)
 }
 
 /// ### get_commit
-/// 
+///
 /// Get current commit
 pub fn get_commit(repository: &Repository, hashlen: usize) -> Option<String> {
     let git_head = match repository.head() {
         Ok(head) => head,
-        Err(_) => return None
+        Err(_) => return None,
     };
     let head_commit = match git_head.peel_to_commit() {
         Ok(cmt_res) => cmt_res,
-        Err(_) => return None
+        Err(_) => return None,
     };
     let commit_oid = head_commit.id();
     Some(bytes_to_hexstr(commit_oid.as_bytes(), hashlen))
 }
 
 /// ### bytes_to_hexstr
-/// 
+///
 /// Convert bytes to hex string representation
 fn bytes_to_hexstr(bytes: &[u8], len: usize) -> String {
-    bytes.iter().map(|b| format!("{:02x}", b)).collect::<Vec<String>>().join("").chars().take(len).collect()
+    bytes
+        .iter()
+        .map(|b| format!("{:02x}", b))
+        .collect::<Vec<String>>()
+        .join("")
+        .chars()
+        .take(len)
+        .collect()
 }
 
 //@! Tests

@@ -23,6 +23,6 @@
 *
 */
 
-pub(crate) mod git;
 pub(crate) mod colors;
+pub(crate) mod git;
 pub(crate) mod language;

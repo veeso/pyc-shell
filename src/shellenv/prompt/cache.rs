@@ -28,44 +28,40 @@ extern crate git2;
 use git2::Repository;
 
 pub struct PromptCache {
-    git_cache: Option<Repository>
+    git_cache: Option<Repository>,
 }
 
 impl PromptCache {
-
     /// ### new
-    /// 
+    ///
     /// Instantiate a new Prompt cache object
     pub fn new() -> PromptCache {
-        PromptCache {
-            git_cache: None
-        }
+        PromptCache { git_cache: None }
     }
 
     /// ### invalidate
-    /// 
+    ///
     /// Invalidate cache
     pub fn invalidate(&mut self) {
         self.git_cache = None
     }
 
     /// ### cache_git
-    /// 
+    ///
     /// Cache git repository
     pub fn cache_git(&mut self, git_repo: Repository) {
         self.git_cache = Some(git_repo);
     }
 
     /// ### get_git
-    /// 
+    ///
     /// Get git repository
-    pub fn get_cached_git(&self) -> Option<&Repository>{
+    pub fn get_cached_git(&self) -> Option<&Repository> {
         match self.git_cache.as_ref() {
             Some(g) => Some(&g),
-            None => None
+            None => None,
         }
     }
-
 }
 
 #[cfg(test)]

@@ -35,7 +35,10 @@ const KBLK: &str = "\x1b[30m";
 const KWHT: &str = "\x1b[37m";
 const KRST: &str = "\x1b[0m";
 
-use super::super::{PROMPT_KRED, PROMPT_KYEL, PROMPT_KGRN, PROMPT_KBLU, PROMPT_KCYN, PROMPT_KMAG, PROMPT_KGRY, PROMPT_KBLK, PROMPT_KWHT, PROMPT_KRST};
+use super::super::{
+    PROMPT_KBLK, PROMPT_KBLU, PROMPT_KCYN, PROMPT_KGRN, PROMPT_KGRY, PROMPT_KMAG, PROMPT_KRED,
+    PROMPT_KRST, PROMPT_KWHT, PROMPT_KYEL,
+};
 
 #[derive(Copy, Clone, PartialEq, std::fmt::Debug)]
 pub enum PromptColor {
@@ -48,7 +51,7 @@ pub enum PromptColor {
     Black,
     Gray,
     White,
-    Reset
+    Reset,
 }
 
 impl ToString for PromptColor {
@@ -81,7 +84,7 @@ impl PromptColor {
             PROMPT_KBLK => PromptColor::Black,
             PROMPT_KWHT => PromptColor::White,
             PROMPT_KRST => PromptColor::Reset,
-            _ => PromptColor::Reset
+            _ => PromptColor::Reset,
         }
     }
 }
@@ -129,5 +132,4 @@ mod tests {
         assert_eq!(PromptColor::Reset.to_string(), KRST);
         println!("{}Reset", PromptColor::Reset.to_string());
     }
-
 }

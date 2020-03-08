@@ -33,8 +33,17 @@ pub fn language_to_str(language: Language) -> String {
         lang_str.push_str("   ");
     }
     match language {
-        Language::Russian => String::from(format!("{}{}{}{}{}{}{}", PromptColor::White.to_string(), lang_str.chars().nth(0).unwrap(), PromptColor::Blue.to_string(), lang_str.chars().nth(1).unwrap(), PromptColor::Red.to_string(), lang_str.chars().nth(2).unwrap(), PromptColor::Reset.to_string())),
-        _ => language.to_string()
+        Language::Russian => String::from(format!(
+            "{}{}{}{}{}{}{}",
+            PromptColor::White.to_string(),
+            lang_str.chars().nth(0).unwrap(),
+            PromptColor::Blue.to_string(),
+            lang_str.chars().nth(1).unwrap(),
+            PromptColor::Red.to_string(),
+            lang_str.chars().nth(2).unwrap(),
+            PromptColor::Reset.to_string()
+        )),
+        _ => language.to_string(),
     }
 }
 
