@@ -72,7 +72,7 @@ impl ToString for PromptColor {
 }
 
 impl PromptColor {
-    fn from_key(key: &str) -> PromptColor {
+    pub fn from_key(key: &str) -> PromptColor {
         match key {
             PROMPT_KRED => PromptColor::Red,
             PROMPT_KYEL => PromptColor::Yellow,

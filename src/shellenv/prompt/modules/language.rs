@@ -42,8 +42,7 @@ pub fn language_to_str(language: Language) -> String {
             PromptColor::Red.to_string(),
             lang_str.chars().nth(2).unwrap(),
             PromptColor::Reset.to_string()
-        )),
-        _ => language.to_string(),
+        ))
     }
 }
 

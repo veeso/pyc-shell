@@ -88,8 +88,6 @@ fn bytes_to_hexstr(bytes: &[u8], len: usize) -> String {
 mod tests {
 
     use super::*;
-    use std::fs::File;
-    use std::io::Write;
 
     #[test]
     fn test_git_module_empty() {

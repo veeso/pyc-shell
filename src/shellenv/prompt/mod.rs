@@ -252,16 +252,7 @@ impl ShellPrompt {
                 }
             }
             PROMPT_HOSTNAME => shell_env.hostname.clone(),
-            PROMPT_KBLK => colors::PromptColor::Black.to_string(),
-            PROMPT_KBLU => colors::PromptColor::Blue.to_string(),
-            PROMPT_KCYN => colors::PromptColor::Cyan.to_string(),
-            PROMPT_KGRN => colors::PromptColor::Green.to_string(),
-            PROMPT_KGRY => colors::PromptColor::Gray.to_string(),
-            PROMPT_KMAG => colors::PromptColor::Magenta.to_string(),
-            PROMPT_KRED => colors::PromptColor::Red.to_string(),
-            PROMPT_KRST => colors::PromptColor::Reset.to_string(),
-            PROMPT_KWHT => colors::PromptColor::White.to_string(),
-            PROMPT_KYEL => colors::PromptColor::Yellow.to_string(),
+            PROMPT_KBLK | PROMPT_KBLU | PROMPT_KCYN | PROMPT_KGRN | PROMPT_KGRY | PROMPT_KMAG | PROMPT_KRED | PROMPT_KRST | PROMPT_KWHT | PROMPT_KYEL => colors::PromptColor::from_key(key.as_str()).to_string(),
             PROMPT_LANG => language::language_to_str(processor.language),
             PROMPT_RC => match &self.rc_opt {
                 Some(opt) => match shell_env.rc {
