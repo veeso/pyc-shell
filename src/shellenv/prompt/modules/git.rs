@@ -124,4 +124,9 @@ mod tests {
         println!("Current commit {}", commit.as_ref().unwrap());
         assert_eq!(commit.unwrap().len(), 8);
     }
+
+    #[test]
+    fn test_git_repo_not_found() {
+        assert!(find_repository(&String::from("/")).is_none());
+    }
 }
