@@ -177,7 +177,7 @@ impl ShellPrompt {
     /// ### resolve_key
     /// 
     /// Replace the provided key with the resolved value
-    fn resolve_key(&self, shell_env: &ShellEnvironment, processor: &IOProcessor, key: &String) -> String {
+    fn resolve_key(&mut self, shell_env: &ShellEnvironment, processor: &IOProcessor, key: &String) -> String {
         match key.as_str() {
             PROMPT_CMDTIME => {
                 let elapsed_time: Duration = shell_env.elapsed_time;
@@ -195,10 +195,42 @@ impl ShellPrompt {
                 }
             },
             PROMPT_GIT_BRANCH => {
-                String::from("UNSUPPORTED")
+                if self.git_opt.is_none() {
+                    return String::from("")
+                }
+                //If repository is not cached, find repository
+                if self.cache.get_cached_git().is_none() {
+                    let repo_opt = git::find_repository(&shell_env.wrkdir);
+                    match repo_opt {
+                        Some(repo) => self.cache.cache_git(repo),
+                        None => return String::from("")
+                    };
+                }
+                //Get branch (unwrap without fear; can't be None here)
+                let branch: String = match git::get_branch(self.cache.get_cached_git().unwrap()) {
+                    Some(branch) => branch,
+                    None => return String::from("")
+                };
+                //Format branch
+                String::from(format!("{}{}", self.git_opt.as_ref().unwrap().branch.clone(), branch))
             },
             PROMPT_GIT_COMMIT => {
-                String::from("UNSUPPORTED")
+                if self.git_opt.is_none() {
+                    return String::from("")
+                }
+                //If repository is not cached, find repository
+                if self.cache.get_cached_git().is_none() {
+                    let repo_opt = git::find_repository(&shell_env.wrkdir);
+                    match repo_opt {
+                        Some(repo) => self.cache.cache_git(repo),
+                        None => return String::from("")
+                    };
+                }
+                //Get commit (unwrap without fear; can't be None here)
+                match git::get_commit(self.cache.get_cached_git().unwrap(), self.git_opt.as_ref().unwrap().commit_ref_len) {
+                    Some(commit) => commit,
+                    None => String::from("")
+                }
             },
             PROMPT_HOSTNAME => {
                 shell_env.hostname.clone()

@@ -1,4 +1,4 @@
-//! # Cache
+//! ## Cache
 //!
 //! `Cache` is the module which provides functionality to cache prompt values and speed up the modules
 
