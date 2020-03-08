@@ -127,6 +127,7 @@ Each prompt line key must have the following syntax ```${VAR_NAME}```
 | KMAG     | Magenta     |
 | KGRN     | Green       |
 | KWHT     | White       |
+| KBLK     | Black       |
 | KGRY     | Gray        |
 | KRST     | Reset       |
 

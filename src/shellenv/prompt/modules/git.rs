@@ -1,3 +1,7 @@
+//! # Git
+//!
+//! `Git` is the module which provides git repository information
+
 /*
 *
 *   Copyright (C) 2020 Christian Visintin - christian.visintin1997@gmail.com
@@ -19,9 +23,6 @@
 *
 */
 
-#[macro_use] extern crate lazy_static;
+extern crate git2;
 
-pub mod config;
-pub mod runtime;
-pub(crate) mod shellenv;
-pub mod translator;
+use git2::Repository;

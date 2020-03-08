@@ -1,3 +1,7 @@
+//! # Modules
+//!
+//! `modules` is the module which provides Prompt modules
+
 /*
 *
 *   Copyright (C) 2020 Christian Visintin - christian.visintin1997@gmail.com
@@ -19,9 +23,5 @@
 *
 */
 
-#[macro_use] extern crate lazy_static;
-
-pub mod config;
-pub mod runtime;
-pub(crate) mod shellenv;
-pub mod translator;
+pub(crate) mod colors;
+pub(crate) mod language;

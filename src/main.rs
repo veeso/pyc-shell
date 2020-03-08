@@ -26,6 +26,7 @@ const PYC_BUILD: &str = "??";
 extern crate ansi_term;
 extern crate dirs;
 extern crate getopts;
+#[macro_use] extern crate lazy_static;
 
 //External modules
 use ansi_term::{Colour, Style};

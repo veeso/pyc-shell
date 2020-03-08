@@ -24,13 +24,16 @@
 */
 
 pub mod process;
+pub mod prompt;
 
 extern crate nix;
 extern crate sysinfo;
+extern crate whoami;
 
 use nix::sys::signal;
 use process::{ProcessError, ShellProcess};
 use std::fmt;
+use std::time::{Duration, Instant};
 use sysinfo::{ProcessExt, RefreshKind, Signal, System, SystemExt};
 
 /// ### ShellEnvironment
@@ -41,6 +44,12 @@ pub struct ShellEnvironment {
     pid: u32,
     process: ShellProcess,
     child_pid: Option<u32>, //PID of child process
+    pub username: String,
+    pub hostname: String,
+    pub wrkdir: String,
+    pub rc: u8, //Return code of last process
+    pub elapsed_time: Duration, //Duration of last process
+    started_time: Instant //Instant the process was started
 }
 
 /// ### ShellState
@@ -69,11 +78,34 @@ impl ShellEnvironment {
             Some(p) => p,
             None => return Err(ProcessError::CouldNotStartProcess),
         };
+        //Get process info
+        let refresh_kind: RefreshKind = RefreshKind::new();
+        let refresh_kind: RefreshKind = refresh_kind.with_processes();
+        //Get system information
+        let system = System::new_with_specifics(refresh_kind);
+        let wrkdir: String;
+        //Get process username
+        let user: String = whoami::username();
+        //Get hostname
+        let hostname: String = whoami::host();
+        //Get workdir
+        match system.get_process(pid as i32) {
+            Some(p) => {
+                wrkdir = String::from(p.cwd().to_str().unwrap());
+            },
+            None => return Err(ProcessError::CouldNotStartProcess)
+        };
         Ok(ShellEnvironment {
             state: ShellState::Idle,
             pid: pid,
             process: shell_process,
             child_pid: None,
+            username: user,
+            hostname: hostname,
+            wrkdir: wrkdir,
+            rc: 0,
+            elapsed_time: Duration::from_millis(0),
+            started_time: Instant::now()
         })
     }
 
@@ -152,6 +184,22 @@ impl ShellEnvironment {
         }
     }
 
+    /// ### refresh_env
+    /// 
+    /// Refresh Shell Environment information
+    pub fn refresh_env(&mut self) {
+        let system = self.get_processes();
+        if let Some(p) = system.get_process(self.pid as i32) {
+            //Get working directory
+            self.wrkdir = String::from(p.cwd().to_str().unwrap());
+            //TODO: get exitcode for previous process
+        };
+        //Get process username
+        self.username = whoami::username();
+        //Get hostname
+        self.hostname = whoami::host();
+    }
+
     /// ### is_child_running
     ///
     /// checks whether there is at least a child process running
@@ -164,14 +212,30 @@ impl ShellEnvironment {
                 None => continue,
             };
             if parent_pid as u32 == self.pid {
+                //If PID changed, set elapsed time
+                if self.child_pid.is_some() {
+                    self.set_elapsed_time();
+                }
+                self.started_time = Instant::now();
                 //Set child pid
                 self.child_pid = Some(*pid as u32);
                 return true;
             }
         }
+        //If PID was some, set elapsed time
+        if self.child_pid.is_some() {
+            self.set_elapsed_time();
+        }
         self.child_pid = None; //Set child pid to None
         false
     }
+
+    /// ### set_elapsed_time
+    /// 
+    /// Set elapsed time
+    fn set_elapsed_time(&mut self) {
+        self.elapsed_time = self.started_time.elapsed();
+    } 
 
     /// ### get_processes
     ///
@@ -203,6 +267,12 @@ mod tests {
         assert_ne!(shell_env.pid, 0);
         //Verify shell status
         assert_eq!(shell_env.get_state(), ShellState::Idle);
+        //Get username etc
+        println!("Username: {}", shell_env.username);
+        println!("Hostname: {}", shell_env.hostname);
+        println!("Working directory: {}", shell_env.wrkdir);
+        //Refresh environment
+        shell_env.refresh_env();
         //Verify exitcode UNSET
         assert!(shell_env.get_exitcode().is_none());
         //Terminate shell
