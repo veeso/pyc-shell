@@ -139,8 +139,7 @@ impl IOProcessor {
             ExpressionConversion::ToCyrillic => {
               self.translator.to_cyrillic(states.expression_token)
             }
-          }
-          .as_str(),
+          }.as_str(),
         );
         //Expression token is reinitialized
         states.expression_token = String::new();
@@ -165,8 +164,7 @@ impl IOProcessor {
             ExpressionConversion::ToCyrillic => {
               self.translator.to_cyrillic(states.expression_token.clone())
             }
-          }
-          .as_str(),
+          }.as_str(),
         );
         //Save text into a tmp variable
         let expression_output: String = states.text.clone();
@@ -204,8 +202,7 @@ impl IOProcessor {
               ExpressionConversion::ToCyrillic => {
                 self.translator.to_cyrillic(states.expression_token)
               }
-            }
-            .as_str(),
+            }.as_str(),
           );
           //Reset expression token
           states.expression_token = String::new();
@@ -233,15 +230,10 @@ impl IOProcessor {
       match conversion {
         ExpressionConversion::ToLatin => self.translator.to_latin(states.expression_token),
         ExpressionConversion::ToCyrillic => self.translator.to_cyrillic(states.expression_token),
-      }
-      .as_str(),
+      }.as_str(),
     );
     //If there are still active states, return error 'missing token'
-    if states.backslash
-      || states.in_expression
-      || states.escape_block
-      || states.previous_state.is_some()
-    {
+    if states.backslash || states.in_expression || states.escape_block || states.previous_state.is_some() {
       //Check if expression has been completely closed
       return Err(ExpressionParserError::MissingToken);
     }
@@ -261,10 +253,7 @@ impl IOProcessor {
   /// this functions has been implemented to redefine color sequences
   fn escape_colors(&self, cyrillic_text: String) -> String {
     let mut res: String = cyrillic_text.clone();
-    for regex_match in self
-      .escape_colors_regex
-      .captures_iter(cyrillic_text.clone().as_str())
-    {
+    for regex_match in self.escape_colors_regex.captures_iter(cyrillic_text.clone().as_str()) {
       let mtch: String = String::from(&regex_match[0]);
       let replace_with: String = self.text_to_latin(mtch.clone());
       res = res.replace(mtch.as_str(), replace_with.as_str());
