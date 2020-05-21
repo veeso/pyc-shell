@@ -62,7 +62,7 @@ alias:
 output:
   translate: true
 prompt:
-  prompt_line: "${USER} on ${HOSTNAME} in ${WRKDIR} ${GIT_BRANCH} (${GIT_COMMIT}) ${CMD_TIME}"
+  prompt_line: "${USER} on ${HOSTNAME} in ${WRKDIR} ${GIT_BRANCH} ${GIT_COMMIT} ${CMD_TIME}"
   history_size: 256
   translate: false
   break:
