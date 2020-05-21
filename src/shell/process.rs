@@ -1,3 +1,7 @@
+//! ## Process
+//!
+//! `process` is the module which takes care of executing processes and handling the process execution
+
 /*
 *
 *   Copyright (C) 2020 Christian Visintin - christian.visintin1997@gmail.com
@@ -19,9 +23,32 @@
 *
 */
 
-#[macro_use] extern crate lazy_static;
+extern crate nix;
+extern crate subprocess;
 
-pub mod config;
-pub mod runtime;
-pub(crate) mod shell;
-pub mod translator;
+//Fmt
+use std::fmt;
+//I/O
+use std::io::{Read, Write};
+//UNIX stuff
+use nix::sys::select;
+use nix::sys::signal;
+use nix::sys::time::TimeVal;
+use nix::sys::time::TimeValLike;
+use nix::unistd::Pid;
+use std::os::unix::io::IntoRawFd;
+use std::os::unix::io::RawFd;
+//Subprocess
+use subprocess::{ExitStatus, Popen, PopenConfig, Redirection};
+
+//TODO: re-implement
+
+/// ### ShellState
+///
+/// ShellState represents the current shell state
+#[derive(Copy, Clone, PartialEq, fmt::Debug)]
+pub enum ShellState {
+    Idle,
+    SubprocessRunning,
+    Terminated,
+}

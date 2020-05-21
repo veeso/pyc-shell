@@ -39,9 +39,10 @@ use sysinfo::{ProcessExt, RefreshKind, System, SystemExt};
 use termion::async_stdin;
 
 use crate::config;
-use crate::shellenv::process::ShellProcess;
-use crate::shellenv::{ShellEnvironment, ShellState};
-use crate::shellenv::prompt::ShellPrompt;
+use crate::shell::process::ShellProcess;
+use crate::shell::{Shell};
+use crate::shell::prompt::ShellPrompt;
+use crate::shell::process::ShellState;
 use crate::translator::ioprocessor::IOProcessor;
 
 /// ### process_command
@@ -121,7 +122,7 @@ pub fn process_command(
         );
     }
     //@! Loop until process has terminated
-    while process.is_running() {
+    while process.get_state() != ShellState::Terminated {
         //Read user input
         if let Some(Ok(i)) = stdin.next() {
             input_bytes.push(i);
@@ -217,7 +218,7 @@ pub fn shell_exec(processor: IOProcessor, config: &config::Config, shell: Option
         },
     };
     //Intantiate and start a new shell
-    let mut shell_env: ShellEnvironment = match ShellEnvironment::start(shell) {
+    let mut shell_env: Shell = match Shell::start(shell) {
         Ok(sh) => sh,
         Err(err) => {
             print_err(
@@ -264,7 +265,7 @@ pub fn shell_exec(processor: IOProcessor, config: &config::Config, shell: Option
     let mut last_state_check: Instant = Instant::now();
     let mut last_state: ShellState = ShellState::Idle;
     let mut state_changed: bool = true; //Start with state changed, this determines whether the prompt should be printed
-    while shell_env.is_running() {
+    while shell_env.get_state() != ShellState::Terminated {
         //@! Check if state must be refreshed again
         if last_state_check.elapsed().as_millis() >= check_interval.as_millis() {
             last_state_check = Instant::now(); //Reset last check

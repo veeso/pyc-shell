@@ -1,6 +1,6 @@
-//! ## Shellenv
+//! ## Shell
 //!
-//! `shellenv` is the module which takes care of processing the shell environment and the process execution
+//! `shell` is the module which handles the shell execution and the communication with the child shell process. It also takes care of providing the prompt
 
 /*
 *
@@ -31,19 +31,16 @@ extern crate sysinfo;
 extern crate whoami;
 
 use nix::sys::signal;
-use process::{ProcessError, ShellProcess};
+use process::{ProcessError, ShellProcess, ShellState};
 use std::fmt;
 use std::time::{Duration, Instant};
 use sysinfo::{ProcessExt, RefreshKind, Signal, System, SystemExt};
 
-/// ### ShellEnvironment
+/// ### Shell
 ///
-/// ShellEnvironment represents the current user shell environment configuration
-pub struct ShellEnvironment {
-    state: ShellState,
-    pid: u32,
+/// Shell represents the current user shell configuration
+pub struct Shell {
     process: ShellProcess,
-    child_pid: Option<u32>, //PID of child process
     pub username: String,
     pub hostname: String,
     pub wrkdir: String,
@@ -52,21 +49,11 @@ pub struct ShellEnvironment {
     started_time: Instant //Instant the process was started
 }
 
-/// ### ShellState
-///
-/// ShellState represents the current shell state
-#[derive(Copy, Clone, PartialEq, fmt::Debug)]
-pub enum ShellState {
-    Idle,
-    SubprocessRunning,
-    Terminated,
-}
-
-impl ShellEnvironment {
+impl Shell {
     /// ### start
     ///  
-    /// Start a new shell instance and instantiates a new ShellEnvironment struct
-    pub fn start(shell: String) -> Result<ShellEnvironment, ProcessError> {
+    /// Start a new shell instance and instantiates a new Shell struct
+    pub fn start(shell: String) -> Result<Shell, ProcessError> {
         //Start shell
         let argv: Vec<String> = vec![shell];
         let shell_process: ShellProcess = match ShellProcess::exec(argv) {
@@ -95,11 +82,8 @@ impl ShellEnvironment {
             },
             None => return Err(ProcessError::CouldNotStartProcess)
         };
-        Ok(ShellEnvironment {
-            state: ShellState::Idle,
-            pid: pid,
+        Ok(Shell {
             process: shell_process,
-            child_pid: None,
             username: user,
             hostname: hostname,
             wrkdir: wrkdir,
@@ -111,40 +95,16 @@ impl ShellEnvironment {
 
     /// ### get_state
     ///
-    /// Returns the current Shell state (the state is internally updated when the function is called)
+    /// Returns the current Shell state
     pub fn get_state(&mut self) -> ShellState {
-        //Check if self is running
-        if !self.is_running() {
-            //Process is no more running
-            self.state = ShellState::Terminated;
-        } else if self.is_child_running() {
-            //Child is running
-            self.state = ShellState::SubprocessRunning;
-        } else {
-            //Shell is in idle state
-            self.state = ShellState::Idle;
-        }
-        self.state
-    }
-
-    /// ### is_running
-    /// 
-    /// Fast check to verify if the shell is still running; this method should be preferred to get_state for fast and iterative checks
-    pub fn is_running(&mut self) -> bool {
-        match self.process.is_running() {
-            true => true,
-            false => {
-                self.state = ShellState::Terminated;
-                false
-            }
-        }
+        self.process.get_state()
     }
 
     /// ### get_exitcode
     ///
     /// Returns the shell exit status when terminated
     pub fn get_exitcode(&self) -> Option<u8> {
-        if self.state == ShellState::Terminated {
+        if self.get_state() == ShellState::Terminated {
             self.process.exit_status
         } else {
             None
@@ -169,19 +129,7 @@ impl ShellEnvironment {
     ///
     /// Send SIGINT to process. The signal is sent to shell or to subprocess (based on current execution state)
     pub fn sigint(&mut self) -> Result<(), ()> {
-        match self.is_child_running() {
-            true => {
-                let system = self.get_processes();
-                match system.get_process(self.child_pid.unwrap() as i32) {
-                    Some(p) => match p.kill(Signal::Interrupt) {
-                        true => Ok(()),
-                        false => Err(()),
-                    },
-                    None => Err(()),
-                }
-            }
-            false => self.process.raise(signal::SIGINT),
-        }
+        self.process.raise(signal::SIGINT)
     }
 
     /// ### refresh_env
@@ -189,7 +137,7 @@ impl ShellEnvironment {
     /// Refresh Shell Environment information
     pub fn refresh_env(&mut self) {
         let system = self.get_processes();
-        if let Some(p) = system.get_process(self.pid as i32) {
+        if let Some(p) = system.get_process(self.process.get_pid() as i32) {
             //Get working directory
             self.wrkdir = String::from(p.cwd().to_str().unwrap());
             //TODO: fix cwd doesn't work
@@ -199,36 +147,6 @@ impl ShellEnvironment {
         self.username = whoami::username();
         //Get hostname
         self.hostname = whoami::host();
-    }
-
-    /// ### is_child_running
-    ///
-    /// checks whether there is at least a child process running
-    fn is_child_running(&mut self) -> bool {
-        let system = self.get_processes();
-        //Iterate over active processes
-        for (pid, proc) in system.get_processes() {
-            let parent_pid = match proc.parent() {
-                Some(p) => p,
-                None => continue,
-            };
-            if parent_pid as u32 == self.pid {
-                //If PID changed, set elapsed time
-                if self.child_pid.is_some() {
-                    self.set_elapsed_time();
-                }
-                self.started_time = Instant::now();
-                //Set child pid
-                self.child_pid = Some(*pid as u32);
-                return true;
-            }
-        }
-        //If PID was some, set elapsed time
-        if self.child_pid.is_some() {
-            self.set_elapsed_time();
-        }
-        self.child_pid = None; //Set child pid to None
-        false
     }
 
     /// ### set_elapsed_time
@@ -263,7 +181,7 @@ mod tests {
         //Use universal accepted shell
         let shell: String = String::from("sh");
         //Instantiate and start a shell
-        let mut shell_env: ShellEnvironment = ShellEnvironment::start(shell).ok().unwrap();
+        let mut shell_env: Shell = Shell::start(shell).ok().unwrap();
         //Verify PID
         assert_ne!(shell_env.pid, 0);
         //Verify shell status
@@ -292,7 +210,7 @@ mod tests {
         //Use universal accepted shell
         let shell: String = String::from("sh");
         //Instantiate and start a shell
-        let mut shell_env: ShellEnvironment = ShellEnvironment::start(shell).ok().unwrap();
+        let mut shell_env: Shell = Shell::start(shell).ok().unwrap();
         //Verify PID
         assert_ne!(shell_env.pid, 0);
         //Verify shell status
@@ -329,7 +247,7 @@ mod tests {
         //Use universal accepted shell
         let shell: String = String::from("sh");
         //Instantiate and start a shell
-        let mut shell_env: ShellEnvironment = ShellEnvironment::start(shell).ok().unwrap();
+        let mut shell_env: Shell = Shell::start(shell).ok().unwrap();
         //Verify PID
         assert_ne!(shell_env.pid, 0);
         //Verify shell status
@@ -351,7 +269,7 @@ mod tests {
         //Use fictional shell
         let shell: String = String::from("pipponbash");
         //Instantiate and start a shell
-        ShellEnvironment::start(shell).ok().unwrap(); //Should panic
+        Shell::start(shell).ok().unwrap(); //Should panic
     }
 
     #[test]
@@ -359,7 +277,7 @@ mod tests {
         //Use universal accepted shell
         let shell: String = String::from("sh");
         //Instantiate and start a shell
-        let mut shell_env: ShellEnvironment = ShellEnvironment::start(shell).ok().unwrap();
+        let mut shell_env: Shell = Shell::start(shell).ok().unwrap();
         assert!(shell_env.sigint().is_ok());
         //Wait shell to terminate
         sleep(Duration::from_millis(100));

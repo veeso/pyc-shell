@@ -28,7 +28,7 @@ extern crate regex;
 mod cache;
 mod modules;
 
-use super::ShellEnvironment;
+use super::Shell;
 use crate::config::PromptConfig;
 use crate::translator::ioprocessor::IOProcessor;
 use cache::PromptCache;
@@ -142,7 +142,7 @@ impl ShellPrompt {
     /// ### print
     ///
     /// Print prompt with resolved values
-    pub fn print(&mut self, shell_env: &ShellEnvironment, processor: &IOProcessor) {
+    pub fn print(&mut self, shell_env: &Shell, processor: &IOProcessor) {
         let mut prompt_line: String = self.process_prompt(shell_env, processor);
         //Translate prompt if necessary
         if self.translate {
@@ -157,7 +157,7 @@ impl ShellPrompt {
     /// Process prompt keys and resolve prompt line
     /// Returns the processed prompt line
     /// This function is optimized to try to cache the previous values
-    fn process_prompt(&mut self, shell_env: &ShellEnvironment, processor: &IOProcessor) -> String {
+    fn process_prompt(&mut self, shell_env: &Shell, processor: &IOProcessor) -> String {
         let mut prompt_line: String = self.prompt_line.clone();
         //Iterate over keys through regex ```\${(.*?)}```
         lazy_static! {
@@ -186,7 +186,7 @@ impl ShellPrompt {
     /// Replace the provided key with the resolved value
     fn resolve_key(
         &mut self,
-        shell_env: &ShellEnvironment,
+        shell_env: &Shell,
         processor: &IOProcessor,
         key: &String,
     ) -> String {
@@ -340,7 +340,7 @@ mod tests {
 
     use super::*;
     use crate::config::PromptConfig;
-    use crate::shellenv::{ShellEnvironment, ShellState};
+    use crate::shellenv::{Shell, ShellState};
     use crate::translator::ioprocessor::IOProcessor;
     use crate::translator::new_translator;
     use crate::translator::Language;
@@ -355,7 +355,7 @@ mod tests {
         let prompt_config_default = PromptConfig::default();
         let mut prompt: ShellPrompt = ShellPrompt::new(&prompt_config_default);
         let iop: IOProcessor = get_ioprocessor();
-        let mut shellenv: ShellEnvironment = get_shellenv();
+        let mut shellenv: Shell = get_shellenv();
         //Print first in latin
         prompt.print(&shellenv, &iop);
         prompt.translate = true;
@@ -382,7 +382,7 @@ mod tests {
         prompt_config_default.prompt_line = String::from("${KRED}RED${KYEL}YEL${KBLU}BLU${KGRN}GRN${KWHT}WHT${KGRY}GRY${KBLK}BLK${KMAG}MAG${KCYN}CYN${KRST}");
         let mut prompt: ShellPrompt = ShellPrompt::new(&prompt_config_default);
         let iop: IOProcessor = get_ioprocessor();
-        let mut shellenv: ShellEnvironment = get_shellenv();
+        let mut shellenv: Shell = get_shellenv();
         //Print first in latin
         prompt.print(&shellenv, &iop);
         prompt.translate = true;
@@ -417,7 +417,7 @@ mod tests {
         prompt_config_default.break_enabled = true;
         let mut prompt: ShellPrompt = ShellPrompt::new(&prompt_config_default);
         let iop: IOProcessor = get_ioprocessor();
-        let mut shellenv: ShellEnvironment = get_shellenv();
+        let mut shellenv: Shell = get_shellenv();
         shellenv.elapsed_time = Duration::from_millis(5100);
         shellenv.wrkdir = String::from("/tmp/");
         //Print first in latin
@@ -462,7 +462,7 @@ mod tests {
             String::from("${USER}@${HOSTNAME}:${WRKDIR} ${GIT_BRANCH}:${GIT_COMMIT}");
         let mut prompt: ShellPrompt = ShellPrompt::new(&prompt_config_default);
         let iop: IOProcessor = get_ioprocessor();
-        let mut shellenv: ShellEnvironment = get_shellenv();
+        let mut shellenv: Shell = get_shellenv();
         shellenv.elapsed_time = Duration::from_millis(5100);
         shellenv.wrkdir = String::from("./");
         //Print first in latin
@@ -494,7 +494,7 @@ mod tests {
             String::from("${USER}@${HOSTNAME}:${WRKDIR} ${GIT_BRANCH} ${GIT_COMMIT}");
         let mut prompt: ShellPrompt = ShellPrompt::new(&prompt_config_default);
         let iop: IOProcessor = get_ioprocessor();
-        let mut shellenv: ShellEnvironment = get_shellenv();
+        let mut shellenv: Shell = get_shellenv();
         shellenv.elapsed_time = Duration::from_millis(5100);
         shellenv.wrkdir = String::from("/");
         //Print first in latin
@@ -523,7 +523,7 @@ mod tests {
         prompt_config_default.prompt_line = String::from("${RC} ${USER}@${HOSTNAME}:${WRKDIR}");
         let mut prompt: ShellPrompt = ShellPrompt::new(&prompt_config_default);
         let iop: IOProcessor = get_ioprocessor();
-        let mut shellenv: ShellEnvironment = get_shellenv();
+        let mut shellenv: Shell = get_shellenv();
         shellenv.elapsed_time = Duration::from_millis(5100);
         shellenv.wrkdir = String::from("/");
         //Print first in latin
@@ -552,7 +552,7 @@ mod tests {
         prompt_config_default.prompt_line = String::from("${RC} ${USER}@${HOSTNAME}:${WRKDIR}");
         let mut prompt: ShellPrompt = ShellPrompt::new(&prompt_config_default);
         let iop: IOProcessor = get_ioprocessor();
-        let mut shellenv: ShellEnvironment = get_shellenv();
+        let mut shellenv: Shell = get_shellenv();
         shellenv.elapsed_time = Duration::from_millis(5100);
         shellenv.wrkdir = String::from("/");
         shellenv.rc = 255;
@@ -582,7 +582,7 @@ mod tests {
         prompt_config_default.prompt_line = String::from("${USER}@${HOSTNAME}:${WRKDIR} ${FOOBAR}");
         let mut prompt: ShellPrompt = ShellPrompt::new(&prompt_config_default);
         let iop: IOProcessor = get_ioprocessor();
-        let mut shellenv: ShellEnvironment = get_shellenv();
+        let mut shellenv: Shell = get_shellenv();
         shellenv.elapsed_time = Duration::from_millis(5100);
         shellenv.wrkdir = String::from("/");
         shellenv.rc = 255;
@@ -610,11 +610,11 @@ mod tests {
         IOProcessor::new(Language::Russian, new_translator(Language::Russian))
     }
 
-    fn get_shellenv() -> ShellEnvironment {
-        ShellEnvironment::start(String::from("/bin/sh")).unwrap()
+    fn get_shellenv() -> Shell {
+        Shell::start(String::from("/bin/sh")).unwrap()
     }
 
-    fn terminate_shell(shell: &mut ShellEnvironment) {
+    fn terminate_shell(shell: &mut Shell) {
         assert!(shell.write(String::from("exit\n")).is_ok());
         sleep(Duration::from_millis(500));
         assert_eq!(shell.get_state(), ShellState::Terminated);

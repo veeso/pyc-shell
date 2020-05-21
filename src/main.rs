@@ -37,7 +37,7 @@ use std::env;
 //Internal modules
 mod config;
 mod runtime;
-mod shellenv;
+mod shell;
 mod translator;
 use translator::ioprocessor::IOProcessor;
 
