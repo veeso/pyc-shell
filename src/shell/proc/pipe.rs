@@ -98,7 +98,7 @@ impl Pipe {
         //Prepare times
         let timeout: Duration = Duration::from_millis(timeout);
         let mut time: Instant = Instant::now();
-        while (time.elapsed() < timeout) {
+        while time.elapsed() < timeout {
             //Poll pipe
             match nix::poll::poll(&mut poll_fds, 50) {
                 Ok(ret) => {
@@ -122,7 +122,7 @@ impl Pipe {
                                     match err {
                                         nix::Error::Sys(errno) => {
                                             match errno {
-                                                nix::Error::Sys::EAGAIN => { //No more data is available to be read
+                                                nix::errno::Errno::EAGAIN => { //No more data is available to be read
                                                     if data_size == 0 {
                                                         continue; //Keep waiting for data
                                                     } else {
@@ -140,7 +140,7 @@ impl Pipe {
                             return Err(ShellError::PipeError(nix::errno::Errno::EPIPE))
                         } else if event.intersects(nix::poll::PollFlags::POLLHUP) { //No more data
                             //no data is available; if data is something break; otherwise continue
-                            if (data_size == 0) {
+                            if data_size == 0 {
                                 continue;
                             } else {
                                 break;
@@ -148,7 +148,7 @@ impl Pipe {
                         }
                     } else if ret == 0 {
                         //no data is available; if data is something break; otherwise continue
-                        if (data_size == 0) {
+                        if data_size == 0 {
                             continue;
                         } else {
                             break;
@@ -159,7 +159,7 @@ impl Pipe {
                     match err {
                         nix::Error::Sys(errno) => {
                             match errno {
-                                nix::Error::Sys::EAGAIN => { //No more data is available to be read
+                                nix::errno::Errno::EAGAIN => { //No more data is available to be read
                                     if data_size == 0 {
                                         continue; //Keep waiting for data
                                     } else {
@@ -246,7 +246,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_open_close() {
+    fn test_pipe_open_close() {
         let tmpdir: tempfile::TempDir = create_tmp_dir();
         let pipe: PathBuf = tmpdir.path().join("/test.fifo");
         let pipe: Result<Pipe, ShellError> = Pipe::open(pipe);
@@ -256,7 +256,7 @@ mod tests {
     }
 
     #[test]
-    fn test_io() {
+    fn test_pipe_io() {
         //TODO: implement
     }
 

@@ -408,7 +408,7 @@ mod tests {
     }
 
     #[test]
-    fn test_no_file() {
+    fn test_config_no_file() {
         assert_eq!(
             Config::parse_config(String::from("config.does.not.exist.yml"))
                 .err()
@@ -420,7 +420,7 @@ mod tests {
 
     #[cfg(not(target_os = "macos"))]
     #[test]
-    fn test_not_accessible() {
+    fn test_config_not_accessible() {
         assert_eq!(
             Config::parse_config(String::from("/dev/ttyS0"))
                 .err()
@@ -470,7 +470,7 @@ mod tests {
     }
 
     #[test]
-    fn test_alias_not_array() {
+    fn test_config_alias_not_array() {
         let config: String = String::from("alias: 5\n");
         assert_eq!(
             Config::parse_config_str(config).err().unwrap().code,
@@ -598,7 +598,7 @@ mod tests {
     }
 
     #[test]
-    fn test_bad_syntax() {
+    fn test_config_bad_syntax() {
         let config: String = String::from("foobar: 5:\n");
         assert_eq!(
             Config::parse_config_str(config).err().unwrap().code,
@@ -607,7 +607,7 @@ mod tests {
     }
 
     #[test]
-    fn test_empty_yaml() {
+    fn test_config_empty_yaml() {
         let config: String = String::from("\n");
         assert_eq!(
             Config::parse_config_str(config).err().unwrap().code,
@@ -616,7 +616,7 @@ mod tests {
     }
 
     #[test]
-    fn test_error_display() {
+    fn test_config_error_display() {
         println!(
             "{};{};{}",
             ConfigErrorCode::CouldNotReadFile,

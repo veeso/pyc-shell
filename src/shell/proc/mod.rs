@@ -73,4 +73,14 @@ pub struct ShellProc {
     stderr_pipe: Pipe
 }
 
-//TODO: implement fmt pritn for ShellError
+impl std::fmt::Display for ShellError {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        let code_str: &str = match self {
+            ShellError::CouldNotStartProcess => "Could not start process",
+            ShellError::InvalidData => "Invalid data from process",
+            ShellError::IoTimeout => "I/O timeout",
+            ShellError::PipeError(errno) => format!("Pipe error: {}", errno).as_str(),
+        };
+        write!(f, "{}", code_str)
+    }
+}
