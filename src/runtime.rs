@@ -39,10 +39,9 @@ use sysinfo::{ProcessExt, RefreshKind, System, SystemExt};
 use termion::async_stdin;
 
 use crate::config;
-use crate::shell::process::ShellProcess;
+use crate::shell::proc::{ShellProc, ShellState};
 use crate::shell::{Shell};
 use crate::shell::prompt::ShellPrompt;
-use crate::shell::process::ShellState;
 use crate::translator::ioprocessor::IOProcessor;
 
 /// ### process_command
@@ -81,7 +80,7 @@ pub fn process_command(
     }
     let command: String = argv[0].clone();
     //Start shell process
-    let mut process = match ShellProcess::exec(argv) {
+    let mut process = match ShellProc::exec(argv) {
         Ok(p) => p,
         Err(_) => {
             print_err(

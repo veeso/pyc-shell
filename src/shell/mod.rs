@@ -23,7 +23,7 @@
 *
 */
 
-pub mod process;
+pub mod proc;
 pub mod prompt;
 
 extern crate nix;
@@ -31,7 +31,7 @@ extern crate sysinfo;
 extern crate whoami;
 
 use nix::sys::signal;
-use process::{ProcessError, ShellProcess, ShellState};
+use proc::{ShellError, ShellProc, ShellState};
 use std::fmt;
 use std::time::{Duration, Instant};
 use sysinfo::{ProcessExt, RefreshKind, Signal, System, SystemExt};
@@ -40,7 +40,7 @@ use sysinfo::{ProcessExt, RefreshKind, Signal, System, SystemExt};
 ///
 /// Shell represents the current user shell configuration
 pub struct Shell {
-    process: ShellProcess,
+    process: ShellProc,
     pub username: String,
     pub hostname: String,
     pub wrkdir: String,
@@ -53,17 +53,17 @@ impl Shell {
     /// ### start
     ///  
     /// Start a new shell instance and instantiates a new Shell struct
-    pub fn start(shell: String) -> Result<Shell, ProcessError> {
+    pub fn start(shell: String) -> Result<Shell, ShellError> {
         //Start shell
         let argv: Vec<String> = vec![shell];
-        let shell_process: ShellProcess = match ShellProcess::exec(argv) {
+        let shell_process: ShellProc = match ShellProc::exec(argv) {
             Ok(p) => p,
             Err(err) => return Err(err),
         };
         //Get process PID
         let pid = match shell_process.pid() {
             Some(p) => p,
-            None => return Err(ProcessError::CouldNotStartProcess),
+            None => return Err(ShellError::CouldNotStartProcess),
         };
         //Get process info
         let refresh_kind: RefreshKind = RefreshKind::new();
@@ -80,7 +80,7 @@ impl Shell {
             Some(p) => {
                 wrkdir = String::from(p.cwd().to_str().unwrap());
             },
-            None => return Err(ProcessError::CouldNotStartProcess)
+            None => return Err(ShellError::CouldNotStartProcess)
         };
         Ok(Shell {
             process: shell_process,
@@ -113,14 +113,14 @@ impl Shell {
 
     /// ### read
     ///
-    /// Mirrors ShellProcess read
+    /// Mirrors ShellProc read
     pub fn read(&mut self) -> std::io::Result<(Option<String>, Option<String>)> {
         self.process.read()
     }
 
     /// ### write
     ///
-    /// Mirrors ShellProcess write
+    /// Mirrors ShellProc write
     pub fn write(&mut self, input: String) -> std::io::Result<()> {
         self.process.write(input)
     }
