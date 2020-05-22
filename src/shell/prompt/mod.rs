@@ -212,7 +212,7 @@ impl ShellPrompt {
                 }
                 //If repository is not cached, find repository
                 if self.cache.get_cached_git().is_none() {
-                    let repo_opt = git::find_repository(&shell_env.wrkdir);
+                    let repo_opt = git::find_repository(&shell_env.wrkdir());
                     match repo_opt {
                         Some(repo) => self.cache.cache_git(repo),
                         None => return String::from(""),
@@ -236,7 +236,7 @@ impl ShellPrompt {
                 }
                 //If repository is not cached, find repository
                 if self.cache.get_cached_git().is_none() {
-                    let repo_opt = git::find_repository(&shell_env.wrkdir);
+                    let repo_opt = git::find_repository(&shell_env.wrkdir());
                     match repo_opt {
                         Some(repo) => self.cache.cache_git(repo),
                         None => return String::from(""),
@@ -255,14 +255,14 @@ impl ShellPrompt {
             PROMPT_KBLK | PROMPT_KBLU | PROMPT_KCYN | PROMPT_KGRN | PROMPT_KGRY | PROMPT_KMAG | PROMPT_KRED | PROMPT_KRST | PROMPT_KWHT | PROMPT_KYEL => colors::PromptColor::from_key(key.as_str()).to_string(),
             PROMPT_LANG => language::language_to_str(processor.language),
             PROMPT_RC => match &self.rc_opt {
-                Some(opt) => match shell_env.rc {
+                Some(opt) => match shell_env.exit_status() {
                     0 => opt.ok.clone(),
                     _ => opt.err.clone(),
                 },
                 None => String::from(""),
             },
             PROMPT_USER => shell_env.username.clone(),
-            PROMPT_WRKDIR => shell_env.wrkdir.clone(),
+            PROMPT_WRKDIR => shell_env.wrkdir().clone(),
             _ => key.clone(), //Keep unresolved keys
         }
     }
@@ -340,7 +340,7 @@ mod tests {
 
     use super::*;
     use crate::config::PromptConfig;
-    use crate::shellenv::{Shell, ShellState};
+    use crate::shell::{Shell, ShellState};
     use crate::translator::ioprocessor::IOProcessor;
     use crate::translator::new_translator;
     use crate::translator::Language;
@@ -367,7 +367,7 @@ mod tests {
             "{}@{}:{}$",
             shellenv.username.clone(),
             shellenv.hostname.clone(),
-            shellenv.wrkdir.clone()
+            shellenv.wrkdir().clone()
         ));
         assert_eq!(prompt_line, expected_prompt_line);
         //Terminate shell at the end of a test
@@ -419,7 +419,7 @@ mod tests {
         let iop: IOProcessor = get_ioprocessor();
         let mut shellenv: Shell = get_shellenv();
         shellenv.elapsed_time = Duration::from_millis(5100);
-        shellenv.wrkdir = String::from("/tmp/");
+        shellenv.process.wrkdir = String::from("/tmp/");
         //Print first in latin
         prompt.print(&shellenv, &iop);
         prompt.translate = true;
@@ -437,7 +437,7 @@ mod tests {
             shellenv.hostname.clone(),
             PromptColor::Reset.to_string(),
             PromptColor::Cyan.to_string(),
-            shellenv.wrkdir.clone(),
+            shellenv.wrkdir(),
             PromptColor::Reset.to_string(),
             PromptColor::Yellow.to_string(),
             PromptColor::Reset.to_string()
@@ -464,7 +464,7 @@ mod tests {
         let iop: IOProcessor = get_ioprocessor();
         let mut shellenv: Shell = get_shellenv();
         shellenv.elapsed_time = Duration::from_millis(5100);
-        shellenv.wrkdir = String::from("./");
+        shellenv.process.wrkdir = String::from("./");
         //Print first in latin
         prompt.print(&shellenv, &iop);
         prompt.translate = true;
@@ -476,7 +476,7 @@ mod tests {
             "{}@{}:{} on {}:{}",
             shellenv.username.clone(),
             shellenv.hostname.clone(),
-            shellenv.wrkdir.clone(),
+            shellenv.wrkdir(),
             branch,
             commit
         ));
@@ -496,7 +496,7 @@ mod tests {
         let iop: IOProcessor = get_ioprocessor();
         let mut shellenv: Shell = get_shellenv();
         shellenv.elapsed_time = Duration::from_millis(5100);
-        shellenv.wrkdir = String::from("/");
+        shellenv.process.wrkdir = String::from("/");
         //Print first in latin
         prompt.print(&shellenv, &iop);
         prompt.translate = true;
@@ -508,7 +508,7 @@ mod tests {
             "{}@{}:{}",
             shellenv.username.clone(),
             shellenv.hostname.clone(),
-            shellenv.wrkdir.clone()
+            shellenv.wrkdir()
         ));
         assert_eq!(prompt_line, expected_prompt_line);
         //Terminate shell at the end of a test
@@ -525,7 +525,7 @@ mod tests {
         let iop: IOProcessor = get_ioprocessor();
         let mut shellenv: Shell = get_shellenv();
         shellenv.elapsed_time = Duration::from_millis(5100);
-        shellenv.wrkdir = String::from("/");
+        shellenv.process.wrkdir = String::from("/");
         //Print first in latin
         prompt.print(&shellenv, &iop);
         prompt.translate = true;
@@ -537,7 +537,7 @@ mod tests {
             "✔ {}@{}:{}",
             shellenv.username.clone(),
             shellenv.hostname.clone(),
-            shellenv.wrkdir.clone()
+            shellenv.wrkdir()
         ));
         assert_eq!(prompt_line, expected_prompt_line);
         //Terminate shell at the end of a test
@@ -554,8 +554,8 @@ mod tests {
         let iop: IOProcessor = get_ioprocessor();
         let mut shellenv: Shell = get_shellenv();
         shellenv.elapsed_time = Duration::from_millis(5100);
-        shellenv.wrkdir = String::from("/");
-        shellenv.rc = 255;
+        shellenv.process.wrkdir = String::from("/");
+        shellenv.process.exit_status = 255;
         //Print first in latin
         prompt.print(&shellenv, &iop);
         prompt.translate = true;
@@ -567,7 +567,7 @@ mod tests {
             "✖ {}@{}:{}",
             shellenv.username.clone(),
             shellenv.hostname.clone(),
-            shellenv.wrkdir.clone()
+            shellenv.wrkdir()
         ));
         assert_eq!(prompt_line, expected_prompt_line);
         //Terminate shell at the end of a test
@@ -584,8 +584,8 @@ mod tests {
         let iop: IOProcessor = get_ioprocessor();
         let mut shellenv: Shell = get_shellenv();
         shellenv.elapsed_time = Duration::from_millis(5100);
-        shellenv.wrkdir = String::from("/");
-        shellenv.rc = 255;
+        shellenv.process.wrkdir = String::from("/");
+        shellenv.process.exit_status = 255;
         //Print first in latin
         prompt.print(&shellenv, &iop);
         prompt.translate = true;
@@ -597,7 +597,7 @@ mod tests {
             "{}@{}:{} {}",
             shellenv.username.clone(),
             shellenv.hostname.clone(),
-            shellenv.wrkdir.clone(),
+            shellenv.wrkdir(),
             "${FOOBAR}"
         ));
         assert_eq!(prompt_line, expected_prompt_line);

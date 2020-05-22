@@ -26,6 +26,7 @@
 extern crate nix;
 
 mod pipe;
+pub mod process;
 
 //Threads
 use std::sync::{Arc, Mutex};
@@ -61,12 +62,15 @@ pub enum ShellError {
 /// Shell Proc represents an instance of the shell process wrapper
 #[derive(std::fmt::Debug)]
 pub struct ShellProc {
+    pub state: ShellState,                  //Shell process state
     pub exit_status: u8,                    //Exit status of t he subprocess (child of shell)
     pub pid: u64,                           //Shell pid
+    pub wrkdir: String,                     //Working directory
     //Private
     running: Arc<Mutex<bool>>,              //Running state
     m_loop: Option<thread::JoinHandle<u8>>, //Returns exitcode
     uuid: String,                           //UUID used for handshake with the shell
+    stdout_cache: Option<String>,           //Used to prevent buffer fragmentation
     //Pipes
     stdin_pipe: Pipe,
     stdout_pipe: Pipe,

@@ -35,7 +35,6 @@ use std::io::Read;
 use std::sync::{mpsc, Arc, Mutex};
 use std::thread::sleep;
 use std::time::{Duration, Instant};
-use sysinfo::{ProcessExt, RefreshKind, System, SystemExt};
 use termion::async_stdin;
 
 use crate::config;
@@ -80,7 +79,7 @@ pub fn process_command(
     }
     let command: String = argv[0].clone();
     //Start shell process
-    let mut process = match ShellProc::exec(argv) {
+    let mut process = match ShellProc::start(argv) {
         Ok(p) => p,
         Err(_) => {
             print_err(
@@ -189,8 +188,8 @@ pub fn process_command(
     let mut sig_term = running.lock().unwrap();
     *sig_term = true;
     drop(sig_term); //Otherwise the other thread will never read the state
-                    //Return exitcode
-    process.exit_status.unwrap_or(255)
+    //Return exitcode
+    process.exit_status
 }
 
 /// ### shell_exec

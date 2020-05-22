@@ -31,7 +31,6 @@ extern crate whoami;
 
 use nix::sys::signal;
 use proc::{ShellError, ShellProc, ShellState};
-use std::fmt;
 use std::time::{Duration, Instant};
 
 /// ### Shell
@@ -41,8 +40,6 @@ pub struct Shell {
     process: ShellProc,
     pub username: String,
     pub hostname: String,
-    pub wrkdir: String,
-    pub rc: u8, //Return code of last process
     pub elapsed_time: Duration, //Duration of last process
     started_time: Instant //Instant the process was started
 }
@@ -59,11 +56,6 @@ impl Shell {
             Err(err) => return Err(err),
         };
         //Get process PID
-        let pid = match shell_process.pid() {
-            Some(p) => p,
-            None => return Err(ShellError::CouldNotStartProcess),
-        };
-        let wrkdir: String;
         //Get process username
         let user: String = whoami::username();
         //Get hostname
@@ -72,8 +64,6 @@ impl Shell {
             process: shell_process,
             username: user,
             hostname: hostname,
-            wrkdir: wrkdir,
-            rc: 0,
             elapsed_time: Duration::from_millis(0),
             started_time: Instant::now()
         })
@@ -91,7 +81,7 @@ impl Shell {
     /// Returns the shell exit status when terminated
     pub fn get_exitcode(&self) -> Option<u8> {
         if self.get_state() == ShellState::Terminated {
-            self.process.exit_status
+            Some(self.process.exit_status)
         } else {
             None
         }
@@ -126,8 +116,20 @@ impl Shell {
         self.username = whoami::username();
         //Get hostname
         self.hostname = whoami::host();
-        //Get exit status
-        self.rc = self.process.exit_status;
+    }
+
+    /// ### wrkdir
+    /// 
+    /// Get working directory
+    pub fn wrkdir(&self) -> String {
+        self.process.wrkdir.clone()
+    }
+
+    /// ### exit_status
+    /// 
+    /// Returns last shell exit status
+    pub fn exit_status(&self) -> u8 {
+        self.process.exit_status
     }
 
     /// ### set_elapsed_time
@@ -154,16 +156,16 @@ mod tests {
         //Instantiate and start a shell
         let mut shell_env: Shell = Shell::start(shell).ok().unwrap();
         //Verify PID
-        assert_ne!(shell_env.pid, 0);
+        assert_ne!(shell_env.process.pid, 0);
         //Verify shell status
         assert_eq!(shell_env.get_state(), ShellState::Idle);
         //Get username etc
         println!("Username: {}", shell_env.username);
         println!("Hostname: {}", shell_env.hostname);
-        println!("Working directory: {}", shell_env.wrkdir);
+        println!("Working directory: {}", shell_env.wrkdir());
         assert!(shell_env.username.len() > 0);
         assert!(shell_env.hostname.len() > 0);
-        assert!(shell_env.wrkdir.len() > 0);
+        assert!(shell_env.wrkdir().len() > 0);
         //Refresh environment
         shell_env.refresh_env();
         //Verify exitcode UNSET
@@ -183,7 +185,7 @@ mod tests {
         //Instantiate and start a shell
         let mut shell_env: Shell = Shell::start(shell).ok().unwrap();
         //Verify PID
-        assert_ne!(shell_env.pid, 0);
+        assert_ne!(shell_env.process.pid, 0);
         //Verify shell status
         assert_eq!(shell_env.get_state(), ShellState::Idle);
         //Try to start a blocking process (e.g. cat)
@@ -220,7 +222,7 @@ mod tests {
         //Instantiate and start a shell
         let mut shell_env: Shell = Shell::start(shell).ok().unwrap();
         //Verify PID
-        assert_ne!(shell_env.pid, 0);
+        assert_ne!(shell_env.process.pid, 0);
         //Verify shell status
         assert_eq!(shell_env.get_state(), ShellState::Idle);
         //Terminate the shell gracefully

@@ -249,7 +249,7 @@ mod tests {
     fn test_pipe_open_close() {
         let tmpdir: tempfile::TempDir = create_tmp_dir();
         let pipe: PathBuf = tmpdir.path().join("/test.fifo");
-        let pipe: Result<Pipe, ShellError> = Pipe::open(pipe);
+        let pipe: Result<Pipe, ShellError> = Pipe::open(&pipe);
         assert!(pipe.is_ok());
         let pipe: Pipe = pipe.unwrap();
         assert!(pipe.close().is_ok());
