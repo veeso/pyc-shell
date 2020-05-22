@@ -199,22 +199,20 @@ pub fn process_command(
 
 pub fn shell_exec(processor: IOProcessor, config: &config::Config, shell: Option<String>) -> u8 {
     //Determine the shell to use
+    //TODO: add shell from config
     let shell: String = match shell {
         Some(sh) => sh,
-        None => match get_shell_from_proc() {
+        None => match get_shell_from_env() {
             Ok(sh) => sh,
-            Err(()) => match get_shell_from_env() {
-                Ok(sh) => sh,
-                Err(()) => {
-                    print_err(
-                        String::from("Could not determine the shell to use"),
-                        config.output_config.translate_output,
-                        &processor,
-                    );
-                    return 255;
-                }
-            },
-        },
+            Err(()) => {
+                print_err(
+                    String::from("Could not determine the shell to use"),
+                    config.output_config.translate_output,
+                    &processor,
+                );
+                return 255;
+            }
+        }
     };
     //Intantiate and start a new shell
     let mut shell_env: Shell = match Shell::start(shell) {
@@ -387,40 +385,6 @@ pub fn shell_exec(processor: IOProcessor, config: &config::Config, shell: Option
         Some(rc) => rc,
         None => 255
     }
-}
-
-/// ### get_shell_from_proc
-///
-/// Try to get the shell path from parent pid
-
-fn get_shell_from_proc() -> Result<String, ()> {
-    //Get PID of current process
-    let pid = sysinfo::get_current_pid().unwrap();
-    //Create a system istance
-    let refresh_kind: RefreshKind = RefreshKind::new();
-    let refresh_kind: RefreshKind = refresh_kind.with_processes();
-    let system = System::new_with_specifics(refresh_kind);
-    //Get current process info
-    let process = match system.get_process(pid) {
-        Some(p) => p,
-        None => return Err(()),
-    };
-    //Get parent pid
-    let parent_pid = match process.parent() {
-        Some(p) => p,
-        None => return Err(()),
-    };
-    //Get parent process info
-    let process = match system.get_process(parent_pid) {
-        Some(p) => p,
-        None => return Err(()),
-    };
-    //Return parent process executable
-    let parent_exec: String = match process.exe().to_str() {
-        Some(s) => String::from(s),
-        None => return Err(()),
-    };
-    Ok(parent_exec)
 }
 
 /// ### get_shell_from_env

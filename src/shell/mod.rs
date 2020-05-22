@@ -27,14 +27,12 @@ pub mod proc;
 pub mod prompt;
 
 extern crate nix;
-extern crate sysinfo;
 extern crate whoami;
 
 use nix::sys::signal;
 use proc::{ShellError, ShellProc, ShellState};
 use std::fmt;
 use std::time::{Duration, Instant};
-use sysinfo::{ProcessExt, RefreshKind, Signal, System, SystemExt};
 
 /// ### Shell
 ///
@@ -56,7 +54,7 @@ impl Shell {
     pub fn start(shell: String) -> Result<Shell, ShellError> {
         //Start shell
         let argv: Vec<String> = vec![shell];
-        let shell_process: ShellProc = match ShellProc::exec(argv) {
+        let shell_process: ShellProc = match ShellProc::start(argv) {
             Ok(p) => p,
             Err(err) => return Err(err),
         };
@@ -65,23 +63,11 @@ impl Shell {
             Some(p) => p,
             None => return Err(ShellError::CouldNotStartProcess),
         };
-        //Get process info
-        let refresh_kind: RefreshKind = RefreshKind::new();
-        let refresh_kind: RefreshKind = refresh_kind.with_processes();
-        //Get system information
-        let system = System::new_with_specifics(refresh_kind);
         let wrkdir: String;
         //Get process username
         let user: String = whoami::username();
         //Get hostname
         let hostname: String = whoami::host();
-        //Get workdir
-        match system.get_process(pid as i32) {
-            Some(p) => {
-                wrkdir = String::from(p.cwd().to_str().unwrap());
-            },
-            None => return Err(ShellError::CouldNotStartProcess)
-        };
         Ok(Shell {
             process: shell_process,
             username: user,
@@ -114,14 +100,14 @@ impl Shell {
     /// ### read
     ///
     /// Mirrors ShellProc read
-    pub fn read(&mut self) -> std::io::Result<(Option<String>, Option<String>)> {
+    pub fn read(&mut self) -> Result<(Option<String>, Option<String>), ShellError> {
         self.process.read()
     }
 
     /// ### write
     ///
     /// Mirrors ShellProc write
-    pub fn write(&mut self, input: String) -> std::io::Result<()> {
+    pub fn write(&mut self, input: String) -> Result<(), ShellError> {
         self.process.write(input)
     }
 
@@ -136,17 +122,12 @@ impl Shell {
     /// 
     /// Refresh Shell Environment information
     pub fn refresh_env(&mut self) {
-        let system = self.get_processes();
-        if let Some(p) = system.get_process(self.process.get_pid() as i32) {
-            //Get working directory
-            self.wrkdir = String::from(p.cwd().to_str().unwrap());
-            //TODO: fix cwd doesn't work
-            //TODO: get exitcode for previous process
-        };
         //Get process username
         self.username = whoami::username();
         //Get hostname
         self.hostname = whoami::host();
+        //Get exit status
+        self.rc = self.process.exit_status;
     }
 
     /// ### set_elapsed_time
@@ -155,16 +136,6 @@ impl Shell {
     fn set_elapsed_time(&mut self) {
         self.elapsed_time = self.started_time.elapsed();
     } 
-
-    /// ### get_processes
-    ///
-    /// get current running processes in your system
-    fn get_processes(&self) -> System {
-        let refresh_kind: RefreshKind = RefreshKind::new();
-        let refresh_kind: RefreshKind = refresh_kind.with_processes();
-        //Get system information
-        System::new_with_specifics(refresh_kind)
-    }
 }
 
 //@! Test module

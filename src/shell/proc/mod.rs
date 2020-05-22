@@ -61,12 +61,12 @@ pub enum ShellError {
 /// Shell Proc represents an instance of the shell process wrapper
 #[derive(std::fmt::Debug)]
 pub struct ShellProc {
+    pub exit_status: u8,                    //Exit status of t he subprocess (child of shell)
+    pub pid: u64,                           //Shell pid
+    //Private
     running: Arc<Mutex<bool>>,              //Running state
-    joined: Arc<Mutex<bool>>,               //Tells thread it can terminate
     m_loop: Option<thread::JoinHandle<u8>>, //Returns exitcode
     uuid: String,                           //UUID used for handshake with the shell
-    exit_status: u8,                        //Exit status of the subprocess
-    pid: usize,                             //Shell pid
     //Pipes
     stdin_pipe: Pipe,
     stdout_pipe: Pipe,
@@ -83,4 +83,21 @@ impl std::fmt::Display for ShellError {
         };
         write!(f, "{}", code_str)
     }
+}
+
+//@! Test module
+
+#[cfg(test)]
+mod tests {
+
+    use super::*;
+
+    #[test]
+    fn test_proc_fmt_shell_error() {
+        assert_eq!(format!("{}", ShellError::CouldNotStartProcess), String::from("Could not start process"));
+        assert_eq!(format!("{}", ShellError::InvalidData), String::from("Invalid data from process"));
+        assert_eq!(format!("{}", ShellError::IoTimeout), String::from("I/O timeout"));
+        assert_eq!(format!("{}", ShellError::PipeError(nix::errno::Errno::EACCES)), format!("Pipe error: {}", nix::errno::Errno::EACCES));
+    }
+
 }
