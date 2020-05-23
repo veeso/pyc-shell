@@ -105,7 +105,7 @@ impl Pipe {
                         let event: nix::poll::PollFlags = poll_fds[0].revents().unwrap();
                         if event.intersects(nix::poll::PollFlags::POLLIN) || event.intersects(nix::poll::PollFlags::POLLRDBAND) {
                             //Read from FIFO
-                            let mut buffer: [u8; 2048] = [0; 2048];
+                            let mut buffer: [u8; 8196] = [0; 8196];
                             match unistd::read(self.fd, &mut buffer) {
                                 Ok(bytes_read) => {
                                     data_size += bytes_read;
@@ -199,9 +199,9 @@ impl Pipe {
                 Ok(_) => {
                     if let Some(revents) = poll_fds[0].revents() {
                         if revents.intersects(nix::poll::PollFlags::POLLOUT) {
-                            //Write data out (2048 or remaining bytes)
-                            let bytes_out = if total_bytes_amount - bytes_written > 2048 {
-                                2048
+                            //Write data out (8196 or remaining bytes)
+                            let bytes_out = if total_bytes_amount - bytes_written > 8196 {
+                                8196
                             } else {
                                 total_bytes_amount - bytes_written
                             };

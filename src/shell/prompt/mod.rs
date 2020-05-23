@@ -613,7 +613,7 @@ mod tests {
     }
 
     fn get_shellenv() -> Shell {
-        Shell::start(String::from("/bin/sh")).unwrap()
+        Shell::start(String::from("/bin/sh"), vec![]).unwrap()
     }
 
     fn terminate_shell(shell: &mut Shell) {
