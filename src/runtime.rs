@@ -25,12 +25,10 @@
 
 //Deps
 extern crate ansi_term;
-extern crate ctrlc;
 extern crate nix;
 
 use ansi_term::Colour;
 use std::env;
-use std::sync::{mpsc, Arc, Mutex};
 use std::thread::sleep;
 use std::time::{Duration};
 
@@ -74,37 +72,6 @@ pub fn shell_exec(processor: IOProcessor, config: &config::Config, shell: Option
             return 255;
         }
     };
-    //Create input stream
-    /*
-    let mut stdin = async_stdin().bytes();
-    let mut input_bytes: Vec<u8> = Vec::new();
-    */
-    let running = Arc::new(Mutex::new(true));
-    let (sig_tx, sig_rx) = mpsc::channel::<()>();
-    let sig_running = Arc::clone(&running);
-    //Start signal handler
-    if let Err(_) = ctrlc::set_handler(move || {
-        let mut terminate: bool = false;
-        while !terminate {
-            {
-                //Inside this block, otherwise does never go out of scope
-                let current_state = sig_running.lock().unwrap();
-                if *current_state == false {
-                    terminate = true;
-                }
-            }
-            if let Err(_) = sig_tx.send(()) {
-                break;
-            }
-            sleep(Duration::from_millis(50));
-        }
-    }) {
-        print_err(
-            String::from("Could not start signal listener"),
-            config.output_config.translate_output,
-            &processor,
-        );
-    }
     //Instantiate shell prompt
     let mut shell_prompt: ShellPrompt = ShellPrompt::new(&config.prompt_config);
     //@! Main loop
@@ -184,16 +151,6 @@ pub fn shell_exec(processor: IOProcessor, config: &config::Config, shell: Option
                 //Convert err to cyrillic
                 print_err(err.unwrap().to_string(), config.output_config.translate_output, &processor);
             }
-        }
-        //Fetch signals
-        match sig_rx.try_recv() {
-            Ok(()) => {
-                //Send signals
-                if let Err(_) = shell_env.sigint() {
-                    print_err(String::from("Could not send SIGINT to subprocess"), config.output_config.translate_output, &processor);
-                }
-            }
-            Err(_) => {}
         }
         sleep(Duration::from_nanos(100)); //Sleep for 100ns
     } //@! End of loop
