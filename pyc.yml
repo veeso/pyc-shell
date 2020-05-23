@@ -1,4 +1,6 @@
 language: ru
+shell:
+  exec: "bash"
 alias:
   - чд: cd
   - пвд: pwd

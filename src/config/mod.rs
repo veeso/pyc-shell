@@ -35,9 +35,15 @@ use yaml_rust::{Yaml, YamlLoader};
 //Types
 pub struct Config {
     pub language: String,
+    pub shell_config: ShellConfig,
     alias: HashMap<String, String>,
     pub output_config: OutputConfig,
     pub prompt_config: PromptConfig,
+}
+
+pub struct ShellConfig {
+    pub exec: String,
+    pub args: Vec<String>
 }
 
 pub struct OutputConfig {
@@ -94,6 +100,7 @@ impl Config {
         let alias_config: HashMap<String, String> = HashMap::new();
         Config {
             language: String::from("ru"),
+            shell_config: ShellConfig::default(),
             alias: alias_config,
             output_config: OutputConfig::default(),
             prompt_config: PromptConfig::default(),
@@ -161,14 +168,20 @@ impl Config {
             Err(_) => String::from("ru"),
         };
         //Get alias
-        let alias_config: HashMap<String, String> =
-            match ConfigParser::get_child(&yaml_doc, String::from("alias")) {
+        let alias_config: HashMap<String, String> = match ConfigParser::get_child(&yaml_doc, String::from("alias")) {
                 Ok(node) => match Config::parse_alias(&node) {
                     Ok(cfg) => cfg,
                     Err(err) => return Err(err),
                 },
                 Err(_) => HashMap::new(),
-            };
+        };
+        let shell_config: ShellConfig = match ConfigParser::get_child(&yaml_doc, String::from("shell")) {
+            Ok(node) => match ShellConfig::parse_config(&node) {
+                Ok(cfg) => cfg,
+                Err(err) => return Err(err)
+            },
+            Err(_) => ShellConfig::default()
+        };
         //Get output config
         let output_config: OutputConfig =
             match ConfigParser::get_child(&yaml_doc, String::from("output")) {
@@ -189,6 +202,7 @@ impl Config {
             };
         Ok(Config {
             language: language,
+            shell_config: shell_config,
             alias: alias_config,
             output_config: output_config,
             prompt_config: prompt_config,
@@ -238,6 +252,41 @@ impl Config {
                 message: String::from("'language' is not a string"),
             }),
         }
+    }
+}
+
+impl ShellConfig {
+    pub fn default() -> ShellConfig {
+        ShellConfig {
+            exec: String::from("bash"),
+            args: vec![]
+        }
+    }
+
+    pub fn parse_config(shell_yaml: &Yaml) -> Result<ShellConfig, ConfigError> {
+        let exec: String = match ConfigParser::get_string(&shell_yaml, String::from("exec")) {
+            Ok(s) => s,
+            Err(err) => return Err(err)
+        };
+
+        let args: Vec<String> = match ConfigParser::get_child(&shell_yaml, String::from("args")) {
+            Ok(args_yaml) => {
+                let mut args: Vec<String> = Vec::new();
+                //Iterate over args
+                for arg in args_yaml.as_vec().unwrap() {
+                    args.push(match arg.as_str() {
+                        Some(s) => String::from(s),
+                        None => return Err(ConfigError {code: ConfigErrorCode::YamlSyntaxError, message: String::from("Shell arg is not a string")})
+                    });
+                }
+                args
+            },
+            Err(_) => Vec::new()
+        };
+        Ok(ShellConfig {
+            exec: exec,
+            args: args
+        })
     }
 }
 
@@ -396,6 +445,8 @@ mod tests {
         assert_eq!(prompt_config.rc_err, String::from("✖"));
         assert_eq!(prompt_config.rc_ok, String::from("✔"));
         assert_eq!(prompt_config.translate, false);
+        assert_eq!(config.shell_config.exec, String::from("bash"));
+        assert_eq!(config.shell_config.args.len(), 0);
     }
 
     #[test]
@@ -476,6 +527,22 @@ mod tests {
             Config::parse_config_str(config).err().unwrap().code,
             ConfigErrorCode::YamlSyntaxError
         );
+    }
+
+    #[test]
+    fn test_config_shell_config() {
+        let config: String = String::from("shell:\n  exec: \"sh\"\n  args:\n    - \"-l\"\n    - \"-h\"\n");
+        let config: Config = Config::parse_config_str(config).ok().unwrap();
+        assert_eq!(config.shell_config.exec, String::from("sh"));
+        assert_eq!(config.shell_config.args, vec![String::from("-l"), String::from("-h")]);
+    }
+
+    #[test]
+    fn test_config_shell_config_bad() {
+        let config: String = String::from("shell:\n  args:\n    - \"-l\"\n    - \"-h\"\n");
+        assert!(Config::parse_config_str(config).is_err());
+        let config: String = String::from("shell:\n  args: 5\n");
+        assert!(Config::parse_config_str(config).is_err());
     }
 
     #[test]

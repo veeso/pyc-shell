@@ -55,6 +55,10 @@ Let's see how the configuration is written
 
 ```yaml
 language: ru
+shell:
+  exec: "bash"
+  args:
+    - "-l"
 alias:
   - чд: cd
   - пвд: pwd
@@ -78,6 +82,9 @@ prompt:
     commit_ref_len: 8
 ```
 
+- shell: Shell configuration
+  - exec: shell binary (can be absolute or in PATH)
+  - args: shell CLI arguments
 - alias: list of alias. When the first word of a command is one of the configured alias, it is automatically replaced with the associated latin expression.
 - language: Pyc default language (can be overridden with cli options)
 - output: output configuration

@@ -45,23 +45,12 @@ use crate::utils::async_stdin;
 
 pub fn shell_exec(processor: IOProcessor, config: &config::Config, shell: Option<String>) -> u8 {
     //Determine the shell to use
-    //TODO: add shell from config
-    let shell: String = match shell {
-        Some(sh) => sh,
-        None => match get_shell_from_env() {
-            Ok(sh) => sh,
-            Err(()) => {
-                print_err(
-                    String::from("Could not determine the shell to use"),
-                    config.output_config.translate_output,
-                    &processor,
-                );
-                return 255;
-            }
-        }
+    let (shell, args): (String, Vec<String>) = match shell {
+        Some(sh) => (sh, vec![]),
+        None => (config.shell_config.exec.clone(), config.shell_config.args.clone()) //Get shell from config
     };
     //Intantiate and start a new shell
-    let mut shell_env: Shell = match Shell::start(shell) {
+    let mut shell_env: Shell = match Shell::start(shell, args) {
         Ok(sh) => sh,
         Err(err) => {
             print_err(
@@ -164,10 +153,10 @@ pub fn shell_exec(processor: IOProcessor, config: &config::Config, shell: Option
     }
 }
 
+#[allow(dead_code)]
 /// ### get_shell_from_env
 ///
 /// Try to get the shell path from SHELL environment variable
-
 fn get_shell_from_env() -> Result<String, ()> {
     if let Ok(val) = env::var("SHELL") {
         Ok(val)

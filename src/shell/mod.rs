@@ -47,9 +47,13 @@ impl Shell {
     /// ### start
     ///  
     /// Start a new shell instance and instantiates a new Shell struct
-    pub fn start(shell: String) -> Result<Shell, ShellError> {
+    pub fn start(exec: String, args: Vec<String>) -> Result<Shell, ShellError> {
         //Start shell
-        let argv: Vec<String> = vec![shell];
+        let mut argv: Vec<String> = Vec::with_capacity(1 + args.len());
+        argv.push(exec.clone());
+        for arg in args.iter() {
+            argv.push(arg.clone());
+        }
         let shell_process: ShellProc = match ShellProc::start(argv) {
             Ok(p) => p,
             Err(err) => return Err(err),
@@ -90,6 +94,7 @@ impl Shell {
         self.process.write(input)
     }
 
+    #[allow(dead_code)]
     /// ### sigint
     ///
     /// Send SIGINT to process. The signal is sent to shell or to subprocess (based on current execution state)
@@ -151,7 +156,7 @@ mod tests {
         //Use universal accepted shell
         let shell: String = String::from("sh");
         //Instantiate and start a shell
-        let mut shell_env: Shell = Shell::start(shell).ok().unwrap();
+        let mut shell_env: Shell = Shell::start(shell, vec![]).ok().unwrap();
         //Verify PID
         assert_ne!(shell_env.process.pid, 0);
         //Verify shell status
@@ -175,7 +180,7 @@ mod tests {
         //Use fictional shell
         let shell: String = String::from("pipponbash");
         //Instantiate and start a shell
-        let mut shell_env: Shell = Shell::start(shell).unwrap();
+        let mut shell_env: Shell = Shell::start(shell, vec![]).unwrap();
         //Shell should have terminated
         assert_eq!(shell_env.stop().unwrap(), 255);
     }
@@ -185,7 +190,7 @@ mod tests {
         //Use universal accepted shell
         let shell: String = String::from("sh");
         //Instantiate and start a shell
-        let mut shell_env: Shell = Shell::start(shell).ok().unwrap();
+        let mut shell_env: Shell = Shell::start(shell, vec![]).ok().unwrap();
         //Verify PID
         assert_ne!(shell_env.process.pid, 0);
         //Verify shell status
@@ -219,7 +224,7 @@ mod tests {
         //Use universal accepted shell
         let shell: String = String::from("sh");
         //Instantiate and start a shell
-        let mut shell_env: Shell = Shell::start(shell).ok().unwrap();
+        let mut shell_env: Shell = Shell::start(shell, vec![]).ok().unwrap();
         //Verify PID
         assert_ne!(shell_env.process.pid, 0);
         //Verify shell status
@@ -240,7 +245,7 @@ mod tests {
         //Use universal accepted shell
         let shell: String = String::from("sh");
         //Instantiate and start a shell
-        let mut shell_env: Shell = Shell::start(shell).ok().unwrap();
+        let mut shell_env: Shell = Shell::start(shell, vec![]).ok().unwrap();
         assert!(shell_env.sigint().is_ok());
         //Wait shell to terminate
         sleep(Duration::from_millis(100));
