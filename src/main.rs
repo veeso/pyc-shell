@@ -165,7 +165,9 @@ fn main() {
     //Start runtime
     let rc: u8;
     if oneshot {
-        rc = runtime::process_command(processor, &config, argv);
+        //rc = runtime::process_command(processor, &config, argv);
+        //TODO: impl oneshot
+        rc = 255;
     } else {
         rc = runtime::shell_exec(processor, &config, shell);
     }

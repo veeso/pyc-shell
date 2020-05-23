@@ -418,8 +418,6 @@ mod tests {
         assert_eq!(shell_proc.wrkdir, PathBuf::from("/tmp"));
         assert_eq!(shell_proc.state, ShellState::Idle);
         assert!(shell_proc.stdout_cache.is_none());
-        //Stdout with terminator in the middle (this happens sometimes)
-
         //Kill
         assert!(shell_proc.kill().is_ok());
     }
