@@ -39,6 +39,8 @@ mod config;
 mod runtime;
 mod shell;
 mod translator;
+mod utils;
+
 use translator::ioprocessor::IOProcessor;
 
 /// ### print_usage

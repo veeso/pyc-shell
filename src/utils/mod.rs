@@ -1,3 +1,7 @@
+//! ## Utils
+//!
+//! `utils` module contains different utilities
+
 /*
 *
 *   Copyright (C) 2020 Christian Visintin - christian.visintin1997@gmail.com
@@ -19,10 +23,4 @@
 *
 */
 
-#[macro_use] extern crate lazy_static;
-
-pub mod config;
-pub mod runtime;
-pub(crate) mod shell;
-pub mod translator;
-pub mod utils;
+pub mod async_stdin;

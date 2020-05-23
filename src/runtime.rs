@@ -27,21 +27,19 @@
 extern crate ansi_term;
 extern crate ctrlc;
 extern crate nix;
-extern crate termion;
 
 use ansi_term::Colour;
 use std::env;
-use std::io::Read;
 use std::sync::{mpsc, Arc, Mutex};
 use std::thread::sleep;
 use std::time::{Duration};
-use termion::async_stdin;
 
 use crate::config;
 use crate::shell::proc::ShellState;
 use crate::shell::{Shell};
 use crate::shell::prompt::ShellPrompt;
 use crate::translator::ioprocessor::IOProcessor;
+use crate::utils::async_stdin;
 
 /// ### shell_exec
 ///
@@ -77,8 +75,10 @@ pub fn shell_exec(processor: IOProcessor, config: &config::Config, shell: Option
         }
     };
     //Create input stream
+    /*
     let mut stdin = async_stdin().bytes();
     let mut input_bytes: Vec<u8> = Vec::new();
+    */
     let running = Arc::new(Mutex::new(true));
     let (sig_tx, sig_rx) = mpsc::channel::<()>();
     let sig_running = Arc::clone(&running);
@@ -122,6 +122,54 @@ pub fn shell_exec(processor: IOProcessor, config: &config::Config, shell: Option
             state_changed = false; //Check has been done, nothing to do
         }
         //@! Read user input
+        if async_stdin::is_ready() { //Check if stdin is ready to be read
+            let input: String = async_stdin::read();
+            //If input is empty, print prompt (if state is IDLE)
+            if input.trim().len() == 0 {
+                if last_state == ShellState::Idle {
+                    shell_prompt.print(&shell_env, &processor);
+                }
+            } else {
+                //Treat input
+                //If state is Idle, convert expression, otherwise convert text
+                let input: String = match last_state {
+                    ShellState::Idle => {
+                        //Resolve alias
+                        let mut argv: Vec<String> = Vec::with_capacity(input.matches(" ").count() + 1);
+                        for arg in input.split_whitespace() {
+                            argv.push(String::from(arg));
+                        }
+                        //Process arg 0
+                        resolve_command(&mut argv, &config);
+                        //Rejoin arguments
+                        let input: String = argv.join(" ") + "\n";
+                        match processor.expression_to_latin(input) {
+                            Ok(ex) => ex,
+                            Err(err) => {
+                                print_err(String::from(format!("Input error: {:?}", err)), config.output_config.translate_output, &processor);
+                                continue;
+                            }
+                        }
+                    },
+                    ShellState::SubprocessRunning => processor.text_to_latin(input),
+                    ShellState::Terminated => continue
+                };
+                if let Err(err) = shell_env.write(input) {
+                    print_err(
+                        String::from(err.to_string()),
+                        config.output_config.translate_output,
+                        &processor,
+                    );
+                }
+                //Update state after write
+                let new_state = shell_env.get_state(); //Force last state to be changed
+                if new_state != last_state {
+                    last_state = new_state;
+                    state_changed = true;
+                }
+            }
+        }
+        /*
         if let Some(Ok(i)) = stdin.next() {
             input_bytes.push(i);
         } else {
@@ -190,6 +238,7 @@ pub fn shell_exec(processor: IOProcessor, config: &config::Config, shell: Option
                 }
             }
         }
+        */
         //@! Read Shell stdout
         if let Ok((out, err)) = shell_env.read() {
             if out.is_some() {
