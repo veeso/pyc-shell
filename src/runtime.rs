@@ -120,7 +120,7 @@ pub fn process_command(
         );
     }
     //@! Loop until process has terminated
-    while process.get_state() != ShellState::Terminated {
+    while process.state != ShellState::Terminated {
         //Read user input
         if let Some(Ok(i)) = stdin.next() {
             input_bytes.push(i);

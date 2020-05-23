@@ -28,9 +28,8 @@ extern crate nix;
 mod pipe;
 pub mod process;
 
-//Threads
-use std::sync::{Arc, Mutex};
-use std::thread;
+use std::path::PathBuf;
+use std::time::{Duration, Instant};
 
 use pipe::Pipe;
 
@@ -54,6 +53,9 @@ pub enum ShellError {
     CouldNotStartProcess,
     InvalidData,
     IoTimeout,
+    ShellRunning,
+    ShellTerminated,
+    CouldNotKill,
     PipeError(nix::errno::Errno)
 }
 
@@ -63,14 +65,16 @@ pub enum ShellError {
 #[derive(std::fmt::Debug)]
 pub struct ShellProc {
     pub state: ShellState,                  //Shell process state
-    pub exit_status: u8,                    //Exit status of t he subprocess (child of shell)
-    pub pid: u64,                           //Shell pid
-    pub wrkdir: String,                     //Working directory
+    pub exit_status: u8,                    //Exit status of the subprocess (child of shell)
+    pub pid: i32,                           //Shell pid
+    pub wrkdir: PathBuf,                    //Working directory
+    pub exec_time: Duration,                //Execution time of the last command
     //Private
-    running: Arc<Mutex<bool>>,              //Running state
-    m_loop: Option<thread::JoinHandle<u8>>, //Returns exitcode
+    rc: u8,                                 //Return code of the shell process
     uuid: String,                           //UUID used for handshake with the shell
+    start_time: Instant,                    //Instant when the last command was started
     stdout_cache: Option<String>,           //Used to prevent buffer fragmentation
+    echo_command: String,                   //Echo command
     //Pipes
     stdin_pipe: Pipe,
     stdout_pipe: Pipe,
@@ -79,11 +83,14 @@ pub struct ShellProc {
 
 impl std::fmt::Display for ShellError {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        let code_str: &str = match self {
-            ShellError::CouldNotStartProcess => "Could not start process",
-            ShellError::InvalidData => "Invalid data from process",
-            ShellError::IoTimeout => "I/O timeout",
-            ShellError::PipeError(errno) => format!("Pipe error: {}", errno).as_str(),
+        let code_str: String = match self {
+            ShellError::CouldNotStartProcess => String::from("Could not start process"),
+            ShellError::InvalidData => String::from("Invalid data from process"),
+            ShellError::IoTimeout => String::from("I/O timeout"),
+            ShellError::ShellTerminated => String::from("Shell has terminated"),
+            ShellError::ShellRunning => String::from("Tried to clean shell up while still running"),
+            ShellError::CouldNotKill => String::from("Could not send signal to shell process"),
+            ShellError::PipeError(errno) => format!("Pipe error: {}", errno),
         };
         write!(f, "{}", code_str)
     }
@@ -101,6 +108,9 @@ mod tests {
         assert_eq!(format!("{}", ShellError::CouldNotStartProcess), String::from("Could not start process"));
         assert_eq!(format!("{}", ShellError::InvalidData), String::from("Invalid data from process"));
         assert_eq!(format!("{}", ShellError::IoTimeout), String::from("I/O timeout"));
+        assert_eq!(format!("{}", ShellError::ShellTerminated), String::from("Shell has terminated"));
+        assert_eq!(format!("{}", ShellError::ShellRunning), String::from("Tried to clean shell up while still running"));
+        assert_eq!(format!("{}", ShellError::CouldNotKill), String::from("Could not send signal to shell process"));
         assert_eq!(format!("{}", ShellError::PipeError(nix::errno::Errno::EACCES)), format!("Pipe error: {}", nix::errno::Errno::EACCES));
     }
 

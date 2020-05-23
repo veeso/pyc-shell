@@ -192,7 +192,7 @@ impl ShellPrompt {
     ) -> String {
         match key.as_str() {
             PROMPT_CMDTIME => {
-                let elapsed_time: Duration = shell_env.elapsed_time;
+                let elapsed_time: Duration = shell_env.elapsed_time();
                 match &self.duration_opt {
                     Some(opt) => {
                         if elapsed_time.as_millis() >= opt.minimum.as_millis() {
@@ -419,7 +419,7 @@ mod tests {
         let mut prompt: ShellPrompt = ShellPrompt::new(&prompt_config_default);
         let iop: IOProcessor = get_ioprocessor();
         let mut shellenv: Shell = get_shellenv();
-        shellenv.elapsed_time = Duration::from_millis(5100);
+        shellenv.process.exec_time = Duration::from_millis(5100);
         shellenv.process.wrkdir = PathBuf::from("/tmp/");
         //Print first in latin
         prompt.print(&shellenv, &iop);
@@ -464,7 +464,7 @@ mod tests {
         let mut prompt: ShellPrompt = ShellPrompt::new(&prompt_config_default);
         let iop: IOProcessor = get_ioprocessor();
         let mut shellenv: Shell = get_shellenv();
-        shellenv.elapsed_time = Duration::from_millis(5100);
+        shellenv.process.exec_time = Duration::from_millis(5100);
         shellenv.process.wrkdir = PathBuf::from("./");
         //Print first in latin
         prompt.print(&shellenv, &iop);
@@ -496,7 +496,7 @@ mod tests {
         let mut prompt: ShellPrompt = ShellPrompt::new(&prompt_config_default);
         let iop: IOProcessor = get_ioprocessor();
         let mut shellenv: Shell = get_shellenv();
-        shellenv.elapsed_time = Duration::from_millis(5100);
+        shellenv.process.exec_time = Duration::from_millis(5100);
         shellenv.process.wrkdir = PathBuf::from("/");
         //Print first in latin
         prompt.print(&shellenv, &iop);
@@ -525,7 +525,7 @@ mod tests {
         let mut prompt: ShellPrompt = ShellPrompt::new(&prompt_config_default);
         let iop: IOProcessor = get_ioprocessor();
         let mut shellenv: Shell = get_shellenv();
-        shellenv.elapsed_time = Duration::from_millis(5100);
+        shellenv.process.exec_time = Duration::from_millis(5100);
         shellenv.process.wrkdir = PathBuf::from("/");
         //Print first in latin
         prompt.print(&shellenv, &iop);
@@ -554,7 +554,7 @@ mod tests {
         let mut prompt: ShellPrompt = ShellPrompt::new(&prompt_config_default);
         let iop: IOProcessor = get_ioprocessor();
         let mut shellenv: Shell = get_shellenv();
-        shellenv.elapsed_time = Duration::from_millis(5100);
+        shellenv.process.exec_time = Duration::from_millis(5100);
         shellenv.process.wrkdir = PathBuf::from("/");
         shellenv.process.exit_status = 255;
         //Print first in latin
@@ -584,7 +584,7 @@ mod tests {
         let mut prompt: ShellPrompt = ShellPrompt::new(&prompt_config_default);
         let iop: IOProcessor = get_ioprocessor();
         let mut shellenv: Shell = get_shellenv();
-        shellenv.elapsed_time = Duration::from_millis(5100);
+        shellenv.process.exec_time = Duration::from_millis(5100);
         shellenv.process.wrkdir = PathBuf::from("/");
         shellenv.process.exit_status = 255;
         //Print first in latin

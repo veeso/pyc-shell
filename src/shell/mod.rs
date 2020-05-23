@@ -31,7 +31,8 @@ extern crate whoami;
 
 use nix::sys::signal;
 use proc::{ShellError, ShellProc, ShellState};
-use std::time::{Duration, Instant};
+use std::path::PathBuf;
+use std::time::{Duration};
 
 /// ### Shell
 ///
@@ -39,9 +40,7 @@ use std::time::{Duration, Instant};
 pub struct Shell {
     process: ShellProc,
     pub username: String,
-    pub hostname: String,
-    pub elapsed_time: Duration, //Duration of last process
-    started_time: Instant //Instant the process was started
+    pub hostname: String
 }
 
 impl Shell {
@@ -63,9 +62,7 @@ impl Shell {
         Ok(Shell {
             process: shell_process,
             username: user,
-            hostname: hostname,
-            elapsed_time: Duration::from_millis(0),
-            started_time: Instant::now()
+            hostname: hostname
         })
     }
 
@@ -73,13 +70,13 @@ impl Shell {
     ///
     /// Returns the current Shell state
     pub fn get_state(&mut self) -> ShellState {
-        self.process.get_state()
+        self.process.state
     }
 
     /// ### get_exitcode
     ///
     /// Returns the shell exit status when terminated
-    pub fn get_exitcode(&self) -> Option<u8> {
+    pub fn get_exitcode(&mut self) -> Option<u8> {
         if self.get_state() == ShellState::Terminated {
             Some(self.process.exit_status)
         } else {
@@ -104,7 +101,7 @@ impl Shell {
     /// ### sigint
     ///
     /// Send SIGINT to process. The signal is sent to shell or to subprocess (based on current execution state)
-    pub fn sigint(&mut self) -> Result<(), ()> {
+    pub fn sigint(&mut self) -> Result<(), ShellError> {
         self.process.raise(signal::SIGINT)
     }
 
@@ -121,7 +118,7 @@ impl Shell {
     /// ### wrkdir
     /// 
     /// Get working directory
-    pub fn wrkdir(&self) -> String {
+    pub fn wrkdir(&self) -> PathBuf {
         self.process.wrkdir.clone()
     }
 
@@ -132,12 +129,12 @@ impl Shell {
         self.process.exit_status
     }
 
-    /// ### set_elapsed_time
+    /// ### elapsed_time
     /// 
-    /// Set elapsed time
-    fn set_elapsed_time(&mut self) {
-        self.elapsed_time = self.started_time.elapsed();
-    } 
+    /// Get the last command execution time
+    pub fn elapsed_time(&self) -> Duration {
+        self.process.exec_time
+    }
 }
 
 //@! Test module
@@ -148,6 +145,7 @@ mod tests {
     use super::*;
     use std::thread::sleep;
     use std::time::Duration;
+    use nix::NixPath;
 
     #[test]
     fn shell_start() {
@@ -162,7 +160,7 @@ mod tests {
         //Get username etc
         println!("Username: {}", shell_env.username);
         println!("Hostname: {}", shell_env.hostname);
-        println!("Working directory: {}", shell_env.wrkdir());
+        println!("Working directory: {}", shell_env.wrkdir().display());
         assert!(shell_env.username.len() > 0);
         assert!(shell_env.hostname.len() > 0);
         assert!(shell_env.wrkdir().len() > 0);

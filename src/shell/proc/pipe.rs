@@ -97,7 +97,7 @@ impl Pipe {
         let mut data_size: usize = 0;
         //Prepare times
         let timeout: Duration = Duration::from_millis(timeout);
-        let mut time: Instant = Instant::now();
+        let time: Instant = Instant::now();
         while time.elapsed() < timeout {
             //Poll pipe
             match nix::poll::poll(&mut poll_fds, 50) {
@@ -106,7 +106,7 @@ impl Pipe {
                         let event: nix::poll::PollFlags = poll_fds[0].revents().unwrap();
                         if event.intersects(nix::poll::PollFlags::POLLIN) || event.intersects(nix::poll::PollFlags::POLLRDBAND) {
                             //Read from FIFO
-                            let mut buffer: [u8; 2048];
+                            let mut buffer: [u8; 2048] = [0; 2048];
                             match unistd::read(self.fd, &mut buffer) {
                                 Ok(bytes_read) => {
                                     data_size += bytes_read;
@@ -189,7 +189,7 @@ impl Pipe {
         let mut poll_fds: [nix::poll::PollFd; 1] = [nix::poll::PollFd::new(self.fd, nix::poll::PollFlags::POLLOUT)];
         //Prepare times
         let timeout: Duration = Duration::from_millis(timeout);
-        let mut time: Instant = Instant::now();
+        let time: Instant = Instant::now();
         //Prepare data out
         let data_out = data.as_bytes();
         let total_bytes_amount: usize = data_out.len();
@@ -197,7 +197,7 @@ impl Pipe {
         let mut bytes_written: usize = 0;
         while bytes_written < total_bytes_amount {
             match nix::poll::poll(&mut poll_fds, 50) {
-                Ok(ret) => {
+                Ok(_) => {
                     if let Some(revents) = poll_fds[0].revents() {
                         if revents.intersects(nix::poll::PollFlags::POLLOUT) {
                             //Write data out (2048 or remaining bytes)
