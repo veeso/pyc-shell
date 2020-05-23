@@ -66,6 +66,13 @@ impl Shell {
         })
     }
 
+    /// ### stop
+    /// 
+    /// Stop shell execution
+    pub fn stop(&mut self) -> Result<u8, ShellError> {
+        self.process.cleanup()
+    }
+
     /// ### get_state
     ///
     /// Returns the current Shell state

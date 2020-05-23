@@ -340,7 +340,7 @@ mod tests {
 
     use super::*;
     use crate::config::PromptConfig;
-    use crate::shell::{Shell, ShellState};
+    use crate::shell::{Shell};
     use crate::translator::ioprocessor::IOProcessor;
     use crate::translator::new_translator;
     use crate::translator::Language;
@@ -348,7 +348,6 @@ mod tests {
 
     use git2::Repository;
     use std::path::PathBuf;
-    use std::thread::sleep;
     use std::time::Duration;
 
     #[test]
@@ -616,8 +615,6 @@ mod tests {
     }
 
     fn terminate_shell(shell: &mut Shell) {
-        assert!(shell.write(String::from("exit\n")).is_ok());
-        sleep(Duration::from_millis(500));
-        assert_eq!(shell.get_state(), ShellState::Terminated);
+        assert!(shell.write(String::from("exit 0\n")).is_ok());
     }
 }
