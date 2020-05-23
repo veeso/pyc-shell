@@ -26,13 +26,13 @@
 extern crate git2;
 
 use git2::Repository;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 /// ### find_repository
 ///
 /// Find repository in the current path
-pub fn find_repository(wrkdir: &String) -> Option<Repository> {
-    let wrkdir_path: &Path = Path::new(wrkdir.as_str());
+pub fn find_repository(wrkdir: &PathBuf) -> Option<Repository> {
+    let wrkdir_path: &Path = wrkdir.as_path();
     //Find repository
     match Repository::discover(wrkdir_path) {
         Ok(repo) => Some(repo),
@@ -95,7 +95,7 @@ mod tests {
         let tmpdir: tempfile::TempDir = tempfile::TempDir::new().unwrap();
         Repository::init(tmpdir.path()).unwrap();
         //Initialize module
-        let path_str: String = String::from(tmpdir.path().to_str().unwrap());
+        let path_str: PathBuf = PathBuf::from(tmpdir.path());
         let repo: Repository = find_repository(&path_str).unwrap();
         //Branch should be none
         assert!(get_branch(&repo).is_none());
@@ -118,7 +118,7 @@ mod tests {
         repo.
         */
         //Initialize module
-        let repo: Repository = find_repository(&String::from("./")).unwrap();
+        let repo: Repository = find_repository(&PathBuf::from("./")).unwrap();
         //Branch should be none
         let branch = get_branch(&repo);
         assert!(branch.is_some());
@@ -132,6 +132,6 @@ mod tests {
 
     #[test]
     fn test_git_repo_not_found() {
-        assert!(find_repository(&String::from("/")).is_none());
+        assert!(find_repository(&PathBuf::from("/")).is_none());
     }
 }

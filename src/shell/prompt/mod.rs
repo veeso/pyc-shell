@@ -262,7 +262,7 @@ impl ShellPrompt {
                 None => String::from(""),
             },
             PROMPT_USER => shell_env.username.clone(),
-            PROMPT_WRKDIR => shell_env.wrkdir().clone(),
+            PROMPT_WRKDIR => shell_env.wrkdir().as_path().display().to_string(),
             _ => key.clone(), //Keep unresolved keys
         }
     }
@@ -347,6 +347,7 @@ mod tests {
     use colors::PromptColor;
 
     use git2::Repository;
+    use std::path::PathBuf;
     use std::thread::sleep;
     use std::time::Duration;
 
@@ -367,7 +368,7 @@ mod tests {
             "{}@{}:{}$",
             shellenv.username.clone(),
             shellenv.hostname.clone(),
-            shellenv.wrkdir().clone()
+            shellenv.wrkdir().display()
         ));
         assert_eq!(prompt_line, expected_prompt_line);
         //Terminate shell at the end of a test
@@ -419,7 +420,7 @@ mod tests {
         let iop: IOProcessor = get_ioprocessor();
         let mut shellenv: Shell = get_shellenv();
         shellenv.elapsed_time = Duration::from_millis(5100);
-        shellenv.process.wrkdir = String::from("/tmp/");
+        shellenv.process.wrkdir = PathBuf::from("/tmp/");
         //Print first in latin
         prompt.print(&shellenv, &iop);
         prompt.translate = true;
@@ -437,7 +438,7 @@ mod tests {
             shellenv.hostname.clone(),
             PromptColor::Reset.to_string(),
             PromptColor::Cyan.to_string(),
-            shellenv.wrkdir(),
+            shellenv.wrkdir().display(),
             PromptColor::Reset.to_string(),
             PromptColor::Yellow.to_string(),
             PromptColor::Reset.to_string()
@@ -452,7 +453,7 @@ mod tests {
     fn test_prompt_git() {
         //Get current git info
         //Initialize module
-        let repo: Repository = git::find_repository(&String::from("./")).unwrap();
+        let repo: Repository = git::find_repository(&PathBuf::from("./")).unwrap();
         //Branch should be none
         let branch: String = git::get_branch(&repo).unwrap();
         let commit: String = git::get_commit(&repo, 8).unwrap();
@@ -464,7 +465,7 @@ mod tests {
         let iop: IOProcessor = get_ioprocessor();
         let mut shellenv: Shell = get_shellenv();
         shellenv.elapsed_time = Duration::from_millis(5100);
-        shellenv.process.wrkdir = String::from("./");
+        shellenv.process.wrkdir = PathBuf::from("./");
         //Print first in latin
         prompt.print(&shellenv, &iop);
         prompt.translate = true;
@@ -476,7 +477,7 @@ mod tests {
             "{}@{}:{} on {}:{}",
             shellenv.username.clone(),
             shellenv.hostname.clone(),
-            shellenv.wrkdir(),
+            shellenv.wrkdir().display(),
             branch,
             commit
         ));
@@ -496,7 +497,7 @@ mod tests {
         let iop: IOProcessor = get_ioprocessor();
         let mut shellenv: Shell = get_shellenv();
         shellenv.elapsed_time = Duration::from_millis(5100);
-        shellenv.process.wrkdir = String::from("/");
+        shellenv.process.wrkdir = PathBuf::from("/");
         //Print first in latin
         prompt.print(&shellenv, &iop);
         prompt.translate = true;
@@ -508,7 +509,7 @@ mod tests {
             "{}@{}:{}",
             shellenv.username.clone(),
             shellenv.hostname.clone(),
-            shellenv.wrkdir()
+            shellenv.wrkdir().display()
         ));
         assert_eq!(prompt_line, expected_prompt_line);
         //Terminate shell at the end of a test
@@ -525,7 +526,7 @@ mod tests {
         let iop: IOProcessor = get_ioprocessor();
         let mut shellenv: Shell = get_shellenv();
         shellenv.elapsed_time = Duration::from_millis(5100);
-        shellenv.process.wrkdir = String::from("/");
+        shellenv.process.wrkdir = PathBuf::from("/");
         //Print first in latin
         prompt.print(&shellenv, &iop);
         prompt.translate = true;
@@ -537,7 +538,7 @@ mod tests {
             "✔ {}@{}:{}",
             shellenv.username.clone(),
             shellenv.hostname.clone(),
-            shellenv.wrkdir()
+            shellenv.wrkdir().display()
         ));
         assert_eq!(prompt_line, expected_prompt_line);
         //Terminate shell at the end of a test
@@ -554,7 +555,7 @@ mod tests {
         let iop: IOProcessor = get_ioprocessor();
         let mut shellenv: Shell = get_shellenv();
         shellenv.elapsed_time = Duration::from_millis(5100);
-        shellenv.process.wrkdir = String::from("/");
+        shellenv.process.wrkdir = PathBuf::from("/");
         shellenv.process.exit_status = 255;
         //Print first in latin
         prompt.print(&shellenv, &iop);
@@ -567,7 +568,7 @@ mod tests {
             "✖ {}@{}:{}",
             shellenv.username.clone(),
             shellenv.hostname.clone(),
-            shellenv.wrkdir()
+            shellenv.wrkdir().display()
         ));
         assert_eq!(prompt_line, expected_prompt_line);
         //Terminate shell at the end of a test
@@ -584,7 +585,7 @@ mod tests {
         let iop: IOProcessor = get_ioprocessor();
         let mut shellenv: Shell = get_shellenv();
         shellenv.elapsed_time = Duration::from_millis(5100);
-        shellenv.process.wrkdir = String::from("/");
+        shellenv.process.wrkdir = PathBuf::from("/");
         shellenv.process.exit_status = 255;
         //Print first in latin
         prompt.print(&shellenv, &iop);
@@ -597,7 +598,7 @@ mod tests {
             "{}@{}:{} {}",
             shellenv.username.clone(),
             shellenv.hostname.clone(),
-            shellenv.wrkdir(),
+            shellenv.wrkdir().display(),
             "${FOOBAR}"
         ));
         assert_eq!(prompt_line, expected_prompt_line);
