@@ -157,6 +157,14 @@ impl ShellProc {
         }
         //Add echo command to data if shell state is Idle
         if self.state == ShellState::Idle {
+            //Replace data newline with ';'
+            while data.ends_with('\n') {
+                data.pop();
+            }
+            //Append semicolon to data
+            if ! data.ends_with(';') {
+                data.push(';');
+            }
             //Append echo command to data
             data.push_str(self.echo_command.as_str());
             //Set state to running
@@ -198,7 +206,7 @@ impl ShellProc {
     /// ### update_state
     /// 
     /// Update shell running state checking if the other thread has terminated
-    fn update_state(&mut self) -> ShellState {
+    pub fn update_state(&mut self) -> ShellState {
         //Wait pid (NO HANG)
         match nix::sys::wait::waitpid(nix::unistd::Pid::from_raw(self.pid), Some(nix::sys::wait::WaitPidFlag::WNOHANG)) {
             Err(_) => {}, //Could not get information
@@ -410,6 +418,8 @@ mod tests {
         assert_eq!(shell_proc.wrkdir, PathBuf::from("/tmp"));
         assert_eq!(shell_proc.state, ShellState::Idle);
         assert!(shell_proc.stdout_cache.is_none());
+        //Stdout with terminator in the middle (this happens sometimes)
+
         //Kill
         assert!(shell_proc.kill().is_ok());
     }

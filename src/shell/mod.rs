@@ -70,25 +70,10 @@ impl Shell {
     /// 
     /// Stop shell execution
     pub fn stop(&mut self) -> Result<u8, ShellError> {
-        self.process.cleanup()
-    }
-
-    /// ### get_state
-    ///
-    /// Returns the current Shell state
-    pub fn get_state(&mut self) -> ShellState {
-        self.process.state
-    }
-
-    /// ### get_exitcode
-    ///
-    /// Returns the shell exit status when terminated
-    pub fn get_exitcode(&mut self) -> Option<u8> {
-        if self.get_state() == ShellState::Terminated {
-            Some(self.process.exit_status)
-        } else {
-            None
+        while self.get_state() != ShellState::Terminated {
+            let _ = self.process.kill();
         }
+        self.process.cleanup()
     }
 
     /// ### read
@@ -110,6 +95,24 @@ impl Shell {
     /// Send SIGINT to process. The signal is sent to shell or to subprocess (based on current execution state)
     pub fn sigint(&mut self) -> Result<(), ShellError> {
         self.process.raise(signal::SIGINT)
+    }
+
+    /// ### get_state
+    ///
+    /// Returns the current Shell state
+    pub fn get_state(&mut self) -> ShellState {
+        self.process.update_state()
+    }
+
+    /// ### get_exitcode
+    ///
+    /// Returns the shell exit status when terminated
+    pub fn get_exitcode(&mut self) -> Option<u8> {
+        if self.get_state() == ShellState::Terminated {
+            Some(self.process.exit_status)
+        } else {
+            None
+        }
     }
 
     /// ### refresh_env
@@ -176,11 +179,18 @@ mod tests {
         //Verify exitcode UNSET
         assert!(shell_env.get_exitcode().is_none());
         //Terminate shell
-        assert!(shell_env.process.kill().is_ok());
-        //Verify shell has terminated
+        assert_eq!(shell_env.stop().unwrap(), 9);
         assert_eq!(shell_env.get_state(), ShellState::Terminated);
-        //Verify exit code
-        assert_eq!(shell_env.get_exitcode().unwrap(), 9); //Exitcode will be 9
+    }
+
+    #[test]
+    fn test_shell_start_failed() {
+        //Use fictional shell
+        let shell: String = String::from("pipponbash");
+        //Instantiate and start a shell
+        let mut shell_env: Shell = Shell::start(shell).unwrap();
+        //Shell should have terminated
+        assert_eq!(shell_env.stop().unwrap(), 255);
     }
 
     #[test]
@@ -210,14 +220,11 @@ mod tests {
         //Verify shell status again
         assert_eq!(shell_env.get_state(), ShellState::SubprocessRunning);
         //Okay, send SIGINT now
-        assert!(shell_env.sigint().is_ok());
-        //Status must be Idle again now
-        sleep(Duration::from_millis(100));
-        assert_eq!(shell_env.get_state(), ShellState::Idle);
-        //Okay, terminate shell now
         assert!(shell_env.process.kill().is_ok());
-        //Verify shell has terminated
+        //Shell should have terminated
+        sleep(Duration::from_millis(100));
         assert_eq!(shell_env.get_state(), ShellState::Terminated);
+        assert_eq!(shell_env.stop().unwrap(), 9);
     }
 
     #[test]
@@ -231,23 +238,14 @@ mod tests {
         //Verify shell status
         assert_eq!(shell_env.get_state(), ShellState::Idle);
         //Terminate the shell gracefully
-        let command: String = String::from("exit\n");
+        let command: String = String::from("exit 5\n");
         assert!(shell_env.write(command).is_ok());
         //Wait shell to terminate
         sleep(Duration::from_millis(100));
         //Verify shell has terminated
         assert_eq!(shell_env.get_state(), ShellState::Terminated);
         //Verify exitcode to be 0
-        assert_eq!(shell_env.get_exitcode().unwrap(), 0);
-    }
-
-    #[test]
-    #[should_panic]
-    fn test_shell_start_failed() {
-        //Use fictional shell
-        let shell: String = String::from("pipponbash");
-        //Instantiate and start a shell
-        Shell::start(shell).ok().unwrap(); //Should panic
+        assert_eq!(shell_env.stop().unwrap(), 5);
     }
 
     #[test]
@@ -262,6 +260,6 @@ mod tests {
         //Verify shell has terminated
         assert_eq!(shell_env.get_state(), ShellState::Terminated);
         //Verify exitcode to be 0
-        assert_eq!(shell_env.get_exitcode().unwrap(), 2);
+        assert_eq!(shell_env.stop().unwrap(), 2);
     }
 }

@@ -616,5 +616,6 @@ mod tests {
 
     fn terminate_shell(shell: &mut Shell) {
         assert!(shell.write(String::from("exit 0\n")).is_ok());
+        let _ = shell.stop();
     }
 }
