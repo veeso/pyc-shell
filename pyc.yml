@@ -18,5 +18,5 @@ prompt:
     ok: "✔"
     error: "✖"
   git:
-    branch: "on "
+    branch: "on  "
     commit_ref_len: 8

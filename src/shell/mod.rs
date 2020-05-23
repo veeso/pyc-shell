@@ -104,17 +104,6 @@ impl Shell {
         self.process.update_state()
     }
 
-    /// ### get_exitcode
-    ///
-    /// Returns the shell exit status when terminated
-    pub fn get_exitcode(&mut self) -> Option<u8> {
-        if self.get_state() == ShellState::Terminated {
-            Some(self.process.exit_status)
-        } else {
-            None
-        }
-    }
-
     /// ### refresh_env
     /// 
     /// Refresh Shell Environment information
@@ -176,8 +165,6 @@ mod tests {
         assert!(shell_env.wrkdir().len() > 0);
         //Refresh environment
         shell_env.refresh_env();
-        //Verify exitcode UNSET
-        assert!(shell_env.get_exitcode().is_none());
         //Terminate shell
         assert_eq!(shell_env.stop().unwrap(), 9);
         assert_eq!(shell_env.get_state(), ShellState::Terminated);

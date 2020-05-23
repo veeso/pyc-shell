@@ -134,11 +134,11 @@ impl ShellProc {
         if self.update_state() == ShellState::Terminated {
             return Err(ShellError::ShellTerminated)
         }
-        let stdout: Option<String> = match self.stdout_pipe.read(100) {
+        let stdout: Option<String> = match self.stdout_pipe.read(50) {
             Ok(stdout) => self.parse_stdout(stdout),
             Err(err) => return Err(err)
         };
-        let stderr: Option<String> = match self.stderr_pipe.read(100) {
+        let stderr: Option<String> = match self.stderr_pipe.read(50) {
             Ok(stderr) => match stderr {
                 None => None,
                 Some(stderr) => Some(stderr)
