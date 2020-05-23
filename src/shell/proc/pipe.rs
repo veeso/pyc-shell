@@ -34,7 +34,7 @@ use std::time::{Instant, Duration};
 //UNIX
 use nix::unistd;
 
-#[derive(std::fmt::Debug)]
+#[derive(Clone, std::fmt::Debug)]
 pub(crate) struct Pipe {
     pub path: PathBuf, //Pipe path
     pub fd: RawFd
@@ -47,15 +47,14 @@ impl Pipe {
     /// Open and creates a new pipe. Returns pipe on suceess or shell error
     pub fn open(path: &PathBuf) -> Result<Pipe, ShellError> {
         //Mkfifo - Not necessary with O_CREAT
-        /*
-        if let Err(err) = unistd::mkfifo(path.as_path(), nix::sys::stat::Mode::S_IRWXO) {
+        if let Err(err) = unistd::mkfifo(path.as_path(), nix::sys::stat::Mode::S_IRWXU | nix::sys::stat::Mode::S_IRWXG | nix::sys::stat::Mode::S_IRWXO) {
             match err {
                 nix::Error::Sys(errno) => return Err(ShellError::PipeError(errno)),
                 _ => return Err(ShellError::PipeError(nix::errno::Errno::UnknownErrno))
             }
-        }*/
+        }
         //Open fifo
-        match nix::fcntl::open(path.as_path(), nix::fcntl::OFlag::O_RDWR | nix::fcntl::OFlag::O_CREAT, nix::sys::stat::Mode::S_IRWXO) {
+        match nix::fcntl::open(path.as_path(), nix::fcntl::OFlag::O_RDWR, nix::sys::stat::Mode::S_IRWXU | nix::sys::stat::Mode::S_IRWXG | nix::sys::stat::Mode::S_IRWXO) {
             Ok(fd) => {
                 Ok(Pipe {
                     path: path.clone(),
@@ -111,7 +110,7 @@ impl Pipe {
                                 Ok(bytes_read) => {
                                     data_size += bytes_read;
                                     //Push bytes converted to string to data out
-                                    data_out.push_str(match std::str::from_utf8(&buffer) {
+                                    data_out.push_str(match std::str::from_utf8(&buffer[0..bytes_read]) {
                                         Ok(s) => s,
                                         Err(_) => {
                                             return Err(ShellError::InvalidData)
@@ -245,19 +244,75 @@ mod tests {
 
     use super::*;
 
+    use std::thread;
+    use std::time::Duration;
+
     #[test]
     fn test_pipe_open_close() {
         let tmpdir: tempfile::TempDir = create_tmp_dir();
-        let pipe: PathBuf = tmpdir.path().join("/test.fifo");
-        let pipe: Result<Pipe, ShellError> = Pipe::open(&pipe);
-        assert!(pipe.is_ok());
+        let pipe_path: PathBuf = tmpdir.path().join("test.fifo");
+        let pipe: Result<Pipe, ShellError> = Pipe::open(&pipe_path);
+        assert!(pipe.is_ok(), format!("Pipe ({}) should be OK, but is {:?}", pipe_path.display(), pipe));
         let pipe: Pipe = pipe.unwrap();
         assert!(pipe.close().is_ok());
     }
 
     #[test]
     fn test_pipe_io() {
-        //TODO: implement
+        let tmpdir: tempfile::TempDir = create_tmp_dir();
+        let pipe_path: PathBuf = tmpdir.path().join("stdout.fifo");
+        //Open Pipe
+        let pipe: Result<Pipe, ShellError> = Pipe::open(&pipe_path);
+        assert!(pipe.is_ok(), format!("Pipe ({}) should be OK, but is {:?}", pipe_path.display(), pipe));
+        let pipe: Pipe = pipe.unwrap();
+        let pipe_thread: Pipe = pipe.clone();
+        //Start thread
+        let join_hnd: thread::JoinHandle<()> = thread::spawn(move || {
+            let input: String = pipe_thread.read(1000).unwrap().unwrap();
+            assert_eq!(input, String::from("HELLO\n"));
+            thread::sleep(Duration::from_millis(100)); //Sleep for 100 msecond
+            //Write
+            assert!(pipe_thread.write(String::from("HI THERE\n"), 1000).is_ok());
+        });
+        //Write pipe
+        assert!(pipe.write(String::from("HELLO\n"), 1000).is_ok(), "Write timeout");
+        //Read pipe
+        thread::sleep(Duration::from_millis(100)); //Sleep for 100 msecond
+        let read: Result<Option<String>, ShellError> = pipe.read(1000);
+        assert!(read.is_ok(), format!("Read should be Ok, but is {:?}", read));
+        let read: Option<String> = read.unwrap();
+        assert_eq!(read.unwrap(), String::from("HI THERE\n"));
+        //Join thread
+        assert!(join_hnd.join().is_ok());
+        //Close Pipe
+        assert!(pipe.close().is_ok());
+    }
+
+    #[test]
+    fn test_pipe_open_close_error() {
+        //Open error
+        let pipe_path: PathBuf = PathBuf::from("/dev/tty1");
+        let pipe: Result<Pipe, ShellError> = Pipe::open(&pipe_path);
+        assert!(pipe.is_err());
+        //Close error
+        let pipe: Pipe = Pipe {
+            fd: 10,
+            path: PathBuf::from("/tmp/stdout.fifo")
+        };
+        assert!(pipe.close().is_err());
+    }
+
+    #[test]
+    fn test_pipe_io_error() {
+        let tmpdir: tempfile::TempDir = create_tmp_dir();
+        let pipe_path: PathBuf = tmpdir.path().join("stdout.fifo");
+        //Open Pipe
+        let pipe: Result<Pipe, ShellError> = Pipe::open(&pipe_path);
+        assert!(pipe.is_ok(), format!("Pipe ({}) should be OK, but is {:?}", pipe_path.display(), pipe));
+        let pipe: Pipe = pipe.unwrap();
+        //assert!(pipe.write(String::from("HELLO\n"), 1000).is_err(), "Write should time out");
+        assert!(pipe.read(1000).unwrap().is_none(), "Read should be None");
+        assert!(pipe.close().is_ok());
     }
 
     fn create_tmp_dir() -> tempfile::TempDir {

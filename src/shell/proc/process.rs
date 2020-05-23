@@ -49,15 +49,15 @@ impl ShellProc {
         let uuid: String = Uuid::new_v4().to_hyphenated().to_string();
         //Create pipes
         let tmpdir: tempfile::TempDir = tempfile::TempDir::new().unwrap();
-        let stdin_pipe: Pipe = match Pipe::open(&tmpdir.path().join("/stdin.fifo")) {
+        let stdin_pipe: Pipe = match Pipe::open(&tmpdir.path().join("stdin.fifo")) {
             Ok(p) => p,
             Err(err) => return Err(err)
         };
-        let stderr_pipe: Pipe = match Pipe::open(&tmpdir.path().join("/stderr.fifo")) {
+        let stderr_pipe: Pipe = match Pipe::open(&tmpdir.path().join("stderr.fifo")) {
             Ok(p) => p,
             Err(err) => return Err(err)
         };
-        let stdout_pipe: Pipe = match Pipe::open(&tmpdir.path().join("/stdout.fifo")) {
+        let stdout_pipe: Pipe = match Pipe::open(&tmpdir.path().join("stdout.fifo")) {
             Ok(p) => p,
             Err(err) => return Err(err)
         };
