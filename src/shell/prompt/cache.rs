@@ -70,7 +70,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_cache() {
+    fn test_prompt_cache() {
         //Create temp directory
         let tmpdir: tempfile::TempDir = tempfile::TempDir::new().unwrap();
         let git_repo: Repository = Repository::init(tmpdir.path()).unwrap();

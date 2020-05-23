@@ -90,7 +90,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_git_module_empty() {
+    fn test_prompt_git_module_empty() {
         //Create temp directory
         let tmpdir: tempfile::TempDir = tempfile::TempDir::new().unwrap();
         Repository::init(tmpdir.path()).unwrap();
@@ -104,7 +104,7 @@ mod tests {
     }
 
     #[test]
-    fn test_git_module_with_commits() {
+    fn test_prompt_git_module_with_commits() {
         /*
         //Create temp directory
         let tmpdir: tempfile::TempDir = tempfile::TempDir::new().unwrap();
@@ -131,7 +131,7 @@ mod tests {
     }
 
     #[test]
-    fn test_git_repo_not_found() {
+    fn test_prompt_git_repo_not_found() {
         assert!(find_repository(&PathBuf::from("/")).is_none());
     }
 }

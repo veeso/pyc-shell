@@ -52,7 +52,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_lang_flag() {
+    fn test_prompt_lang_flag() {
         let expected_str = String::from("\x1b[37mр\x1b[34mу\x1b[31mс\x1b[0m");
         println!("{}", language_to_str(Language::Russian));
         assert_eq!(language_to_str(Language::Russian), expected_str);

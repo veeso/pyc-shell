@@ -148,7 +148,7 @@ mod tests {
     use nix::NixPath;
 
     #[test]
-    fn shell_start() {
+    fn test_shell_start() {
         //Use universal accepted shell
         let shell: String = String::from("sh");
         //Instantiate and start a shell
@@ -177,7 +177,7 @@ mod tests {
     }
 
     #[test]
-    fn shell_exec() {
+    fn test_shell_exec() {
         //Use universal accepted shell
         let shell: String = String::from("sh");
         //Instantiate and start a shell
@@ -214,7 +214,7 @@ mod tests {
     }
 
     #[test]
-    fn shell_terminate_gracefully() {
+    fn test_shell_terminate_gracefully() {
         //Use universal accepted shell
         let shell: String = String::from("sh");
         //Instantiate and start a shell
@@ -236,7 +236,7 @@ mod tests {
 
     #[test]
     #[should_panic]
-    fn shell_start_failed() {
+    fn test_shell_start_failed() {
         //Use fictional shell
         let shell: String = String::from("pipponbash");
         //Instantiate and start a shell
@@ -244,7 +244,7 @@ mod tests {
     }
 
     #[test]
-    fn shell_sigint() {
+    fn test_shell_sigint() {
         //Use universal accepted shell
         let shell: String = String::from("sh");
         //Instantiate and start a shell

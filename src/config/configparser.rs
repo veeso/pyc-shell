@@ -100,7 +100,7 @@ mod tests {
     use yaml_rust::{Yaml, YamlLoader};
     
     #[test]
-    fn test_yaml_parser() {
+    fn test_configparser_yaml_parser() {
         let yaml_doc: Yaml = gen_sample_yaml();
         let sample_doc: &Yaml = ConfigParser::get_child(&yaml_doc, String::from("sample")).ok().unwrap();
         //Test usize
@@ -115,7 +115,7 @@ mod tests {
     }
 
     #[test]
-    fn test_yaml_bad_values() {
+    fn test_configparser_yaml_bad_values() {
         let yaml_doc: Yaml = gen_sample_yaml();
         let sample_doc: &Yaml = ConfigParser::get_child(&yaml_doc, String::from("sample")).ok().unwrap();
         assert!(ConfigParser::get_bool(&sample_doc, String::from("str")).is_err());

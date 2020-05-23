@@ -95,7 +95,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_color_from_str() {
+    fn test_prompt_color_from_str() {
         assert_eq!(PromptColor::from_key(PROMPT_KRED), PromptColor::Red);
         assert_eq!(PromptColor::from_key(PROMPT_KYEL), PromptColor::Yellow);
         assert_eq!(PromptColor::from_key(PROMPT_KGRN), PromptColor::Green);
@@ -110,7 +110,7 @@ mod tests {
     }
 
     #[test]
-    fn test_color_print() {
+    fn test_prompt_color_print() {
         assert_eq!(PromptColor::Red.to_string(), KRED);
         println!("{}Red", PromptColor::Red.to_string());
         assert_eq!(PromptColor::Yellow.to_string(), KYEL);
