@@ -43,6 +43,7 @@ pub enum ShellState {
     Idle,
     SubprocessRunning,
     Terminated,
+    Unknown
 }
 
 /// ### ShellError

@@ -35,6 +35,7 @@ use cache::PromptCache;
 use modules::*;
 
 use regex::Regex;
+use std::io::{self, Write};
 use std::time::Duration;
 
 const PROMPT_KEY_REGEX: &str = r"\$\{(.*?)\}";
@@ -150,6 +151,7 @@ impl ShellPrompt {
         }
         //Write prompt
         print!("{} ", prompt_line);
+        let _ = io::stdout().flush();
     }
 
     /// ### process_prompt
