@@ -108,11 +108,16 @@ pub fn shell_exec(processor: IOProcessor, config: &config::Config, shell: Option
     //Instantiate shell prompt
     let mut shell_prompt: ShellPrompt = ShellPrompt::new(&config.prompt_config);
     //@! Main loop
-    let mut last_state: ShellState = ShellState::Idle;
+    let mut last_state: ShellState = ShellState::Unknown;
     let mut state_changed: bool = true; //Start with state changed, this determines whether the prompt should be printed
-    while shell_env.get_state() != ShellState::Terminated {
+    while last_state != ShellState::Terminated {
         //@! Print prompt if state is Idle and state has changed
-        if state_changed && shell_env.get_state() == ShellState::Idle {
+        let current_state: ShellState = shell_env.get_state();
+        if current_state != last_state {
+            state_changed = true;
+            last_state = current_state;
+        }
+        if state_changed && current_state == ShellState::Idle {
             //Force shellenv to refresh info
             shell_env.refresh_env();
             //Print prompt
@@ -152,7 +157,7 @@ pub fn shell_exec(processor: IOProcessor, config: &config::Config, shell: Option
                         }
                     },
                     ShellState::SubprocessRunning => processor.text_to_latin(input),
-                    ShellState::Terminated => continue
+                    _ => continue
                 };
                 if let Err(err) = shell_env.write(input) {
                     print_err(
@@ -169,76 +174,6 @@ pub fn shell_exec(processor: IOProcessor, config: &config::Config, shell: Option
                 }
             }
         }
-        /*
-        if let Some(Ok(i)) = stdin.next() {
-            input_bytes.push(i);
-        } else {
-            //Buffer is empty, if len > 0, send input to program, otherwise there's no input
-            if input_bytes.len() > 1 {
-                //Convert bytes to UTF-8 string
-                let input: String = String::from(std::str::from_utf8(input_bytes.as_slice()).unwrap());
-                //Prevent empty strings
-                if input.trim().len() == 0 {
-                    input_bytes.clear();
-                    if last_state == ShellState::Idle {
-                        shell_prompt.print(&shell_env, &processor);
-                    }
-                    continue;
-                }
-                //Get shell env state
-                let new_state = shell_env.get_state(); //Force last state to be changed
-                if new_state != last_state {
-                    last_state = new_state;
-                    state_changed = true;
-                }
-                //If state is Idle, convert expression, otherwise convert text
-                let input: String = match last_state {
-                    ShellState::Idle => {
-                        //Resolve alias
-                        let mut argv: Vec<String> = Vec::with_capacity(input.matches(" ").count() + 1);
-                        for arg in input.split_whitespace() {
-                            argv.push(String::from(arg));
-                        }
-                        //Process arg 0
-                        resolve_command(&mut argv, &config);
-                        //Rejoin arguments
-                        let input: String = argv.join(" ") + "\n";
-                        match processor.expression_to_latin(input) {
-                            Ok(ex) => ex,
-                            Err(err) => {
-                                print_err(String::from(format!("Input error: {:?}", err)), config.output_config.translate_output, &processor);
-                                continue;
-                            }
-                        }
-                    },
-                    ShellState::SubprocessRunning => processor.text_to_latin(input),
-                    ShellState::Terminated => continue
-                };
-                if let Err(err) = shell_env.write(input) {
-                    print_err(
-                        String::from(err.to_string()),
-                        config.output_config.translate_output,
-                        &processor,
-                    );
-                }
-                //Update state after write
-                let new_state = shell_env.get_state(); //Force last state to be changed
-                if new_state != last_state {
-                    last_state = new_state;
-                    state_changed = true;
-                }
-                //Reset input buffer
-                input_bytes.clear()
-            } else if input_bytes.len() == 1 {
-                //If length is 1, there is only a new line
-                input_bytes.clear();
-                //In this case, prompt must be printed if shell state is Idle
-                if last_state == ShellState::Idle {
-                    shell_prompt.print(&shell_env, &processor);
-                }
-            }
-        }
-        */
         //@! Read Shell stdout
         if let Ok((out, err)) = shell_env.read() {
             if out.is_some() {
