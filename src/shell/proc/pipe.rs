@@ -88,7 +88,7 @@ impl Pipe {
     /// ### read
     /// 
     /// Read from pipe
-    /// If read_all parameter is False, then the function returns after reading 8196 or less
+    /// If read_all parameter is False, then the function returns after reading 8192 or less
     /// otherwise, if set to True, reads until there's something available to be read
     pub fn read(&self, timeout: u64, read_all: bool) -> Result<Option<String>, ShellError> {
         //Create poll fd wrapper
@@ -107,7 +107,7 @@ impl Pipe {
                         let event: nix::poll::PollFlags = poll_fds[0].revents().unwrap();
                         if event.intersects(nix::poll::PollFlags::POLLIN) || event.intersects(nix::poll::PollFlags::POLLRDBAND) {
                             //Read from FIFO
-                            let mut buffer: [u8; 8196] = [0; 8196];
+                            let mut buffer: [u8; 8192] = [0; 8192];
                             match unistd::read(self.fd, &mut buffer) {
                                 Ok(bytes_read) => {
                                     data_size += bytes_read;
@@ -204,9 +204,9 @@ impl Pipe {
                 Ok(_) => {
                     if let Some(revents) = poll_fds[0].revents() {
                         if revents.intersects(nix::poll::PollFlags::POLLOUT) {
-                            //Write data out (8196 or remaining bytes)
-                            let bytes_out = if total_bytes_amount - bytes_written > 8196 {
-                                8196
+                            //Write data out (8192 or remaining bytes)
+                            let bytes_out = if total_bytes_amount - bytes_written > 8192 {
+                                8192
                             } else {
                                 total_bytes_amount - bytes_written
                             };
