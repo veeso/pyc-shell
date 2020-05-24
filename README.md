@@ -4,25 +4,29 @@
 
 ~ Use your alphabet with your favourite shell ~  
 Developed by Christian Visintin  
-Current version: 0.1.0 (24/05/2020)
+Current version: 0.1.0 (25/05/2020)
 
 ---
 
 - [Pyc](#pyc)
-  - [About Рус](#about-%d0%a0%d1%83%d1%81)
-    - [The reasons](#the-reasons)
+  - [About Рус](#about-рус)
+    - [Why Рус](#why-рус)
+    - [Pyc's goal](#pycs-goal)
     - [How it works](#how-it-works)
   - [Features](#features)
   - [Supported alphabets](#supported-alphabets)
-  - [Usage](#usage)
+  - [Installation](#installation)
+    - [Cargo](#cargo)
+    - [Deb / Rpm](#deb--rpm)
+    - [Usage](#usage)
   - [Configuration](#configuration)
     - [Prompt Line Configuration](#prompt-line-configuration)
   - [Documentation](#documentation)
   - [Known issues](#known-issues)
-    - [Unicode Replacement character while typing (�)](#unicode-replacement-character-while-typing-%ef%bf%bd)
+    - [Unicode Replacement character while typing (�)](#unicode-replacement-character-while-typing-)
     - [Cd command in oneshot mode doesn't work](#cd-command-in-oneshot-mode-doesnt-work)
     - [Fish doesn't work](#fish-doesnt-work)
-    - [Bash alias not working](#bash-alias-not-working)
+    - [Shell alias not working](#shell-alias-not-working)
   - [Contributions](#contributions)
   - [Changelog](#changelog)
   - [License](#license)
@@ -33,9 +37,13 @@ Current version: 0.1.0 (24/05/2020)
 
 Рус (Pronounced "Rus") is a simple CLI application, written in Rust, which allows you to interface with your favourite shell, giving you the possibility to perform commands in cyrillic and other alphabets, through command and output transliteration.
 
-### The reasons
+### Why Рус
 
 Well, basically I started studying russian and to become practical with the cyrillic alphabet I wanted to use it whenever was possible, even while typing on the console; but then I found out that there's not a single console which allow people which use a different alphabet to use it, so I came out with this project.
+
+### Pyc's goal
+
+The goal of this project is to give everybody who uses an alphabet different from latin, to use the computer shell without having to switch the keyboard layout.
 
 ### How it works
 
@@ -52,20 +60,40 @@ Basically Рус is a shell interface, which means that it reads the user input,
 
 ## Supported alphabets
 
-- 🇷🇺 Russian Cyrillic 🇷🇺 - According to russian cyrillic [GOST 7.79-2000](https://en.wikipedia.org/wiki/GOST_7.79-2000) with some differences ([See here](./docs/rus.md))
-- 🇧🇾 Belarusian Cyrillic 🇧🇾 - *Coming soon*
-- 🇧🇬 Bulgarian Cyrillic 🇧🇬 - *Coming soon* (for the moment, you can use Russian)
-- 🇰🇷🇰🇵 Hangŭl 🇰🇵🇰🇷 - *TBD*
-- 🇯🇵 Hiragana 🇯🇵 - *Coming soon*
-- 🇲🇰 Macedonian Cyrillic 🇲🇰 - *TBD*
-- 🇲🇪 Montenegrin Cyrillic 🇲🇪 - *TBD*
-- 🇷🇸🇧🇦 Serbian Cyrillic 🇧🇦🇷🇸 - *TBD*
-- 🇺🇦 Ukrainian Cyrillic 🇺🇦 - *TBD*
+- ![br](https://raw.githubusercontent.com/gosquared/flags/master/flags/flags/flat/24/Russia.png) Russian Cyrillic - According to russian cyrillic [GOST 7.79-2000](https://en.wikipedia.org/wiki/GOST_7.79-2000) with some differences ([See here](./docs/rus.md))
+- ![br](https://raw.githubusercontent.com/gosquared/flags/master/flags/flags/flat/24/Belarus.png) Belarusian Cyrillic - *Coming soon*
+- ![br](https://raw.githubusercontent.com/gosquared/flags/master/flags/flags/flat/24/Bulgaria.png) Bulgarian Cyrillic - *Coming soon* (for the moment, you can use Russian)
+- ![br](https://raw.githubusercontent.com/gosquared/flags/master/flags/flags/flat/24/South-Korea.png)![br](https://raw.githubusercontent.com/gosquared/flags/master/flags/flags/shiny/24/North-Korea.png) Hangŭl - *TBD*
+- ![br](https://raw.githubusercontent.com/gosquared/flags/master/flags/flags/flat/24/Japan.png) Hiragana - *Coming soon*
+- ![br](https://raw.githubusercontent.com/gosquared/flags/master/flags/flags/flat/24/Macedonia.png) Macedonian Cyrillic - *TBD*
+- ![br](https://raw.githubusercontent.com/gosquared/flags/master/flags/flags/flat/24/Montenegro.png) Montenegrin Cyrillic - *TBD*
+- ![br](https://raw.githubusercontent.com/gosquared/flags/master/flags/flags/flat/24/Serbia.png)![br](https://raw.githubusercontent.com/gosquared/flags/master/flags/flags/flat/24/Bosnia-and-Herzegovina.png) Serbian Cyrillic - *TBD*
+- ![br](https://raw.githubusercontent.com/gosquared/flags/master/flags/flags/flat/24/Ukraine.png) Ukrainian Cyrillic - *TBD*
 
 Other alphabets are not planned for the moment.
 Can't find yours? Contribute to the project implementing it! [Read More](./CONTRIBUTING.md)
 
-## Usage
+## Installation
+
+If you're considering to install Pyc I want to thank you! I hope this project can be useful for you!
+If you want to contribute to this project, don't forget to check out our contribute guide. [Read More](./CONTRIBUTING.md)
+
+### Cargo
+
+```sh
+#Install pyc through cargo
+cargo install pyc
+#Install configuration
+mkdir -p $HOME/.config/pyc/
+#Copy configuration file from repository
+wget -O $HOME/.config/pyc/pyc.yml https://raw.githubusercontent.com/ChristianVisintin/Pyc/master/pyc.yml
+```
+
+### Deb / Rpm
+
+Coming soon
+
+### Usage
 
 Pyc can be started with the following options:
 
@@ -177,7 +205,9 @@ Each prompt line key must have the following syntax ```${VAR_NAME}```
 
 ## Documentation
 
-These are the documents related to Pyc documentation:
+The developer documentation can be found on Rust Docs at <https://docs.rs/pyc>
+
+The documentation related to translators can be instead found here:
 
 - [Russian transliteration](docs/rus.md)
 
@@ -205,7 +235,7 @@ sudo locale-gen
 
 If this didn't solve your problem it's probably an issue of your terminal. Up to now I've found out that some terminals just don't let you type non-ascii characters when executing an application. These are the terminals which I've used or have been reported which **DON'T** work.
 
-- Windows Terminal (Maybe fixed in latest updates; need further tests)
+- Windows Terminal (Older version I guess, I noticed it has been fixed around april 2020).
 
 ### Cd command in oneshot mode doesn't work
 
@@ -216,7 +246,7 @@ If you know a possible way to make it work, please contribute to this project to
 
 Uuhm, I don't know why, I need some time to investigate why, maybe it doesn't use stdout to write (?).
 
-### Bash alias not working
+### Shell alias not working
 
 I will fix this soon
 
