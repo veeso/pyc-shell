@@ -52,7 +52,7 @@ Basically Рус is a shell interface, which means that it reads the user input,
 
 ## Supported alphabets
 
-- 🇷🇺 Russian Cyrillic 🇷🇺 - According to russian cyrillic [GOST 7.79-2000](https://en.wikipedia.org/wiki/GOST_7.79-2000) with some differences ([See here](#cyrillic-to-latin))
+- 🇷🇺 Russian Cyrillic 🇷🇺 - According to russian cyrillic [GOST 7.79-2000](https://en.wikipedia.org/wiki/GOST_7.79-2000) with some differences ([See here](./docs/rus.md))
 - 🇧🇾 Belarusian Cyrillic 🇧🇾 - *Coming soon*
 - 🇧🇬 Bulgarian Cyrillic 🇧🇬 - *Coming soon* (for the moment, you can use Russian)
 - 🇰🇷🇰🇵 Hangŭl 🇰🇵🇰🇷 - *TBD*
