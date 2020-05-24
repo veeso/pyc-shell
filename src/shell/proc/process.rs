@@ -65,6 +65,7 @@ impl ShellProc {
         match nix::unistd::fork() {
             Ok(nix::unistd::ForkResult::Parent { child, .. }) => {
                 //Prepare echo command
+                //FIXME: handle fish $status
                 let echo_command: String = format!("echo \"\x02$?;`pwd`;{}\x03\"\n", uuid);
                 let wrkdir: PathBuf = match std::env::current_dir() {
                     Err(_) => PathBuf::from("/"),
@@ -131,9 +132,10 @@ impl ShellProc {
     /// 
     /// Read from child pipes
     pub fn read(&mut self) -> Result<(Option<String>, Option<String>), ShellError> {
+        /* NOTE: doesn't make sense; read must be possible even if shell has terminated
         if self.update_state() == ShellState::Terminated {
             return Err(ShellError::ShellTerminated)
-        }
+        }*/
         let stdout: Option<String> = match self.stdout_pipe.read(50, false) {
             Ok(stdout) => self.parse_stdout(stdout),
             Err(err) => return Err(err)
