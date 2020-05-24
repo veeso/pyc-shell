@@ -29,6 +29,7 @@ extern crate nix;
 
 use ansi_term::Colour;
 use std::env;
+use std::path::Path;
 use std::thread::sleep;
 use std::time::{Duration};
 
@@ -38,12 +39,13 @@ use crate::shell::{Shell};
 use crate::shell::prompt::ShellPrompt;
 use crate::translator::ioprocessor::IOProcessor;
 use crate::utils::async_stdin;
+use crate::utils::file;
 
-/// ### shell_exec
+/// ### run_interactive
 ///
-/// Run pyc in shell mode
+/// Run pyc in interactive mode
 
-pub fn shell_exec(processor: IOProcessor, config: &config::Config, shell: Option<String>) -> u8 {
+pub fn run_interactive(processor: IOProcessor, config: &config::Config, shell: Option<String>) -> u8 {
     //Determine the shell to use
     let (shell, args): (String, Vec<String>) = match shell {
         Some(sh) => (sh, vec![]),
@@ -151,6 +153,118 @@ pub fn shell_exec(processor: IOProcessor, config: &config::Config, shell: Option
             255
         }
     }
+}
+
+/// ### run_command
+/// 
+/// Run command in shell and return
+pub fn run_command(mut command: String, processor: IOProcessor, config: &config::Config, shell: Option<String>) -> u8 {
+    //Determine the shell to use
+    let (shell, args): (String, Vec<String>) = match shell {
+        Some(sh) => (sh, vec![]),
+        None => (config.shell_config.exec.clone(), config.shell_config.args.clone()) //Get shell from config
+    };
+    //Intantiate and start a new shell
+    let mut shell_env: Shell = match Shell::start(shell, args) {
+        Ok(sh) => sh,
+        Err(err) => {
+            print_err(
+                String::from(format!("Could not start shell: {}", err)),
+                config.output_config.translate_output,
+                &processor,
+            );
+            return 255;
+        }
+    };
+    //Write command
+    while command.ends_with('\n') {
+        command.pop();
+    }
+    while command.ends_with(';') {
+        command.pop();
+    }
+    //FIXME: handle fish $status
+    command.push_str("; exit $?\n");
+    if let Err(err) = shell_env.write(command) {
+        print_err(
+            String::from(format!("Could not start shell: {}", err)),
+            config.output_config.translate_output,
+            &processor,
+        );
+        return 255;
+    }
+    let _ = shell_env.write(String::from("\n"));
+    //@! Main loop
+    loop { //Check state after reading/writing, since program could have already terminate
+        //@! Read user input
+        if async_stdin::is_ready() { //Check if stdin is ready to be read
+            let input: String = async_stdin::read();
+            //If input is empty, ignore it
+            if input.trim().len() > 0 {
+                //Treat input
+                //Convert text
+                let input: String = processor.text_to_latin(input);
+                if let Err(err) = shell_env.write(input) {
+                    print_err(
+                        String::from(err.to_string()),
+                        config.output_config.translate_output,
+                        &processor,
+                    );
+                }
+            }
+        }
+        //@! Read Shell stdout
+        if let Ok((out, err)) = shell_env.read() {
+            if out.is_some() {
+                //Convert out to cyrillic
+                print_out(out.unwrap(), config.output_config.translate_output, &processor);
+            }
+            if err.is_some() {
+                //Convert err to cyrillic
+                print_err(err.unwrap().to_string(), config.output_config.translate_output, &processor);
+            }
+        }
+        if shell_env.get_state() == ShellState::Terminated {
+            break;
+        }
+        sleep(Duration::from_nanos(100)); //Sleep for 100ns
+    } //@! End of main loop
+    //Return shell exitcode
+    match shell_env.stop() {
+        Ok(rc) => rc,
+        Err(err) => {
+            print_err(format!("Could not stop shell: {}", err), config.output_config.translate_output, &processor);
+            255
+        }
+    }
+}
+
+/// ### run_file
+/// 
+/// Run shell reading commands from file
+pub fn run_file(file: String, processor: IOProcessor, config: &config::Config, shell: Option<String>) -> u8 {
+    let file_path: &Path = Path::new(file.as_str());
+    let lines: Vec<String> = match file::read_lines(file_path) {
+        Ok(lines) => lines,
+        Err(_) => {
+            print_err(format!("{}: No such file or directory", file), config.output_config.translate_output, &processor);
+            return 255
+        }
+    };
+    //Join lines in a single command
+    let mut command: String = String::new();
+    for line in lines.iter() {
+        if line.starts_with("#") {
+            continue;
+        }
+        if line.len() == 0 {
+            continue;
+        }
+        command.push_str(line);
+        command.push(';');
+    }
+    //Execute command
+    run_command(command, processor, config, shell)
 }
 
 #[allow(dead_code)]

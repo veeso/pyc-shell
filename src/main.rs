@@ -19,8 +19,8 @@
 *
 */
 
-const PYC_VERSION: &str = "0.1.0";
-const PYC_BUILD: &str = "??";
+const PYC_VERSION: &'static str = env!("CARGO_PKG_VERSION");
+const PYC_AUTHORS: &'static str = env!("CARGO_PKG_AUTHORS");
 
 //Crates
 extern crate ansi_term;
@@ -48,7 +48,7 @@ use translator::ioprocessor::IOProcessor;
 /// Print usage
 
 fn print_usage(program: &String, opts: Options) {
-    let brief = format!("Usage: {} [Options]... [Command]...", program);
+    let brief = format!("Usage: {} [Options]... [File]", program);
     print!("{}", opts.usage(&brief));
 }
 
@@ -78,12 +78,12 @@ fn main() {
     //Program CLI options
     let config_file: String;
     let mut shell: Option<String> = None;
-    let oneshot: bool;
     let language: Option<translator::Language>;
     let mut opts = Options::new();
-    opts.optopt("c", "config", "Specify YAML configuration file", "<config>");
+    opts.optopt("c", "command", "Specify command to run. Shell returns after running the command", "<command>");
+    opts.optopt("C", "config", "Specify YAML configuration file", "<config>");
     opts.optopt("l", "lang", "Specify shell language", "<ru|рус>");
-    opts.optopt("s", "shell", "Force the shell used for shell mode", "</bin/bash>");
+    opts.optopt("s", "shell", "Force the shell binary path", "</bin/bash>");
     opts.optflag("v", "version", "");
     opts.optflag("h", "help", "Print this menu");
     let matches = match opts.parse(&args[1..]) {
@@ -101,8 +101,8 @@ fn main() {
         eprintln!(
             "{}",
             Style::new().bold().paint(format!(
-                "рус - {} ({}) - Developed by Кристиан Визинтин",
-                PYC_VERSION, PYC_BUILD,
+                "рус - {} - Developed by {}",
+                PYC_VERSION, PYC_AUTHORS,
             ))
         );
         std::process::exit(255);
@@ -116,8 +116,13 @@ fn main() {
         Some(lang) => Some(str_to_language(lang)),
         None => None,
     };
-    //Set config file to '-c' file or to default file
-    config_file = match matches.opt_str("c") {
+    //Get command
+    let command = match matches.opt_str("c") {
+        Some(cmd) => Some(cmd.clone()),
+        None => None
+    };
+    //Set config file to '-C' file or to default file
+    config_file = match matches.opt_str("C") {
         Some(cfg_override) => cfg_override,
         None => {
             //Default path
@@ -129,8 +134,11 @@ fn main() {
         }
     };
     //Check if oneshot and get args
-    let argv: Vec<String> = matches.free.clone();
-    oneshot = argv.len() > 0;
+    let extra_args: Vec<String> = matches.free.clone();
+    let file: Option<String> = match extra_args.len() {
+        0 => None,
+        _ => Some(extra_args.get(0).unwrap().clone())
+    };
     //Parse configuration
     let config: config::Config = match config::Config::parse_config(config_file.clone()) {
         Ok(cfg) => cfg,
@@ -165,13 +173,12 @@ fn main() {
     //Set up processor
     let processor: IOProcessor = IOProcessor::new(language, translator::new_translator(language));
     //Start runtime
-    let rc: u8;
-    if oneshot {
-        //rc = runtime::process_command(processor, &config, argv);
-        //TODO: impl oneshot
-        rc = 255;
-    } else {
-        rc = runtime::shell_exec(processor, &config, shell);
-    }
+    let rc: u8 = match command {
+        Some(command) => runtime::run_command(command, processor, &config, shell),
+        None => match file {
+            None => runtime::run_interactive(processor, &config, shell),
+            Some(file) => runtime::run_file(file, processor, &config, shell)
+        }
+    };
     std::process::exit(rc as i32);
 }
