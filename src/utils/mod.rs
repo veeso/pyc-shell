@@ -24,3 +24,4 @@
 */
 
 pub mod async_stdin;
+pub mod file;
