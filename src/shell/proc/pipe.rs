@@ -88,7 +88,9 @@ impl Pipe {
     /// ### read
     /// 
     /// Read from pipe
-    pub fn read(&self, timeout: u64) -> Result<Option<String>, ShellError> {
+    /// If read_all parameter is False, then the function returns after reading 8196 or less
+    /// otherwise, if set to True, reads until there's something available to be read
+    pub fn read(&self, timeout: u64, read_all: bool) -> Result<Option<String>, ShellError> {
         //Create poll fd wrapper
         let mut poll_fds: [nix::poll::PollFd; 1] = [nix::poll::PollFd::new(self.fd, nix::poll::PollFlags::POLLIN | nix::poll::PollFlags::POLLRDBAND | nix::poll::PollFlags::POLLHUP)];
         //Prepare out buffer
@@ -116,6 +118,9 @@ impl Pipe {
                                             return Err(ShellError::InvalidData)
                                         }
                                     });
+                                    if ! read_all {
+                                        break;
+                                    }
                                 },
                                 Err(err) => {
                                     match err {
@@ -268,7 +273,7 @@ mod tests {
         let pipe_thread: Pipe = pipe.clone();
         //Start thread
         let join_hnd: thread::JoinHandle<()> = thread::spawn(move || {
-            let input: String = pipe_thread.read(1000).unwrap().unwrap();
+            let input: String = pipe_thread.read(1000, true).unwrap().unwrap();
             assert_eq!(input, String::from("HELLO\n"));
             thread::sleep(Duration::from_millis(100)); //Sleep for 100 msecond
             //Write
@@ -278,10 +283,45 @@ mod tests {
         assert!(pipe.write(String::from("HELLO\n"), 1000).is_ok(), "Write timeout");
         //Read pipe
         thread::sleep(Duration::from_millis(100)); //Sleep for 100 msecond
-        let read: Result<Option<String>, ShellError> = pipe.read(1000);
+        let read: Result<Option<String>, ShellError> = pipe.read(1000, true);
         assert!(read.is_ok(), format!("Read should be Ok, but is {:?}", read));
         let read: Option<String> = read.unwrap();
         assert_eq!(read.unwrap(), String::from("HI THERE\n"));
+        //Join thread
+        assert!(join_hnd.join().is_ok());
+        //Close Pipe
+        assert!(pipe.close().is_ok());
+    }
+
+    #[test]
+    fn test_pipe_read_all() {
+        let tmpdir: tempfile::TempDir = create_tmp_dir();
+        let pipe_path: PathBuf = tmpdir.path().join("stdout.fifo");
+        //Open Pipe
+        let pipe: Result<Pipe, ShellError> = Pipe::open(&pipe_path);
+        assert!(pipe.is_ok(), format!("Pipe ({}) should be OK, but is {:?}", pipe_path.display(), pipe));
+        let pipe: Pipe = pipe.unwrap();
+        let pipe_thread: Pipe = pipe.clone();
+        //Start thread
+        let join_hnd: thread::JoinHandle<()> = thread::spawn(move || {
+            let mut data: String = String::with_capacity(10240);
+            for _ in 0..10240 {
+                data.push('c');
+            }
+            //Write 10240 bytes
+            assert!(pipe_thread.write(data.clone(), 1000).is_ok());
+            thread::sleep(Duration::from_millis(500)); //Sleep for 500 msecond
+            //Write
+            assert!(pipe_thread.write(data, 1000).is_ok());
+        });
+        //Read all (10240 bytes should be read)
+        assert_eq!(pipe.read(500, true).unwrap().unwrap().len(), 10240);
+        //Read all set to false
+        thread::sleep(Duration::from_millis(500)); //Sleep for 500 msecond
+        //Now only 8192 bytes should have been read
+        assert_eq!(pipe.read(500, false).unwrap().unwrap().len(), 8192);
+        //Now finish to read
+        assert_eq!(pipe.read(500, false).unwrap().unwrap().len(), 2048);
         //Join thread
         assert!(join_hnd.join().is_ok());
         //Close Pipe
@@ -311,7 +351,7 @@ mod tests {
         assert!(pipe.is_ok(), format!("Pipe ({}) should be OK, but is {:?}", pipe_path.display(), pipe));
         let pipe: Pipe = pipe.unwrap();
         //assert!(pipe.write(String::from("HELLO\n"), 1000).is_err(), "Write should time out");
-        assert!(pipe.read(1000).unwrap().is_none(), "Read should be None");
+        assert!(pipe.read(1000, true).unwrap().is_none(), "Read should be None");
         assert!(pipe.close().is_ok());
     }
 
