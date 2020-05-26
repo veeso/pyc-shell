@@ -28,6 +28,10 @@ extern crate git2;
 use git2::Repository;
 use std::path::{Path, PathBuf};
 
+//Keys
+pub(crate) const PROMPT_GIT_BRANCH: &str = "${GIT_BRANCH}";
+pub(crate) const PROMPT_GIT_COMMIT: &str = "${GIT_COMMIT}";
+
 /// ### find_repository
 ///
 /// Find repository in the current path

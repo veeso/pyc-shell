@@ -39,27 +39,12 @@ use std::io::{self, Write};
 use std::time::Duration;
 
 const PROMPT_KEY_REGEX: &str = r"\$\{(.*?)\}";
-//Prompt keys
+//Prompt standard keys
 const PROMPT_USER: &str = "${USER}";
 const PROMPT_HOSTNAME: &str = "${HOSTNAME}";
 const PROMPT_WRKDIR: &str = "${WRKDIR}";
-const PROMPT_LANG: &str = "${LANG}";
 const PROMPT_CMDTIME: &str = "${CMD_TIME}";
 const PROMPT_RC: &str = "${RC}";
-//Prompt colors
-pub(crate) const PROMPT_KRED: &str = "${KRED}";
-pub(crate) const PROMPT_KYEL: &str = "${KYEL}";
-pub(crate) const PROMPT_KGRN: &str = "${KGRN}";
-pub(crate) const PROMPT_KBLU: &str = "${KBLU}";
-pub(crate) const PROMPT_KCYN: &str = "${KCYN}";
-pub(crate) const PROMPT_KMAG: &str = "${KMAG}";
-pub(crate) const PROMPT_KBLK: &str = "${KBLK}";
-pub(crate) const PROMPT_KGRY: &str = "${KGRY}";
-pub(crate) const PROMPT_KWHT: &str = "${KWHT}";
-pub(crate) const PROMPT_KRST: &str = "${KRST}";
-//Git
-const PROMPT_GIT_BRANCH: &str = "${GIT_BRANCH}";
-const PROMPT_GIT_COMMIT: &str = "${GIT_COMMIT}";
 
 /// ## ShellPrompt
 ///
@@ -207,7 +192,7 @@ impl ShellPrompt {
                     None => String::from(""),
                 }
             }
-            PROMPT_GIT_BRANCH => {
+            modules::git::PROMPT_GIT_BRANCH => {
                 if self.git_opt.is_none() {
                     return String::from("");
                 }
@@ -231,7 +216,7 @@ impl ShellPrompt {
                     branch
                 ))
             }
-            PROMPT_GIT_COMMIT => {
+            modules::git::PROMPT_GIT_COMMIT => {
                 if self.git_opt.is_none() {
                     return String::from("");
                 }
@@ -253,8 +238,8 @@ impl ShellPrompt {
                 }
             }
             PROMPT_HOSTNAME => shell_props.hostname.clone(),
-            PROMPT_KBLK | PROMPT_KBLU | PROMPT_KCYN | PROMPT_KGRN | PROMPT_KGRY | PROMPT_KMAG | PROMPT_KRED | PROMPT_KRST | PROMPT_KWHT | PROMPT_KYEL => colors::PromptColor::from_key(key.as_str()).to_string(),
-            PROMPT_LANG => language::language_to_str(processor.language),
+            modules::colors::PROMPT_KBLK | modules::colors::PROMPT_KBLU | modules::colors::PROMPT_KCYN | modules::colors::PROMPT_KGRN | modules::colors::PROMPT_KGRY | modules::colors::PROMPT_KMAG | modules::colors::PROMPT_KRED | modules::colors::PROMPT_KRST | modules::colors::PROMPT_KWHT | modules::colors::PROMPT_KYEL => colors::PromptColor::from_key(key.as_str()).to_string(),
+            modules::language::PROMPT_LANG => language::language_to_str(processor.language),
             PROMPT_RC => match &self.rc_opt {
                 Some(opt) => match shell_props.exit_status {
                     0 => opt.ok.clone(),
@@ -322,7 +307,7 @@ impl GitOptions {
     ///
     /// helper which says if git module should be enabled
     pub fn should_enable(prompt_line: &String) -> bool {
-        prompt_line.contains(PROMPT_GIT_BRANCH) || prompt_line.contains(PROMPT_GIT_COMMIT)
+        prompt_line.contains(modules::git::PROMPT_GIT_BRANCH) || prompt_line.contains(modules::git::PROMPT_GIT_COMMIT)
     }
 
     /// ### new

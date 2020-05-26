@@ -27,6 +27,8 @@ use crate::translator::Language;
 
 use super::colors::PromptColor;
 
+pub(crate) const PROMPT_LANG: &str = "${LANG}";
+
 pub fn language_to_str(language: Language) -> String {
     let mut lang_str: String = language.to_string();
     if lang_str.len() < 3 {

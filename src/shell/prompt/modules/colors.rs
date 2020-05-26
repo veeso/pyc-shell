@@ -23,6 +23,18 @@
 *
 */
 
+//Keys
+pub(crate) const PROMPT_KRED: &str = "${KRED}";
+pub(crate) const PROMPT_KYEL: &str = "${KYEL}";
+pub(crate) const PROMPT_KGRN: &str = "${KGRN}";
+pub(crate) const PROMPT_KBLU: &str = "${KBLU}";
+pub(crate) const PROMPT_KCYN: &str = "${KCYN}";
+pub(crate) const PROMPT_KMAG: &str = "${KMAG}";
+pub(crate) const PROMPT_KBLK: &str = "${KBLK}";
+pub(crate) const PROMPT_KGRY: &str = "${KGRY}";
+pub(crate) const PROMPT_KWHT: &str = "${KWHT}";
+pub(crate) const PROMPT_KRST: &str = "${KRST}";
+
 //Colors
 const KRED: &str = "\x1b[31m";
 const KGRN: &str = "\x1b[32m";
@@ -34,11 +46,6 @@ const KGRY: &str = "\x1b[90m";
 const KBLK: &str = "\x1b[30m";
 const KWHT: &str = "\x1b[37m";
 const KRST: &str = "\x1b[0m";
-
-use super::super::{
-    PROMPT_KBLK, PROMPT_KBLU, PROMPT_KCYN, PROMPT_KGRN, PROMPT_KGRY, PROMPT_KMAG, PROMPT_KRED,
-    PROMPT_KRST, PROMPT_KWHT, PROMPT_KYEL,
-};
 
 #[derive(Copy, Clone, PartialEq, std::fmt::Debug)]
 pub enum PromptColor {
