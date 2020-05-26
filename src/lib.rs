@@ -23,6 +23,6 @@
 
 pub mod config;
 pub mod runtime;
-pub(crate) mod shell;
+pub mod shell;
 pub mod translator;
 pub mod utils;
