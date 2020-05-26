@@ -307,7 +307,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "74490b50b9fbe561ac330df47c08f3f33073d2d00c150f719147d7c54522fa1b"
 
 [[package]]
-name = "pyc"
+name = "pyc-shell"
 version = "0.1.0"
 dependencies = [
  "ansi_term",
