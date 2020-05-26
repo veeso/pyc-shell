@@ -174,6 +174,7 @@ mod tests {
     #[test]
     fn test_shell_props_new() {
         let shell_props: ShellProps = ShellProps::new(String::from("computer"), String::from("root"), PathBuf::from("/tmp/"));
+        sleep(Duration::from_millis(500)); //DON'T REMOVE THIS SLEEP
         assert_eq!(shell_props.username, String::from("root"));
         assert_eq!(shell_props.hostname, String::from("computer"));
         assert_eq!(shell_props.wrkdir, PathBuf::from("/tmp/"));
@@ -187,6 +188,7 @@ mod tests {
         let shell: String = String::from("sh");
         //Instantiate and start a shell
         let mut shell_env: Shell = Shell::start(shell, vec![], &PromptConfig::default()).ok().unwrap();
+        sleep(Duration::from_millis(500)); //DON'T REMOVE THIS SLEEP
         //Verify PID
         assert_ne!(shell_env.process.pid, 0);
         //Verify shell status
@@ -202,6 +204,7 @@ mod tests {
         shell_env.refresh_env();
         //Terminate shell
         assert_eq!(shell_env.stop().unwrap(), 9);
+        sleep(Duration::from_millis(500)); //DON'T REMOVE THIS SLEEP
         assert_eq!(shell_env.get_state(), ShellState::Terminated);
     }
 
@@ -211,8 +214,9 @@ mod tests {
         let shell: String = String::from("pipponbash");
         //Instantiate and start a shell
         let mut shell_env: Shell = Shell::start(shell, vec![], &PromptConfig::default()).unwrap();
+        sleep(Duration::from_millis(500)); //DON'T REMOVE THIS SLEEP
         //Shell should have terminated
-        assert_eq!(shell_env.stop().unwrap(), 255);
+        assert_eq!(shell_env.get_state(), ShellState::Terminated);
     }
 
     #[test]
@@ -221,6 +225,7 @@ mod tests {
         let shell: String = String::from("sh");
         //Instantiate and start a shell
         let mut shell_env: Shell = Shell::start(shell, vec![], &PromptConfig::default()).ok().unwrap();
+        sleep(Duration::from_millis(500)); //DON'T REMOVE THIS SLEEP
         //Verify PID
         assert_ne!(shell_env.process.pid, 0);
         //Verify shell status
@@ -228,13 +233,13 @@ mod tests {
         //Try to start a blocking process (e.g. cat)
         let command: String = String::from("head -n 2\n");
         assert!(shell_env.write(command).is_ok());
-        sleep(Duration::from_millis(100));
+        sleep(Duration::from_millis(500));
         //Check if status is SubprocessRunning
         assert_eq!(shell_env.get_state(), ShellState::SubprocessRunning);
         let stdin: String = String::from("foobar\n");
         assert!(shell_env.write(stdin.clone()).is_ok());
         //Wait 100ms
-        sleep(Duration::from_millis(100));
+        sleep(Duration::from_millis(500));
         //Try to read stdout
         let t_start: Instant = Instant::now();
         let mut test_must_pass: bool = false;
@@ -265,7 +270,7 @@ mod tests {
         //Okay, send SIGINT now
         assert!(shell_env.process.kill().is_ok());
         //Shell should have terminated
-        sleep(Duration::from_millis(100));
+        sleep(Duration::from_millis(500));
         assert_eq!(shell_env.get_state(), ShellState::Terminated);
         assert_eq!(shell_env.stop().unwrap(), 9);
     }
@@ -276,6 +281,7 @@ mod tests {
         let shell: String = String::from("sh");
         //Instantiate and start a shell
         let mut shell_env: Shell = Shell::start(shell, vec![], &PromptConfig::default()).ok().unwrap();
+        sleep(Duration::from_millis(500)); //DON'T REMOVE THIS SLEEP
         //Verify PID
         assert_ne!(shell_env.process.pid, 0);
         //Verify shell status
@@ -284,7 +290,7 @@ mod tests {
         let command: String = String::from("exit 5\n");
         assert!(shell_env.write(command).is_ok());
         //Wait shell to terminate
-        sleep(Duration::from_millis(100));
+        sleep(Duration::from_millis(500));
         //Verify shell has terminated
         assert_eq!(shell_env.get_state(), ShellState::Terminated);
         //Verify exitcode to be 0
@@ -297,9 +303,10 @@ mod tests {
         let shell: String = String::from("sh");
         //Instantiate and start a shell
         let mut shell_env: Shell = Shell::start(shell, vec![], &PromptConfig::default()).ok().unwrap();
+        sleep(Duration::from_millis(500)); //DON'T REMOVE THIS SLEEP
         assert!(shell_env.sigint().is_ok());
         //Wait shell to terminate
-        sleep(Duration::from_millis(100));
+        sleep(Duration::from_millis(500));
         //Verify shell has terminated
         assert_eq!(shell_env.get_state(), ShellState::Terminated);
         //Verify exitcode to be 0

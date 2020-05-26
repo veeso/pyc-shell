@@ -361,7 +361,7 @@ mod tests {
         let mut shell_proc: ShellProc = ShellProc::start(vec![String::from("piroporopero")]).unwrap();
         println!("A new shell started with PID {}", shell_proc.pid);
         //Shell should have died
-        sleep(Duration::from_millis(500));
+        sleep(Duration::from_millis(1000));
         assert_eq!(shell_proc.update_state(), ShellState::Terminated);
         assert_eq!(shell_proc.rc, 255);
     }
@@ -384,6 +384,7 @@ mod tests {
     fn test_process_parse_metadata() {
         let mut shell_proc: ShellProc = ShellProc::start(vec![String::from("sh")]).unwrap();
         println!("A new shell started with PID {}", shell_proc.pid);
+        sleep(Duration::from_millis(500)); //DON'T REMOVE THIS SLEEP
         //Parse metadata
         let metadata: String = String::from("128;/home;ee9ec814-a751-4329-850f-6d54d12c8a5c");
         shell_proc.state = ShellState::SubprocessRunning;
@@ -400,6 +401,7 @@ mod tests {
     fn test_process_parse_stdout() {
         let mut shell_proc: ShellProc = ShellProc::start(vec![String::from("sh")]).unwrap();
         println!("A new shell started with PID {}", shell_proc.pid);
+        sleep(Duration::from_millis(500)); //DON'T REMOVE THIS SLEEP
         //Parse stdout when empty
         assert!(shell_proc.parse_stdout(None).is_none());
         //Parse stdout with metadata only (and parse theme)
