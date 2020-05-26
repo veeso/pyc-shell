@@ -14,6 +14,7 @@ The conversion from cyrillic to latin follows the [GOST 7.79-2000](https://en.wi
 | Б       | B     |                                                                                                                                                        |
 | К       | C     | K is translated into C, only when not followed ```'Е','Э','И','Й','Ы','ъ'```, or it is preceeded by ```'К','А','И','О'```. You can force a 'C' using ```'Кь'```  |
 | Ч       | CH    |                                                                                                                                                        |
+| Ц       | Z     |                                                                                                                                                        |
 | Д       | D     |                                                                                                                                                        |
 | Э       | E     |                                                                                                                                                        |
 | Ф       | F     |                                                                                                                                                        |
@@ -32,6 +33,8 @@ The conversion from cyrillic to latin follows the [GOST 7.79-2000](https://en.wi
 | Кю      | Q     |                                                                                                                                                        |
 | Р       | R     |                                                                                                                                                        |
 | С       | S     |                                                                                                                                                        |
+| Ш       | SH    |                                                                                                                                                        |
+| Щ       | SHH   |                                                                                                                                                        |
 | Т       | T     |                                                                                                                                                        |
 | У       | U     |                                                                                                                                                        |
 | В       | V     |                                                                                                                                                        |
