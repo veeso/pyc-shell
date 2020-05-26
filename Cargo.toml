@@ -9,7 +9,7 @@ categories = ["command-line-utilities"]
 description = "Pyc is a simple CLI application, which allows you to perform shell commands in cyrillic and other alphabets, through command and output transliteration."
 homepage = "https://github.com/ChristianVisintin/Pyc"
 repository = "https://github.com/ChristianVisintin/Pyc"
-documentation = "https://docs.rs/pyc"
+documentation = "https://docs.rs/pyc-shell"
 readme = "README.md"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html

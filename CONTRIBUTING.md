@@ -282,7 +282,7 @@ Let's see the steps to implement the translators, imagine we're going to impleme
     Add the alphabet in the README in the ```Supported alphabets```.
 
     ```md
-    - ![br](https://raw.githubusercontent.com/gosquared/flags/master/flags/flags/flat/24/Emoji.png) Emoji - According to emoji standard [EMOJI-2020](https://en.wikipedia.org/wiki/EMOJI-2020) with some differences ([See here](./docs/translators/emoji.md))
+    - ![br](https://raw.githubusercontent.com/gosquared/flags/master/flags/flags/shiny/24/Emoji.png) Emoji - According to emoji standard [EMOJI-2020](https://en.wikipedia.org/wiki/EMOJI-2020) with some differences ([See here](./docs/translators/emoji.md))
     ```
 
     Finally write the Emoji doc in ```docs/translators/emoji.md```
