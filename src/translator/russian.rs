@@ -253,6 +253,8 @@ impl Translator for Russian {
         'ю' => "yu",
         'Я' => "YA",
         'я' => "ya",
+        'Ц' => "Z",
+        'ц' => "z",
         '№' => "#",
         '₽' => "$",
         _ => {
@@ -491,15 +493,15 @@ mod tests {
     println!("\"{}\" => \"{}\"", input, output);
     assert_eq!(output, "cat README.md");
     //Test all letters (Lowercase)
-    let input: String = String::from("абкьдэфгхижйкълмнопкюрстуввьксызшщёюяч");
+    let input: String = String::from("абкьдэфгхижйкълмнопкюрстуввьксызшщёюячц");
     let output = translator.to_latin(input.clone());
     println!("\"{}\" => \"{}\"", input, output);
-    assert_eq!(output, "abcdefghijjklmnopqrstuvwxyzshshhyoyuyach");
+    assert_eq!(output, "abcdefghijjklmnopqrstuvwxyzshshhyoyuyachz");
     //Test all letters (Uppercase)
-    let input: String = String::from("АБКЬДЭФГХИЖЙКЪЛМНОПКЮРСТУВВЬКСЫЗШЩЁЮЯЧ");
+    let input: String = String::from("АБКЬДЭФГХИЖЙКЪЛМНОПКЮРСТУВВЬКСЫЗШЩЁЮЯЧЦ");
     let output = translator.to_latin(input.clone());
     println!("\"{}\" => \"{}\"", input, output);
-    assert_eq!(output, "ABCDEFGHIJJKLMNOPQRSTUVWXYZSHSHHYOYUYACH");
+    assert_eq!(output, "ABCDEFGHIJJKLMNOPQRSTUVWXYZSHSHHYOYUYACHZ");
     //Special cases 'Q'
     let input: String = String::from("москюуитто_пуб");
     let output = translator.to_latin(input.clone());
