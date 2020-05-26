@@ -36,7 +36,6 @@ use std::time::{Duration};
 use crate::config;
 use crate::shell::proc::ShellState;
 use crate::shell::{Shell};
-use crate::shell::prompt::ShellPrompt;
 use crate::translator::ioprocessor::IOProcessor;
 use crate::utils::async_stdin;
 use crate::utils::file;
@@ -52,7 +51,7 @@ pub fn run_interactive(processor: IOProcessor, config: &config::Config, shell: O
         None => (config.shell_config.exec.clone(), config.shell_config.args.clone()) //Get shell from config
     };
     //Intantiate and start a new shell
-    let mut shell_env: Shell = match Shell::start(shell, args) {
+    let mut shell: Shell = match Shell::start(shell, args, &config.prompt_config) {
         Ok(sh) => sh,
         Err(err) => {
             print_err(
@@ -63,23 +62,21 @@ pub fn run_interactive(processor: IOProcessor, config: &config::Config, shell: O
             return 255;
         }
     };
-    //Instantiate shell prompt
-    let mut shell_prompt: ShellPrompt = ShellPrompt::new(&config.prompt_config);
     //@! Main loop
     let mut last_state: ShellState = ShellState::Unknown;
     let mut state_changed: bool = true; //Start with state changed, this determines whether the prompt should be printed
     while last_state != ShellState::Terminated {
         //@! Print prompt if state is Idle and state has changed
-        let current_state: ShellState = shell_env.get_state();
+        let current_state: ShellState = shell.get_state();
         if current_state != last_state {
             state_changed = true;
             last_state = current_state;
         }
         if state_changed && current_state == ShellState::Idle {
             //Force shellenv to refresh info
-            shell_env.refresh_env();
+            shell.refresh_env();
             //Print prompt
-            shell_prompt.print(&shell_env, &processor);
+            shell.pprompt(&processor);
             state_changed = false; //Force state changed to false
         } else if state_changed {
             state_changed = false; //Check has been done, nothing to do
@@ -90,7 +87,7 @@ pub fn run_interactive(processor: IOProcessor, config: &config::Config, shell: O
             //If input is empty, print prompt (if state is IDLE)
             if input.trim().len() == 0 {
                 if last_state == ShellState::Idle {
-                    shell_prompt.print(&shell_env, &processor);
+                    shell.pprompt(&processor);
                 }
             } else {
                 //Treat input
@@ -117,7 +114,7 @@ pub fn run_interactive(processor: IOProcessor, config: &config::Config, shell: O
                     ShellState::SubprocessRunning => processor.text_to_latin(input),
                     _ => continue
                 };
-                if let Err(err) = shell_env.write(input) {
+                if let Err(err) = shell.write(input) {
                     print_err(
                         String::from(err.to_string()),
                         config.output_config.translate_output,
@@ -125,7 +122,7 @@ pub fn run_interactive(processor: IOProcessor, config: &config::Config, shell: O
                     );
                 }
                 //Update state after write
-                let new_state = shell_env.get_state(); //Force last state to be changed
+                let new_state = shell.get_state(); //Force last state to be changed
                 if new_state != last_state {
                     last_state = new_state;
                     state_changed = true;
@@ -133,7 +130,7 @@ pub fn run_interactive(processor: IOProcessor, config: &config::Config, shell: O
             }
         }
         //@! Read Shell stdout
-        if let Ok((out, err)) = shell_env.read() {
+        if let Ok((out, err)) = shell.read() {
             if out.is_some() {
                 //Convert out to cyrillic
                 print_out(out.unwrap(), config.output_config.translate_output, &processor);
@@ -146,7 +143,7 @@ pub fn run_interactive(processor: IOProcessor, config: &config::Config, shell: O
         sleep(Duration::from_nanos(100)); //Sleep for 100ns
     } //@! End of loop
     //Return shell exitcode
-    match shell_env.stop() {
+    match shell.stop() {
         Ok(rc) => rc,
         Err(err) => {
             print_err(format!("Could not stop shell: {}", err), config.output_config.translate_output, &processor);
@@ -165,7 +162,7 @@ pub fn run_command(mut command: String, processor: IOProcessor, config: &config:
         None => (config.shell_config.exec.clone(), config.shell_config.args.clone()) //Get shell from config
     };
     //Intantiate and start a new shell
-    let mut shell_env: Shell = match Shell::start(shell, args) {
+    let mut shell: Shell = match Shell::start(shell, args, &config.prompt_config) {
         Ok(sh) => sh,
         Err(err) => {
             print_err(
@@ -185,7 +182,7 @@ pub fn run_command(mut command: String, processor: IOProcessor, config: &config:
     }
     //FIXME: handle fish $status
     command.push_str("; exit $?\n");
-    if let Err(err) = shell_env.write(command) {
+    if let Err(err) = shell.write(command) {
         print_err(
             String::from(format!("Could not start shell: {}", err)),
             config.output_config.translate_output,
@@ -193,7 +190,7 @@ pub fn run_command(mut command: String, processor: IOProcessor, config: &config:
         );
         return 255;
     }
-    let _ = shell_env.write(String::from("\n"));
+    let _ = shell.write(String::from("\n"));
     //@! Main loop
     loop { //Check state after reading/writing, since program could have already terminate
         //@! Read user input
@@ -204,7 +201,7 @@ pub fn run_command(mut command: String, processor: IOProcessor, config: &config:
                 //Treat input
                 //Convert text
                 let input: String = processor.text_to_latin(input);
-                if let Err(err) = shell_env.write(input) {
+                if let Err(err) = shell.write(input) {
                     print_err(
                         String::from(err.to_string()),
                         config.output_config.translate_output,
@@ -214,7 +211,7 @@ pub fn run_command(mut command: String, processor: IOProcessor, config: &config:
             }
         }
         //@! Read Shell stdout
-        if let Ok((out, err)) = shell_env.read() {
+        if let Ok((out, err)) = shell.read() {
             if out.is_some() {
                 //Convert out to cyrillic
                 print_out(out.unwrap(), config.output_config.translate_output, &processor);
@@ -224,13 +221,13 @@ pub fn run_command(mut command: String, processor: IOProcessor, config: &config:
                 print_err(err.unwrap().to_string(), config.output_config.translate_output, &processor);
             }
         }
-        if shell_env.get_state() == ShellState::Terminated {
+        if shell.get_state() == ShellState::Terminated {
             break;
         }
         sleep(Duration::from_nanos(100)); //Sleep for 100ns
     } //@! End of main loop
     //Return shell exitcode
-    match shell_env.stop() {
+    match shell.stop() {
         Ok(rc) => rc,
         Err(err) => {
             print_err(format!("Could not stop shell: {}", err), config.output_config.translate_output, &processor);

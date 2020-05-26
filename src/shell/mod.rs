@@ -29,8 +29,13 @@ pub mod prompt;
 extern crate nix;
 extern crate whoami;
 
-use nix::sys::signal;
 use proc::{ShellError, ShellProc, ShellState};
+use prompt::ShellPrompt;
+
+use crate::config::PromptConfig;
+use crate::translator::ioprocessor::IOProcessor;
+
+use nix::sys::signal;
 use std::path::PathBuf;
 use std::time::{Duration};
 
@@ -39,17 +44,29 @@ use std::time::{Duration};
 /// Shell represents the current user shell configuration
 pub struct Shell {
     process: ShellProc,
+    prompt: ShellPrompt,
+    props: ShellProps
+}
+
+/// ### ShellProps
+/// 
+/// Shell props contains the runtime shell properties
+pub(crate) struct ShellProps {
     pub username: String,
-    pub hostname: String
+    pub hostname: String,
+    pub elapsed_time: Duration,
+    pub exit_status: u8,
+    pub wrkdir: PathBuf
 }
 
 impl Shell {
     /// ### start
     ///  
     /// Start a new shell instance and instantiates a new Shell struct
-    pub fn start(exec: String, args: Vec<String>) -> Result<Shell, ShellError> {
+    pub fn start(exec: String, args: Vec<String>, prompt_config: &PromptConfig) -> Result<Shell, ShellError> {
         //Start shell
         let mut argv: Vec<String> = Vec::with_capacity(1 + args.len());
+        let shell_prompt: ShellPrompt = ShellPrompt::new(prompt_config);
         argv.push(exec.clone());
         for arg in args.iter() {
             argv.push(arg.clone());
@@ -62,10 +79,11 @@ impl Shell {
         let user: String = whoami::username();
         //Get hostname
         let hostname: String = whoami::host();
+        let wrkdir: PathBuf = shell_process.wrkdir.clone();
         Ok(Shell {
             process: shell_process,
-            username: user,
-            hostname: hostname
+            prompt: shell_prompt,
+            props: ShellProps::new(hostname, user, wrkdir)
         })
     }
 
@@ -112,31 +130,35 @@ impl Shell {
     /// 
     /// Refresh Shell Environment information
     pub fn refresh_env(&mut self) {
-        //Get process username
-        self.username = whoami::username();
-        //Get hostname
-        self.hostname = whoami::host();
+        self.props.username = whoami::username();
+        self.props.hostname = whoami::host();
+        self.props.wrkdir = self.process.wrkdir.clone();
+        self.props.exit_status = self.process.exit_status;
+        self.props.elapsed_time = self.process.exec_time;
     }
 
-    /// ### wrkdir
+    /// ### pprompt
     /// 
-    /// Get working directory
-    pub fn wrkdir(&self) -> PathBuf {
-        self.process.wrkdir.clone()
+    /// Print prompt line
+    pub fn pprompt(&mut self, processor: &IOProcessor) {
+        self.prompt.print(&self.props, processor)
     }
+}
 
-    /// ### exit_status
-    /// 
-    /// Returns last shell exit status
-    pub fn exit_status(&self) -> u8 {
-        self.process.exit_status
-    }
+//@! Shell Props
+impl ShellProps {
 
-    /// ### elapsed_time
+    /// ### new
     /// 
-    /// Get the last command execution time
-    pub fn elapsed_time(&self) -> Duration {
-        self.process.exec_time
+    /// Instantiates a new ShellProps object
+    pub(self) fn new(hostname: String, username: String, wrkdir: PathBuf) -> ShellProps {
+        ShellProps {
+            hostname: hostname,
+            username: username,
+            wrkdir: wrkdir,
+            elapsed_time: Duration::from_secs(0),
+            exit_status: 0
+        }
     }
 }
 
@@ -148,25 +170,34 @@ mod tests {
     use super::*;
     use std::thread::sleep;
     use std::time::{Duration, Instant};
-    use nix::NixPath;
+
+    #[test]
+    fn test_shell_props_new() {
+        let shell_props: ShellProps = ShellProps::new(String::from("computer"), String::from("root"), PathBuf::from("/tmp/"));
+        assert_eq!(shell_props.username, String::from("root"));
+        assert_eq!(shell_props.hostname, String::from("computer"));
+        assert_eq!(shell_props.wrkdir, PathBuf::from("/tmp/"));
+        assert_eq!(shell_props.elapsed_time.as_millis(), 0);
+        assert_eq!(shell_props.exit_status, 0);
+    }
 
     #[test]
     fn test_shell_start() {
         //Use universal accepted shell
         let shell: String = String::from("sh");
         //Instantiate and start a shell
-        let mut shell_env: Shell = Shell::start(shell, vec![]).ok().unwrap();
+        let mut shell_env: Shell = Shell::start(shell, vec![], &PromptConfig::default()).ok().unwrap();
         //Verify PID
         assert_ne!(shell_env.process.pid, 0);
         //Verify shell status
         assert_eq!(shell_env.get_state(), ShellState::Idle);
         //Get username etc
-        println!("Username: {}", shell_env.username);
-        println!("Hostname: {}", shell_env.hostname);
-        println!("Working directory: {}", shell_env.wrkdir().display());
-        assert!(shell_env.username.len() > 0);
-        assert!(shell_env.hostname.len() > 0);
-        assert!(shell_env.wrkdir().len() > 0);
+        println!("Username: {}", shell_env.props.username);
+        println!("Hostname: {}", shell_env.props.hostname);
+        println!("Working directory: {}", shell_env.props.wrkdir.display());
+        assert!(shell_env.props.username.len() > 0);
+        assert!(shell_env.props.hostname.len() > 0);
+        assert!(format!("{}", shell_env.props.wrkdir.display()).len() > 0);
         //Refresh environment
         shell_env.refresh_env();
         //Terminate shell
@@ -179,7 +210,7 @@ mod tests {
         //Use fictional shell
         let shell: String = String::from("pipponbash");
         //Instantiate and start a shell
-        let mut shell_env: Shell = Shell::start(shell, vec![]).unwrap();
+        let mut shell_env: Shell = Shell::start(shell, vec![], &PromptConfig::default()).unwrap();
         //Shell should have terminated
         assert_eq!(shell_env.stop().unwrap(), 255);
     }
@@ -189,7 +220,7 @@ mod tests {
         //Use universal accepted shell
         let shell: String = String::from("sh");
         //Instantiate and start a shell
-        let mut shell_env: Shell = Shell::start(shell, vec![]).ok().unwrap();
+        let mut shell_env: Shell = Shell::start(shell, vec![], &PromptConfig::default()).ok().unwrap();
         //Verify PID
         assert_ne!(shell_env.process.pid, 0);
         //Verify shell status
@@ -244,7 +275,7 @@ mod tests {
         //Use universal accepted shell
         let shell: String = String::from("sh");
         //Instantiate and start a shell
-        let mut shell_env: Shell = Shell::start(shell, vec![]).ok().unwrap();
+        let mut shell_env: Shell = Shell::start(shell, vec![], &PromptConfig::default()).ok().unwrap();
         //Verify PID
         assert_ne!(shell_env.process.pid, 0);
         //Verify shell status
@@ -265,7 +296,7 @@ mod tests {
         //Use universal accepted shell
         let shell: String = String::from("sh");
         //Instantiate and start a shell
-        let mut shell_env: Shell = Shell::start(shell, vec![]).ok().unwrap();
+        let mut shell_env: Shell = Shell::start(shell, vec![], &PromptConfig::default()).ok().unwrap();
         assert!(shell_env.sigint().is_ok());
         //Wait shell to terminate
         sleep(Duration::from_millis(100));
