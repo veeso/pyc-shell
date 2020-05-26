@@ -259,6 +259,8 @@ mod tests {
         let pipe: Result<Pipe, ShellError> = Pipe::open(&pipe_path);
         assert!(pipe.is_ok(), format!("Pipe ({}) should be OK, but is {:?}", pipe_path.display(), pipe));
         let pipe: Pipe = pipe.unwrap();
+        assert_eq!(pipe.path, pipe_path);
+        assert!(pipe.fd > 0);
         assert!(pipe.close().is_ok());
     }
 
