@@ -1,10 +1,10 @@
 # Pyc
 
-[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0) [![Stars](https://img.shields.io/github/stars/ChristianVisintin/Pyc.svg)](https://github.com/ChristianVisintin/Pyc) [![Issues](https://img.shields.io/github/issues/ChristianVisintin/Pyc.svg)](https://github.com/ChristianVisintin/Pyc/issues) [![Crates.io](https://img.shields.io/badge/crates.io-v0.1.0-orange.svg)](https://crates.io/crates/pyc) [![Build](https://api.travis-ci.org/ChristianVisintin/Pyc.svg?branch=master)](https://travis-ci.org/ChristianVisintin/Pyc) [![codecov](https://codecov.io/gh/ChristianVisintin/Pyc/branch/master/graph/badge.svg)](https://codecov.io/gh/ChristianVisintin/Pyc)
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0) [![Stars](https://img.shields.io/github/stars/ChristianVisintin/Pyc.svg)](https://github.com/ChristianVisintin/Pyc) [![Issues](https://img.shields.io/github/issues/ChristianVisintin/Pyc.svg)](https://github.com/ChristianVisintin/Pyc/issues) [![Crates.io](https://img.shields.io/badge/crates.io-v0.1.0-orange.svg)](https://crates.io/crates/pyc-shell) [![Build](https://api.travis-ci.org/ChristianVisintin/Pyc.svg?branch=master)](https://travis-ci.org/ChristianVisintin/Pyc) [![codecov](https://codecov.io/gh/ChristianVisintin/Pyc/branch/master/graph/badge.svg)](https://codecov.io/gh/ChristianVisintin/Pyc)
 
 ~ Use your alphabet with your favourite shell ~  
 Developed by Christian Visintin  
-Current version: 0.1.0 (25/05/2020)
+Current version: 0.1.0 (26/05/2020)
 
 ---
 
@@ -21,12 +21,20 @@ Current version: 0.1.0 (25/05/2020)
     - [Usage](#usage)
   - [Configuration](#configuration)
     - [Prompt Line Configuration](#prompt-line-configuration)
+      - [General keys](#general-keys)
+      - [Colors keys](#colors-keys)
+      - [Git keys](#git-keys)
   - [Documentation](#documentation)
+  - [Escape text](#escape-text)
   - [Known issues](#known-issues)
     - [Unicode Replacement character while typing (�)](#unicode-replacement-character-while-typing-)
     - [Cd command in oneshot mode doesn't work](#cd-command-in-oneshot-mode-doesnt-work)
     - [Fish doesn't work](#fish-doesnt-work)
     - [Shell alias not working](#shell-alias-not-working)
+    - [Text editors dont' work](#text-editors-dont-work)
+  - [Upcoming Features](#upcoming-features)
+    - [Pyc 0.2.0](#pyc-020)
+    - [Others](#others)
   - [Contributions](#contributions)
   - [Changelog](#changelog)
   - [License](#license)
@@ -60,7 +68,7 @@ Basically Рус is a shell interface, which means that it reads the user input,
 
 ## Supported alphabets
 
-- ![br](https://raw.githubusercontent.com/gosquared/flags/master/flags/flags/flat/24/Russia.png) Russian Cyrillic - According to russian cyrillic [GOST 7.79-2000](https://en.wikipedia.org/wiki/GOST_7.79-2000) with some differences ([See here](./docs/rus.md))
+- ![br](https://raw.githubusercontent.com/gosquared/flags/master/flags/flags/flat/24/Russia.png) Russian Cyrillic - According to russian cyrillic [GOST 7.79-2000](https://en.wikipedia.org/wiki/GOST_7.79-2000) with some differences ([See here](./docs/translators/rus.md))
 - ![br](https://raw.githubusercontent.com/gosquared/flags/master/flags/flags/flat/24/Belarus.png) Belarusian Cyrillic - *Coming soon*
 - ![br](https://raw.githubusercontent.com/gosquared/flags/master/flags/flags/flat/24/Bulgaria.png) Bulgarian Cyrillic - *Coming soon* (for the moment, you can use Russian)
 - ![br](https://raw.githubusercontent.com/gosquared/flags/master/flags/flags/flat/24/South-Korea.png)![br](https://raw.githubusercontent.com/gosquared/flags/master/flags/flags/shiny/24/North-Korea.png) Hangŭl - *TBD*
@@ -70,19 +78,19 @@ Basically Рус is a shell interface, which means that it reads the user input,
 - ![br](https://raw.githubusercontent.com/gosquared/flags/master/flags/flags/flat/24/Serbia.png)![br](https://raw.githubusercontent.com/gosquared/flags/master/flags/flags/flat/24/Bosnia-and-Herzegovina.png) Serbian Cyrillic - *TBD*
 - ![br](https://raw.githubusercontent.com/gosquared/flags/master/flags/flags/flat/24/Ukraine.png) Ukrainian Cyrillic - *TBD*
 
-Other alphabets are not planned for the moment.
-Can't find yours? Contribute to the project implementing it! [Read More](./CONTRIBUTING.md)
+Other alphabets are not planned for the moment.  
+Can't find yours? Contribute to the project implementing it 😀! [Read More](./CONTRIBUTING.md)
 
 ## Installation
 
-If you're considering to install Pyc I want to thank you! I hope this project can be useful for you!
+If you're considering to install Pyc I want to thank you 💛! I hope this project can be useful for you!  
 If you want to contribute to this project, don't forget to check out our contribute guide. [Read More](./CONTRIBUTING.md)
 
 ### Cargo
 
 ```sh
 #Install pyc through cargo
-cargo install pyc
+cargo install pyc-shell
 #Install configuration
 mkdir -p $HOME/.config/pyc/
 #Copy configuration file from repository
@@ -171,7 +179,7 @@ In addition to the parameters described before, here the prompt line keys are il
 
 Each prompt line key must have the following syntax ```${VAR_NAME}```
 
-**General** keys
+#### General keys
 
 | Key      | Description                                                              |
 |----------|--------------------------------------------------------------------------|
@@ -182,7 +190,7 @@ Each prompt line key must have the following syntax ```${VAR_NAME}```
 | CMD_TIME | Execution time of the last command if >= min_elapsed_time                |
 | RC       | Shows the string associated to a successful exitcode or to an error      |
 
-**Colors** keys
+#### Colors keys
 
 | Key      | Description |
 |----------|-------------|
@@ -196,7 +204,7 @@ Each prompt line key must have the following syntax ```${VAR_NAME}```
 | KGRY     | Gray        |
 | KRST     | Reset       |
 
-**Git** keys
+#### Git keys
 
 | Key        | Description                 |
 |------------|-----------------------------|
@@ -205,11 +213,28 @@ Each prompt line key must have the following syntax ```${VAR_NAME}```
 
 ## Documentation
 
-The developer documentation can be found on Rust Docs at <https://docs.rs/pyc>
+The developer documentation can be found on Rust Docs at <https://docs.rs/pyc-shell>
 
-The documentation related to translators can be instead found here:
+The documentation related to translator modules can be instead found here:
 
 - [Russian transliteration](docs/rus.md)
+
+## Escape text
+
+It is possible to escape texts (only when the prompt line is visible, not while a program is running), preventing it from being transliterated to latin.
+To do so, just use quotes:
+
+```sh
+#Touch foobar.txt
+тоуч фообар.ткст
+```
+
+Escaped:
+
+```sh
+#Touch фообар.мксм
+тоуч "фообар.ткст"
+```
 
 ---
 
@@ -250,18 +275,42 @@ Uuhm, I don't know why, I need some time to investigate why, maybe it doesn't us
 
 I will fix this soon
 
+### Text editors dont' work
+
+I will try to fix this issue
+
 ---
+
+## Upcoming Features
+
+### Pyc 0.2.0
+
+- New translators:
+  - Belarusian
+  - Bulgarian
+  - Hiragana
+- History
+- Keyboard signals
+
+### Others
+
+- other trnaslators:
+  - Ukrainian
+  - Serbian
+  - Macedonian
+  - Hangŭl
+  - Montenegrin
+- Fish support
 
 ## Contributions
 
-Contributions are welcome, in particular regarding:
-
-- translators
-- generic improvements
+Contributions are welcome! 😉
 
 If you think you can contribute to Рус, please follow [Рус's contributions guide](./CONTRIBUTING.md)
 
 ## Changelog
+
+---
 
 ## License
 
