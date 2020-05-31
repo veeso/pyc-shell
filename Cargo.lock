@@ -308,7 +308,7 @@ checksum = "74490b50b9fbe561ac330df47c08f3f33073d2d00c150f719147d7c54522fa1b"
 
 [[package]]
 name = "pyc-shell"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "ansi_term",
  "dirs",
@@ -318,6 +318,7 @@ dependencies = [
  "nix",
  "regex",
  "tempfile",
+ "termios",
  "uuid",
  "whoami",
  "yaml-rust",
@@ -438,6 +439,15 @@ dependencies = [
  "redox_syscall",
  "remove_dir_all",
  "winapi",
+]
+
+[[package]]
+name = "termios"
+version = "0.3.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6f0fcee7b24a25675de40d5bb4de6e41b0df07bc9856295e7e2b3a3600c400c2"
+dependencies = [
+ "libc",
 ]
 
 [[package]]

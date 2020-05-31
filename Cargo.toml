@@ -1,6 +1,6 @@
 [package]
 name = "pyc-shell"
-version = "0.1.0"
+version = "0.2.0"
 authors = ["Christian Visintin"]
 edition = "2018"
 license = "GPL-3.0"
@@ -26,6 +26,7 @@ whoami = "0.8.1"
 git2 = "0.12.0"
 uuid = { version = "0.8.1", features = ["v4"] }
 tempfile = "3"
+termios = "0.3.2"
 
 [[bin]]
 name = "pyc"
