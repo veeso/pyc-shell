@@ -66,6 +66,7 @@ pub fn run_interactive(processor: IOProcessor, config: &config::Config, shell: O
     let mut last_state: ShellState = ShellState::Unknown;
     let mut state_changed: bool = true; //Start with state changed, this determines whether the prompt should be printed
     let mut input_buffer: String = String::new();
+    let mut input_buffer_cursor: usize = 0;
     while last_state != ShellState::Terminated {
         //@! Print prompt if state is Idle and state has changed
         let current_state: ShellState = shell.get_state();
@@ -92,25 +93,92 @@ pub fn run_interactive(processor: IOProcessor, config: &config::Config, shell: O
                 InputEvent::ArrowUp => {
                     //TODO: history prev
                 },
+                InputEvent::ArrowLeft => {
+                    move_left(&mut input_buffer_cursor);
+                },
+                InputEvent::ArrowRight => {
+                    move_right(&mut input_buffer_cursor, input_buffer.len());
+                },
                 InputEvent::Backspace => {
-                    //Pop from buffer and backspace (only if was Some)
-                    if let Some(_) = input_buffer.pop() {
-                        console::backspace();
-                    }
+                    backspace(&mut input_buffer, &mut input_buffer_cursor);
                 },
                 InputEvent::CarriageReturn => {
                     console::carriage_return();
                 },
                 InputEvent::Ctrl(sig) => {
-                    //TODO: match signal
+                    //Check running state 
+                    //if running state is Idle, it will be handled by the console,
+                    //otherwise by the shell process
+                    if last_state == ShellState::Idle {
+                        match sig {
+                            1 => { //CTRL + A
+                                //We must return at the beginning of the string
+                                for _ in 0..input_buffer_cursor {
+                                    //Move left
+                                    console::move_cursor_left();
+                                }
+                                input_buffer_cursor = 0; //Reset cursor
+                            }, 
+                            2 => { //CTRL + B
+                                move_left(&mut input_buffer_cursor);
+                            },
+                            3 => { //CTRL + C
+                                //Abort input and go to newline
+                                input_buffer.clear();
+                                input_buffer_cursor = 0;
+                                console::println(String::new());
+                                console::print(format!("{} ", shell.get_promptline(&processor)));
+                            },
+                            4 => { //CTRL + D
+                                backspace(&mut input_buffer, &mut input_buffer_cursor);
+                            },
+                            5 => { //CTRL + E
+                                for _ in input_buffer_cursor..input_buffer.len() {
+                                    console::move_cursor_right();
+                                }
+                                input_buffer_cursor = input_buffer.len();
+                            },
+                            6 => { //CTRL + F
+                                move_right(&mut input_buffer_cursor, input_buffer.len());
+                            },
+                            7 => { //CTRL + G
+                                //TODO: exit rev search
+                            },
+                            8 => { //CTRL + H
+                                backspace(&mut input_buffer, &mut input_buffer_cursor);
+                            },
+                            11 => { // CTRL + K
+                                //Delete all characters after cursor
+                                while input_buffer_cursor < input_buffer.len() {
+                                    let _ = input_buffer.pop();
+                                }
+                            },
+                            12 => { // CTRL + L
+                                //Clear, but doesn't reset input
+                                console::clear();
+                                console::print(format!("{} {}", shell.get_promptline(&processor), input_buffer));
+                            },
+                            18 => { // CTRL + R
+                                //TODO: rev search
+                            },
+                            _ => {} //Unhandled
+                        }
+                    } else {
+                        //TODO: pass to child
+                        let mut output = String::with_capacity(1);
+                        output.push(sig as char);
+                        let _ = shell.write(output);
+                    }
                 },
-                InputEvent::Key(k) => {
+                InputEvent::Key(k) => { //Push key
                     //Push k to input buffer
-                    input_buffer.push_str(k.as_str());
+                    input_buffer.insert_str(input_buffer_cursor, k.as_str());
+                    //input_buffer.push_str(k.as_str());
+                    input_buffer_cursor += 1;
                     //Print key
                     console::print(k);
                 },
-                InputEvent::Enter => {
+                InputEvent::Enter => { //@! Send input
                     //Newline first
                     console::println(String::new());
                     //Handle enter...
@@ -139,6 +207,7 @@ pub fn run_interactive(processor: IOProcessor, config: &config::Config, shell: O
                                         print_err(String::from(format!("Input error: {:?}", err)), config.output_config.translate_output, &processor);
                                         //Clear input buffer
                                         input_buffer.clear();
+                                        input_buffer_cursor = 0;
                                         continue;
                                     }
                                 }
@@ -148,6 +217,7 @@ pub fn run_interactive(processor: IOProcessor, config: &config::Config, shell: O
                         };
                         //Clear input buffer
                         input_buffer.clear();
+                        input_buffer_cursor = 0;
                         if last_state == ShellState::Idle {
                             //Check if clear command
                             if input.starts_with("clear") {
@@ -181,8 +251,7 @@ pub fn run_interactive(processor: IOProcessor, config: &config::Config, shell: O
                             state_changed = true;
                         }
                     }
-                },
-                _ => {}
+                }
             }
         };
         //@! Read Shell stdout
@@ -248,6 +317,7 @@ pub fn run_command(mut command: String, processor: IOProcessor, config: &config:
     }
     let _ = shell.write(String::from("\n"));
     let mut input_buffer: String = String::new();
+    let mut input_buffer_cursor: usize = 0;
     //@! Main loop
     loop { //Check state after reading/writing, since program could have already terminate
         //@! Read user input
@@ -293,6 +363,7 @@ pub fn run_command(mut command: String, processor: IOProcessor, config: &config:
                         }
                     }
                     //Clear input buffer
+                    input_buffer_cursor = 0;
                     input_buffer.clear();
                 },
                 _ => {}
@@ -376,6 +447,8 @@ fn resolve_command(argv: &mut Vec<String>, config: &config::Config) {
     };
 }
 
+//@! Shell functions
+
 /// ### print_err
 /// 
 /// print error message; the message is may converted to cyrillic if translate config is true
@@ -396,4 +469,38 @@ fn print_out(out: String, to_cyrillic: bool, processor: &IOProcessor) {
         true => print!("{}", processor.text_to_cyrillic(&out)),
         false => print!("{}", out),
     };
+}
+
+/// ### backspace
+/// 
+/// Perform backspace on current console and buffers
+fn backspace(input_buffer: &mut String, cursor: &mut usize) {
+    //Remove from buffer and backspace (if possible)
+    if *cursor > 0 {
+        *cursor -= 1;
+        input_buffer.remove(*cursor);
+        console::backspace();
+    }
+}
+
+/// ### move_left
+/// 
+/// Move cursor to left
+fn move_left(cursor: &mut usize) {
+    //If possible, move the cursor right
+    if *cursor != 0 {
+        *cursor -= 1;
+        console::move_cursor_left();
+    }
+}
+
+/// ### move_right
+/// 
+/// Move cursor to right
+fn move_right(cursor: &mut usize, buflen: usize) {
+     //If possible, move the cursor left
+     if *cursor + 1 <= buflen {
+        *cursor += 1;
+        console::move_cursor_right();
+    }
 }

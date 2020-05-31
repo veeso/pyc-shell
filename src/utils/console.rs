@@ -55,6 +55,14 @@ pub fn backspace() {
     print(String::from("\x08 \x08"));
 }
 
+pub fn move_cursor_right() {
+    print(String::from("\x1b[1C"));
+}
+
+pub fn move_cursor_left() {
+    print(String::from("\x1b[1D"));
+}
+
 /// ### carriage_return
 /// 
 /// Return to the beginning of the line
@@ -97,8 +105,8 @@ pub fn read() -> Option<InputEvent> {
                     match direction {
                         'A' => InputEvent::ArrowUp,
                         'B' => InputEvent::ArrowDown,
-                        'C' => InputEvent::ArrowLeft,
-                        'D' => InputEvent::ArrowRight,
+                        'C' => InputEvent::ArrowRight,
+                        'D' => InputEvent::ArrowLeft,
                         _ => return None //Unknown event
                     }
                 },
@@ -146,7 +154,7 @@ pub fn read() -> Option<InputEvent> {
 /// 
 /// Rewrite current stdout line
 pub fn rewrite(row: String) {
-    print!("\r\033[K");
+    print!("\r\x1b[K");
     print(row);
 }
 
