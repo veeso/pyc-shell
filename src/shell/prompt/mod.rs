@@ -35,7 +35,6 @@ use cache::PromptCache;
 use modules::*;
 
 use regex::Regex;
-use std::io::{self, Write};
 use std::time::Duration;
 
 const PROMPT_KEY_REGEX: &str = r"\$\{(.*?)\}";
@@ -125,18 +124,17 @@ impl ShellPrompt {
         }
     }
 
-    /// ### print
+    /// ### get_line
     ///
-    /// Print prompt with resolved values
-    pub(super) fn print(&mut self, shell_props: &ShellProps, processor: &IOProcessor) {
+    /// get prompt line with resolved values
+    pub(super) fn get_line(&mut self, shell_props: &ShellProps, processor: &IOProcessor) -> String {
         let mut prompt_line: String = self.process_prompt(shell_props, processor);
         //Translate prompt if necessary
         if self.translate {
             prompt_line = processor.text_to_cyrillic(prompt_line);
         }
         //Write prompt
-        print!("{} ", prompt_line);
-        let _ = io::stdout().flush();
+        prompt_line
     }
 
     /// ### process_prompt
@@ -342,10 +340,10 @@ mod tests {
         let iop: IOProcessor = get_ioprocessor();
         let shellenv: ShellProps = get_shellenv();
         //Print first in latin
-        prompt.print(&shellenv, &iop);
+        let _ = prompt.get_line(&shellenv, &iop);
         prompt.translate = true;
         //Then in cyrillic
-        prompt.print(&shellenv, &iop);
+        let _ = prompt.get_line(&shellenv, &iop);
         //Get prompt line
         let prompt_line: String = prompt.process_prompt(&shellenv, &iop);
         let expected_prompt_line = String::from(format!(
@@ -369,10 +367,10 @@ mod tests {
         let iop: IOProcessor = get_ioprocessor();
         let shellenv: ShellProps = get_shellenv();
         //Print first in latin
-        prompt.print(&shellenv, &iop);
+        let _ = prompt.get_line(&shellenv, &iop);
         prompt.translate = true;
         //Then in cyrillic
-        prompt.print(&shellenv, &iop);
+        let _ = prompt.get_line(&shellenv, &iop);
         //Get prompt line
         let prompt_line: String = prompt.process_prompt(&shellenv, &iop);
         let expected_prompt_line = String::from(format!(
@@ -406,10 +404,10 @@ mod tests {
         shellenv.elapsed_time = Duration::from_millis(5100);
         shellenv.wrkdir = PathBuf::from("/tmp/");
         //Print first in latin
-        prompt.print(&shellenv, &iop);
+        let _ = prompt.get_line(&shellenv, &iop);
         prompt.translate = true;
         //Then in cyrillic
-        prompt.print(&shellenv, &iop);
+        let _ = prompt.get_line(&shellenv, &iop);
         //Get prompt line
         let prompt_line: String = prompt.process_prompt(&shellenv, &iop);
         let expected_prompt_line = String::from(format!(
@@ -451,10 +449,10 @@ mod tests {
         shellenv.elapsed_time = Duration::from_millis(5100);
         shellenv.wrkdir = PathBuf::from("./");
         //Print first in latin
-        prompt.print(&shellenv, &iop);
+        let _ = prompt.get_line(&shellenv, &iop);
         prompt.translate = true;
         //Then in cyrillic
-        prompt.print(&shellenv, &iop);
+        let _ = prompt.get_line(&shellenv, &iop);
         //Get prompt line
         let prompt_line: String = prompt.process_prompt(&shellenv, &iop);
         let expected_prompt_line = String::from(format!(
@@ -483,10 +481,10 @@ mod tests {
         shellenv.elapsed_time = Duration::from_millis(5100);
         shellenv.wrkdir = PathBuf::from("/");
         //Print first in latin
-        prompt.print(&shellenv, &iop);
+        let _ = prompt.get_line(&shellenv, &iop);
         prompt.translate = true;
         //Then in cyrillic
-        prompt.print(&shellenv, &iop);
+        let _ = prompt.get_line(&shellenv, &iop);
         //Get prompt line
         let prompt_line: String = prompt.process_prompt(&shellenv, &iop);
         let expected_prompt_line = String::from(format!(
@@ -512,10 +510,10 @@ mod tests {
         shellenv.elapsed_time = Duration::from_millis(5100);
         shellenv.wrkdir = PathBuf::from("/");
         //Print first in latin
-        prompt.print(&shellenv, &iop);
+        let _ = prompt.get_line(&shellenv, &iop);
         prompt.translate = true;
         //Then in cyrillic
-        prompt.print(&shellenv, &iop);
+        let _ = prompt.get_line(&shellenv, &iop);
         //Get prompt line
         let prompt_line: String = prompt.process_prompt(&shellenv, &iop);
         let expected_prompt_line = String::from(format!(
@@ -542,10 +540,10 @@ mod tests {
         shellenv.wrkdir = PathBuf::from("/");
         shellenv.exit_status = 255;
         //Print first in latin
-        prompt.print(&shellenv, &iop);
+        let _ = prompt.get_line(&shellenv, &iop);
         prompt.translate = true;
         //Then in cyrillic
-        prompt.print(&shellenv, &iop);
+        let _ = prompt.get_line(&shellenv, &iop);
         //Get prompt line
         let prompt_line: String = prompt.process_prompt(&shellenv, &iop);
         let expected_prompt_line = String::from(format!(
@@ -572,10 +570,10 @@ mod tests {
         shellenv.wrkdir = PathBuf::from("/");
         shellenv.exit_status = 255;
         //Print first in latin
-        prompt.print(&shellenv, &iop);
+        let _ = prompt.get_line(&shellenv, &iop);
         prompt.translate = true;
         //Then in cyrillic
-        prompt.print(&shellenv, &iop);
+        let _ = prompt.get_line(&shellenv, &iop);
         //Get prompt line
         let prompt_line: String = prompt.process_prompt(&shellenv, &iop);
         let expected_prompt_line = String::from(format!(

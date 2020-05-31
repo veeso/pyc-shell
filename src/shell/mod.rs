@@ -140,8 +140,8 @@ impl Shell {
     /// ### pprompt
     /// 
     /// Print prompt line
-    pub fn pprompt(&mut self, processor: &IOProcessor) {
-        self.prompt.print(&self.props, processor)
+    pub fn get_promptline(&mut self, processor: &IOProcessor) -> String {
+        self.prompt.get_line(&self.props, processor)
     }
 }
 
