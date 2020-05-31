@@ -55,6 +55,13 @@ pub fn backspace() {
     print(String::from("\x08 \x08"));
 }
 
+/// ### carriage_return
+/// 
+/// Return to the beginning of the line
+pub fn carriage_return() {
+    print(String::from("\r"));
+}
+
 /// ### clear
 /// 
 /// Clear console
@@ -109,7 +116,7 @@ pub fn read() -> Option<InputEvent> {
                         utfbuffer[buff_index] = *buf.get(0).unwrap_or(&0);
                         buff_index += 1;
                         //Check if utf buffer is a valid utf8 string
-                        match std::str::from_utf8(&utfbuffer) { //If buffer is a valid
+                        match std::str::from_utf8(&utfbuffer[0..buff_index]) { //If buffer is a valid
                             Ok(key) => {
                                 keystr = Some(String::from(key));
                                 break
@@ -200,7 +207,7 @@ fn prepare_termios() {
 fn reset_termios() {
     let mut term = termios::Termios::from_fd(STDIN_FILENO).unwrap();
     let _ = termios::tcgetattr(STDIN_FILENO, &mut term);
-    term.c_lflag &= termios::ICANON;
+    term.c_lflag |= termios::ICANON;
     term.c_lflag &= termios::ECHO;
     let _ = termios::tcsetattr(STDIN_FILENO, termios::TCSADRAIN, &term);
 }

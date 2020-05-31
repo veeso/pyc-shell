@@ -37,7 +37,7 @@ use crate::config;
 use crate::shell::proc::ShellState;
 use crate::shell::{Shell};
 use crate::translator::ioprocessor::IOProcessor;
-use crate::utils::async_stdin;
+use crate::utils::console::{self, InputEvent};
 use crate::utils::file;
 
 /// ### run_interactive
@@ -65,6 +65,7 @@ pub fn run_interactive(processor: IOProcessor, config: &config::Config, shell: O
     //@! Main loop
     let mut last_state: ShellState = ShellState::Unknown;
     let mut state_changed: bool = true; //Start with state changed, this determines whether the prompt should be printed
+    let mut input_buffer: String = String::new();
     while last_state != ShellState::Terminated {
         //@! Print prompt if state is Idle and state has changed
         let current_state: ShellState = shell.get_state();
@@ -76,59 +77,114 @@ pub fn run_interactive(processor: IOProcessor, config: &config::Config, shell: O
             //Force shellenv to refresh info
             shell.refresh_env();
             //Print prompt
-            shell.pprompt(&processor);
+            console::print(format!("{} ", shell.get_promptline(&processor)));
             state_changed = false; //Force state changed to false
         } else if state_changed {
             state_changed = false; //Check has been done, nothing to do
         }
         //@! Read user input
-        if async_stdin::is_ready() { //Check if stdin is ready to be read
-            let input: String = async_stdin::read();
-            //If input is empty, print prompt (if state is IDLE)
-            if input.trim().len() == 0 {
-                if last_state == ShellState::Idle {
-                    shell.pprompt(&processor);
-                }
-            } else {
-                //Treat input
-                //If state is Idle, convert expression, otherwise convert text
-                let input: String = match last_state {
-                    ShellState::Idle => {
-                        //Resolve alias
-                        let mut argv: Vec<String> = Vec::with_capacity(input.matches(" ").count() + 1);
-                        for arg in input.split_whitespace() {
-                            argv.push(String::from(arg));
+        if let Some(ev) = console::read() {
+            //Match input event
+            match ev {
+                InputEvent::ArrowDown => {
+                    //TODO: history next
+                },
+                InputEvent::ArrowUp => {
+                    //TODO: history prev
+                },
+                InputEvent::Backspace => {
+                    //Pop from buffer and backspace (only if was Some)
+                    if let Some(_) = input_buffer.pop() {
+                        console::backspace();
+                    }
+                },
+                InputEvent::CarriageReturn => {
+                    console::carriage_return();
+                },
+                InputEvent::Ctrl(sig) => {
+                    //TODO: match signal
+                },
+                InputEvent::Key(k) => {
+                    //Push k to input buffer
+                    input_buffer.push_str(k.as_str());
+                    //Print key
+                    console::print(k);
+                },
+                InputEvent::Enter => {
+                    //Newline first
+                    console::println(String::new());
+                    //Handle enter...
+                    //If input is empty, print prompt (if state is IDLE)
+                    if input_buffer.trim().len() == 0 {
+                        if last_state == ShellState::Idle {
+                            console::print(format!("{} ", shell.get_promptline(&processor)));
                         }
-                        //Process arg 0
-                        resolve_command(&mut argv, &config);
-                        //Rejoin arguments
-                        let input: String = argv.join(" ") + "\n";
-                        match processor.expression_to_latin(input) {
-                            Ok(ex) => ex,
-                            Err(err) => {
-                                print_err(String::from(format!("Input error: {:?}", err)), config.output_config.translate_output, &processor);
-                                continue;
+                    } else {
+                        //Treat input
+                        //If state is Idle, convert expression, otherwise convert text
+                        let input: String = match last_state {
+                            ShellState::Idle => {
+                                //Resolve alias
+                                let mut argv: Vec<String> = Vec::with_capacity(input_buffer.matches(" ").count() + 1);
+                                for arg in input_buffer.split_whitespace() {
+                                    argv.push(String::from(arg));
+                                }
+                                //Process arg 0
+                                resolve_command(&mut argv, &config);
+                                //Rejoin arguments
+                                let input: String = argv.join(" ") + "\n";
+                                match processor.expression_to_latin(&input) {
+                                    Ok(ex) => ex,
+                                    Err(err) => {
+                                        print_err(String::from(format!("Input error: {:?}", err)), config.output_config.translate_output, &processor);
+                                        //Clear input buffer
+                                        input_buffer.clear();
+                                        continue;
+                                    }
+                                }
+                            },
+                            ShellState::SubprocessRunning => processor.text_to_latin(&input_buffer),
+                            _ => continue
+                        };
+                        //Clear input buffer
+                        input_buffer.clear();
+                        if last_state == ShellState::Idle {
+                            //Check if clear command
+                            if input.starts_with("clear") {
+                                //Clear screen, then write prompt
+                                console::clear();
+                                console::print(format!("{} ", shell.get_promptline(&processor)));
+                            } else if input.starts_with("history") {
+                                //TODO: print history
+                            } else { //Write input as usual
+                                if let Err(err) = shell.write(input) {
+                                    print_err(
+                                        String::from(err.to_string()),
+                                        config.output_config.translate_output,
+                                        &processor,
+                                    );
+                                }
+                            }
+                        } else { //Write input as usual
+                            if let Err(err) = shell.write(input) {
+                                print_err(
+                                    String::from(err.to_string()),
+                                    config.output_config.translate_output,
+                                    &processor,
+                                );
                             }
                         }
-                    },
-                    ShellState::SubprocessRunning => processor.text_to_latin(input),
-                    _ => continue
-                };
-                if let Err(err) = shell.write(input) {
-                    print_err(
-                        String::from(err.to_string()),
-                        config.output_config.translate_output,
-                        &processor,
-                    );
-                }
-                //Update state after write
-                let new_state = shell.get_state(); //Force last state to be changed
-                if new_state != last_state {
-                    last_state = new_state;
-                    state_changed = true;
-                }
+                        //Update state after write
+                        let new_state = shell.get_state(); //Force last state to be changed
+                        if new_state != last_state {
+                            last_state = new_state;
+                            state_changed = true;
+                        }
+                    }
+                },
+                _ => {}
             }
-        }
+        };
         //@! Read Shell stdout
         if let Ok((out, err)) = shell.read() {
             if out.is_some() {
@@ -140,7 +196,7 @@ pub fn run_interactive(processor: IOProcessor, config: &config::Config, shell: O
                 print_err(err.unwrap().to_string(), config.output_config.translate_output, &processor);
             }
         }
-        sleep(Duration::from_nanos(100)); //Sleep for 100ns
+        sleep(Duration::from_nanos(10)); //Sleep for 10ns
     } //@! End of loop
     //Return shell exitcode
     match shell.stop() {
@@ -191,25 +247,57 @@ pub fn run_command(mut command: String, processor: IOProcessor, config: &config:
         return 255;
     }
     let _ = shell.write(String::from("\n"));
+    let mut input_buffer: String = String::new();
     //@! Main loop
     loop { //Check state after reading/writing, since program could have already terminate
         //@! Read user input
-        if async_stdin::is_ready() { //Check if stdin is ready to be read
-            let input: String = async_stdin::read();
-            //If input is empty, ignore it
-            if input.trim().len() > 0 {
-                //Treat input
-                //Convert text
-                let input: String = processor.text_to_latin(input);
-                if let Err(err) = shell.write(input) {
-                    print_err(
-                        String::from(err.to_string()),
-                        config.output_config.translate_output,
-                        &processor,
-                    );
-                }
+        if let Some(ev) = console::read() {
+            //Match input event
+            match ev {
+                InputEvent::ArrowDown => {
+                    //TODO: history next
+                },
+                InputEvent::ArrowUp => {
+                    //TODO: history prev
+                },
+                InputEvent::Backspace => {
+                    //Pop from buffer and backspace
+                    let _ = input_buffer.pop();
+                    console::backspace();
+                },
+                InputEvent::CarriageReturn => {
+                    console::carriage_return();
+                },
+                InputEvent::Ctrl(sig) => {
+                    //TODO: match signal
+                },
+                InputEvent::Key(k) => {
+                    //Push k to input buffer
+                    input_buffer.push_str(k.as_str());
+                    //Print key
+                    console::print(k);
+                },
+                InputEvent::Enter => {
+                    //Handle enter...
+                    //If input is empty, ignore it
+                    if input_buffer.trim().len() > 0 {
+                        //Treat input
+                        //Convert text
+                        let input: String = processor.text_to_latin(&input_buffer);
+                        if let Err(err) = shell.write(input) {
+                            print_err(
+                                String::from(err.to_string()),
+                                config.output_config.translate_output,
+                                &processor,
+                            );
+                        }
+                    }
+                    //Clear input buffer
+                    input_buffer.clear();
+                },
+                _ => {}
             }
-        }
+        };
         //@! Read Shell stdout
         if let Ok((out, err)) = shell.read() {
             if out.is_some() {
@@ -294,7 +382,7 @@ fn resolve_command(argv: &mut Vec<String>, config: &config::Config) {
 
 fn print_err(err: String, to_cyrillic: bool, processor: &IOProcessor) {
     match to_cyrillic {
-        true => eprintln!("{}", Colour::Red.paint(processor.text_to_cyrillic(err))),
+        true => eprintln!("{}", Colour::Red.paint(processor.text_to_cyrillic(&err))),
         false => eprintln!("{}", Colour::Red.paint(err)),
     };
 }
@@ -305,7 +393,7 @@ fn print_err(err: String, to_cyrillic: bool, processor: &IOProcessor) {
 
 fn print_out(out: String, to_cyrillic: bool, processor: &IOProcessor) {
     match to_cyrillic {
-        true => print!("{}", processor.text_to_cyrillic(out)),
+        true => print!("{}", processor.text_to_cyrillic(&out)),
         false => print!("{}", out),
     };
 }

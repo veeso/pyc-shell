@@ -131,7 +131,7 @@ impl ShellPrompt {
         let mut prompt_line: String = self.process_prompt(shell_props, processor);
         //Translate prompt if necessary
         if self.translate {
-            prompt_line = processor.text_to_cyrillic(prompt_line);
+            prompt_line = processor.text_to_cyrillic(&prompt_line);
         }
         //Write prompt
         prompt_line
