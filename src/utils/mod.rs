@@ -23,5 +23,5 @@
 *
 */
 
-pub mod async_stdin;
+pub mod console;
 pub mod file;
