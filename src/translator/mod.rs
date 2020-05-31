@@ -60,13 +60,13 @@ pub trait Translator {
   ///
   /// Converts a string which contains russian cyrillic characters into a latin string.
   /// Characters between '"' (quotes) are escaped, expressions inside escaped blocks are translitarated anyway
-  fn to_latin(&self, input: String) -> String;
+  fn to_latin(&self, input: &String) -> String;
 
   /// ### to_cyrillic
   ///
   /// Converts a string which contains latin characters into a russian cyrillic string.
   /// Characters between quotes are escapes
-  fn to_cyrillic(&self, input: String) -> String;
+  fn to_cyrillic(&self, input: &String) -> String;
 }
 
 /// ### new_translator

@@ -31,7 +31,7 @@ impl Translator for Russian {
   /// Converts a string which contains russian cyrillic characters into a latin string.
   /// Characters between '"' (quotes) are escaped, expressions inside escaped blocks are translitarated anyway
   /// Transliteration according to GOST 7.79-2000
-  fn to_latin(&self, input: String) -> String {
+  fn to_latin(&self, input: &String) -> String {
     let mut output = String::new();
     let mut skip_counter: usize = 0;
     for (i, c) in input.chars().enumerate() {
@@ -268,7 +268,7 @@ impl Translator for Russian {
 
   /// Converts a string which contains latin characters into a russian cyrillic string.
   /// Characters between quotes are escapes
-  fn to_cyrillic(&self, input: String) -> String {
+  fn to_cyrillic(&self, input: &String) -> String {
     let mut output: String = String::new();
     let mut skip_cycles: usize = 0;
     for (i, c) in input.chars().enumerate() {
@@ -472,133 +472,133 @@ mod tests {
     let translator: Box<dyn Translator> = new_translator(Language::Russian);
     //ls -l
     let input: String = String::from("лс -л");
-    let output = translator.to_latin(input.clone());
+    let output = translator.to_latin(&input);
     println!("\"{}\" => \"{}\"", input, output);
     assert_eq!(output, "ls -l");
     //Echo hello
     let input: String = String::from("экхо хэлло");
-    let output = translator.to_latin(input.clone());
+    let output = translator.to_latin(&input);
     println!("\"{}\" => \"{}\"", input, output);
     assert_eq!(output, "echo hello");
     //K vs C
     let input: String = String::from("ифконфиг этх0 аддрэсс 192.168.1.30 нэтмаскъ 255.255.255.0"); //Use твёрдый знак to force k in netmask
-    let output = translator.to_latin(input.clone());
+    let output = translator.to_latin(&input);
     println!("\"{}\" => \"{}\"", input, output);
     assert_eq!(
       output,
       "ifconfig eth0 address 192.168.1.30 netmask 255.255.255.0"
     );
     let input: String = String::from("кат РЭАДМЭ.мд");
-    let output = translator.to_latin(input.clone());
+    let output = translator.to_latin(&input);
     println!("\"{}\" => \"{}\"", input, output);
     assert_eq!(output, "cat README.md");
     //Test all letters (Lowercase)
     let input: String = String::from("абкьдэфгхижйкълмнопкюрстуввьксызшщёюячц");
-    let output = translator.to_latin(input.clone());
+    let output = translator.to_latin(&input);
     println!("\"{}\" => \"{}\"", input, output);
     assert_eq!(output, "abcdefghijjklmnopqrstuvwxyzshshhyoyuyachz");
     //Test all letters (Uppercase)
     let input: String = String::from("АБКЬДЭФГХИЖЙКЪЛМНОПКЮРСТУВВЬКСЫЗШЩЁЮЯЧЦ");
-    let output = translator.to_latin(input.clone());
+    let output = translator.to_latin(&input);
     println!("\"{}\" => \"{}\"", input, output);
     assert_eq!(output, "ABCDEFGHIJJKLMNOPQRSTUVWXYZSHSHHYOYUYACHZ");
     //Special cases 'Q'
     let input: String = String::from("москюуитто_пуб");
-    let output = translator.to_latin(input.clone());
+    let output = translator.to_latin(&input);
     println!("\"{}\" => \"{}\"", input, output);
     assert_eq!(output, "mosquitto_pub");
     let input: String = String::from("МОСКЮУИТТО_ПУБ");
-    let output = translator.to_latin(input.clone());
+    let output = translator.to_latin(&input);
     println!("\"{}\" => \"{}\"", input, output);
     assert_eq!(output, "MOSQUITTO_PUB");
     //Special case: В as last character
     let input: String = String::from("срв");
-    let output = translator.to_latin(input.clone());
+    let output = translator.to_latin(&input);
     println!("\"{}\" => \"{}\"", input, output);
     assert_eq!(output, "srv");
     let input: String = String::from("СРВ");
-    let output = translator.to_latin(input.clone());
+    let output = translator.to_latin(&input);
     println!("\"{}\" => \"{}\"", input, output);
     assert_eq!(output, "SRV");
     //Special case: Ye
     let input: String = String::from("елл");
-    let output = translator.to_latin(input.clone());
+    let output = translator.to_latin(&input);
     println!("\"{}\" => \"{}\"", input, output);
     assert_eq!(output, "yell");
     let input: String = String::from("ЕЛЛ");
-    let output = translator.to_latin(input.clone());
+    let output = translator.to_latin(&input);
     println!("\"{}\" => \"{}\"", input, output);
     assert_eq!(output, "YELL");
     //Special case: ck
     let input: String = String::from("чэкк чэкк");
-    let output = translator.to_latin(input.clone());
+    let output = translator.to_latin(&input);
     println!("\"{}\" => \"{}\"", input, output);
     assert_eq!(output, "check check");
     let input: String = String::from("ЧЭКК ЧЭКК");
-    let output = translator.to_latin(input.clone());
+    let output = translator.to_latin(&input);
     println!("\"{}\" => \"{}\"", input, output);
     assert_eq!(output, "CHECK CHECK");
     //Special case: k as last character which becomes 'c'
     let input: String = String::from("рэк к к");
-    let output = translator.to_latin(input.clone());
+    let output = translator.to_latin(&input);
     println!("\"{}\" => \"{}\"", input, output);
     assert_eq!(output, "rec k k");
     let input: String = String::from("РЭК К К");
-    let output = translator.to_latin(input.clone());
+    let output = translator.to_latin(&input);
     println!("\"{}\" => \"{}\"", input, output);
     assert_eq!(output, "REC K K");
     //Special case: k as last character which becomes 'k'
     let input: String = String::from("ок ок");
-    let output = translator.to_latin(input.clone());
+    let output = translator.to_latin(&input);
     println!("\"{}\" => \"{}\"", input, output);
     assert_eq!(output, "ok ok");
     let input: String = String::from("ОК ОК");
-    let output = translator.to_latin(input.clone());
+    let output = translator.to_latin(&input);
     println!("\"{}\" => \"{}\"", input, output);
     assert_eq!(output, "OK OK");
     //Special case: k as first character
     let input: String = String::from("к о");
-    let output = translator.to_latin(input.clone());
+    let output = translator.to_latin(&input);
     println!("\"{}\" => \"{}\"", input, output);
     assert_eq!(output, "k o");
     let input: String = String::from("К О");
-    let output = translator.to_latin(input.clone());
+    let output = translator.to_latin(&input);
     println!("\"{}\" => \"{}\"", input, output);
     assert_eq!(output, "K O");
     //Special case: k as last character, but preceeded by 'к' | 'а' | 'и' | 'о'
     let input: String = String::from("как бар");
-    let output = translator.to_latin(input.clone());
+    let output = translator.to_latin(&input);
     println!("\"{}\" => \"{}\"", input, output);
     assert_eq!(output, "cak bar");
     let input: String = String::from("КАК БАР");
-    let output = translator.to_latin(input.clone());
+    let output = translator.to_latin(&input);
     println!("\"{}\" => \"{}\"", input, output);
     assert_eq!(output, "CAK BAR");
     let input: String = String::from("как");
-    let output = translator.to_latin(input.clone());
+    let output = translator.to_latin(&input);
     println!("\"{}\" => \"{}\"", input, output);
     assert_eq!(output, "cak");
     let input: String = String::from("КАК");
-    let output = translator.to_latin(input.clone());
+    let output = translator.to_latin(&input);
     println!("\"{}\" => \"{}\"", input, output);
     assert_eq!(output, "CAK");
     //Special case: k out of matches
     let input: String = String::from("кд");
-    let output = translator.to_latin(input.clone());
+    let output = translator.to_latin(&input);
     println!("\"{}\" => \"{}\"", input, output);
     assert_eq!(output, "cd");
     let input: String = String::from("КД");
-    let output = translator.to_latin(input.clone());
+    let output = translator.to_latin(&input);
     println!("\"{}\" => \"{}\"", input, output);
     assert_eq!(output, "CD");
     //Backtick and quote
     let input: String = String::from("ъьЪЬ");
-    let output = translator.to_latin(input.clone());
+    let output = translator.to_latin(&input);
     println!("\"{}\" => \"{}\"", input, output);
     assert_eq!(output, "'`'`");
     //Symbols
     let input: String = String::from("№ ₽");
-    let output = translator.to_latin(input.clone());
+    let output = translator.to_latin(&input);
     println!("\"{}\" => \"{}\"", input, output);
     assert_eq!(output, "# $");
   }
@@ -608,14 +608,14 @@ mod tests {
     let translator: Box<dyn Translator> = new_translator(Language::Russian);
     //Test all
     let input: String = String::from("a b c d e f g h i j k l m n o p q r s t u v w x y z");
-    let output = translator.to_cyrillic(input.clone());
+    let output = translator.to_cyrillic(&input);
     println!("\"{}\" => \"{}\"", input, output);
     assert_eq!(
       output,
       "а б к д э ф г х и ж к л м н о п кю р с т у в у кс ы з"
     );
     let input: String = String::from("A B C D E F G H I J K L M N O P Q R S T U V W X Y Z");
-    let output = translator.to_cyrillic(input.clone());
+    let output = translator.to_cyrillic(&input);
     println!("\"{}\" => \"{}\"", input, output);
     assert_eq!(
       output,
@@ -623,142 +623,142 @@ mod tests {
     );
     //Test particular case (sh)
     let input: String = String::from("shell");
-    let output = translator.to_cyrillic(input.clone());
+    let output = translator.to_cyrillic(&input);
     println!("\"{}\" => \"{}\"", input, output);
     assert_eq!(output, "шэлл");
     let input: String = String::from("SHELL");
-    let output = translator.to_cyrillic(input.clone());
+    let output = translator.to_cyrillic(&input);
     println!("\"{}\" => \"{}\"", input, output);
     assert_eq!(output, "ШЭЛЛ");
     //Test particular case (jo)
     let input: String = String::from("Option");
-    let output = translator.to_cyrillic(input.clone());
+    let output = translator.to_cyrillic(&input);
     println!("\"{}\" => \"{}\"", input, output);
     assert_eq!(output, "Оптён");
     let input: String = String::from("OPTION");
-    let output = translator.to_cyrillic(input.clone());
+    let output = translator.to_cyrillic(&input);
     println!("\"{}\" => \"{}\"", input, output);
     assert_eq!(output, "ОПТЁН");
     //Test particular case (ts)
     let input: String = String::from("tsunami");
-    let output = translator.to_cyrillic(input.clone());
+    let output = translator.to_cyrillic(&input);
     println!("\"{}\" => \"{}\"", input, output);
     assert_eq!(output, "цунами");
     let input: String = String::from("TSUNAMI");
-    let output = translator.to_cyrillic(input.clone());
+    let output = translator.to_cyrillic(&input);
     println!("\"{}\" => \"{}\"", input, output);
     assert_eq!(output, "ЦУНАМИ");
     //Test particular case (g)
     let input: String = String::from("gin and games");
-    let output = translator.to_cyrillic(input.clone());
+    let output = translator.to_cyrillic(&input);
     println!("\"{}\" => \"{}\"", input, output);
     assert_eq!(output, "джин анд гамэс");
     let input: String = String::from("GIN AND GAMES");
-    let output = translator.to_cyrillic(input.clone());
+    let output = translator.to_cyrillic(&input);
     println!("\"{}\" => \"{}\"", input, output);
     assert_eq!(output, "ДЖИН АНД ГАМЭС");
     //Test particular case (iu)
     let input: String = String::from("iuta");
-    let output = translator.to_cyrillic(input.clone());
+    let output = translator.to_cyrillic(&input);
     println!("\"{}\" => \"{}\"", input, output);
     assert_eq!(output, "юта");
     let input: String = String::from("IUTA");
-    let output = translator.to_cyrillic(input.clone());
+    let output = translator.to_cyrillic(&input);
     println!("\"{}\" => \"{}\"", input, output);
     assert_eq!(output, "ЮТА");
     //Test particular case (ye)
     let input: String = String::from("yellow");
-    let output = translator.to_cyrillic(input.clone());
+    let output = translator.to_cyrillic(&input);
     println!("\"{}\" => \"{}\"", input, output);
     assert_eq!(output, "еллоу");
     let input: String = String::from("YELLOW");
-    let output = translator.to_cyrillic(input.clone());
+    let output = translator.to_cyrillic(&input);
     println!("\"{}\" => \"{}\"", input, output);
     assert_eq!(output, "ЕЛЛОУ");
     //Test particular case (giu) + (ia)
     let input: String = String::from("giulia");
-    let output = translator.to_cyrillic(input.clone());
+    let output = translator.to_cyrillic(&input);
     println!("\"{}\" => \"{}\"", input, output);
     assert_eq!(output, "джюля");
     let input: String = String::from("GIULIA");
-    let output = translator.to_cyrillic(input.clone());
+    let output = translator.to_cyrillic(&input);
     println!("\"{}\" => \"{}\"", input, output);
     assert_eq!(output, "ДЖЮЛЯ");
     //Test case 'ch'
     let input: String = String::from("channel");
-    let output = translator.to_cyrillic(input.clone());
+    let output = translator.to_cyrillic(&input);
     println!("\"{}\" => \"{}\"", input, output);
     assert_eq!(output, "чаннэл");
     let input: String = String::from("CHANNEL");
-    let output = translator.to_cyrillic(input.clone());
+    let output = translator.to_cyrillic(&input);
     println!("\"{}\" => \"{}\"", input, output);
     assert_eq!(output, "ЧАННЭЛ");
     //Test some words
     let input: String = String::from("Usage: cat [OPTION]... [FILE]...");
-    let output = translator.to_cyrillic(input.clone());
+    let output = translator.to_cyrillic(&input);
     println!("\"{}\" => \"{}\"", input, output);
     assert_eq!(output, "Усаджэ: кат [ОПТЁН]... [ФИЛЭ]...");
     //Special cases: last character is 'c'
     let input: String = String::from("chic");
-    let output = translator.to_cyrillic(input.clone());
+    let output = translator.to_cyrillic(&input);
     println!("\"{}\" => \"{}\"", input, output);
     assert_eq!(output, "чик");
     let input: String = String::from("CHIC");
-    let output = translator.to_cyrillic(input.clone());
+    let output = translator.to_cyrillic(&input);
     println!("\"{}\" => \"{}\"", input, output);
     assert_eq!(output, "ЧИК");
     //Special cases: last character is 'п'
     let input: String = String::from("gag");
-    let output = translator.to_cyrillic(input.clone());
+    let output = translator.to_cyrillic(&input);
     println!("\"{}\" => \"{}\"", input, output);
     assert_eq!(output, "гаг");
     let input: String = String::from("GAG");
-    let output = translator.to_cyrillic(input.clone());
+    let output = translator.to_cyrillic(&input);
     println!("\"{}\" => \"{}\"", input, output);
     assert_eq!(output, "ГАГ");
     //Special cases: last character is 'i'
     let input: String = String::from("vi");
-    let output = translator.to_cyrillic(input.clone());
+    let output = translator.to_cyrillic(&input);
     println!("\"{}\" => \"{}\"", input, output);
     assert_eq!(output, "ви");
     let input: String = String::from("VI");
-    let output = translator.to_cyrillic(input.clone());
+    let output = translator.to_cyrillic(&input);
     println!("\"{}\" => \"{}\"", input, output);
     assert_eq!(output, "ВИ");
     //Special cases: last character is 's'
     let input: String = String::from("less");
-    let output = translator.to_cyrillic(input.clone());
+    let output = translator.to_cyrillic(&input);
     println!("\"{}\" => \"{}\"", input, output);
     assert_eq!(output, "лэсс");
     let input: String = String::from("LESS");
-    let output = translator.to_cyrillic(input.clone());
+    let output = translator.to_cyrillic(&input);
     println!("\"{}\" => \"{}\"", input, output);
     assert_eq!(output, "ЛЭСС");
     //Special cases: last character is 't'
     let input: String = String::from("cat");
-    let output = translator.to_cyrillic(input.clone());
+    let output = translator.to_cyrillic(&input);
     println!("\"{}\" => \"{}\"", input, output);
     assert_eq!(output, "кат");
     let input: String = String::from("CAT");
-    let output = translator.to_cyrillic(input.clone());
+    let output = translator.to_cyrillic(&input);
     println!("\"{}\" => \"{}\"", input, output);
     assert_eq!(output, "КАТ");
     //Special cases: y
     let input: String = String::from("yacc");
-    let output = translator.to_cyrillic(input.clone());
+    let output = translator.to_cyrillic(&input);
     println!("\"{}\" => \"{}\"", input, output);
     assert_eq!(output, "ыакк");
     let input: String = String::from("YACC");
-    let output = translator.to_cyrillic(input.clone());
+    let output = translator.to_cyrillic(&input);
     println!("\"{}\" => \"{}\"", input, output);
     assert_eq!(output, "ЫАКК");
     //Special cases: y part 2
     let input: String = String::from("y");
-    let output = translator.to_cyrillic(input.clone());
+    let output = translator.to_cyrillic(&input);
     println!("\"{}\" => \"{}\"", input, output);
     assert_eq!(output, "ы");
     let input: String = String::from("Y");
-    let output = translator.to_cyrillic(input.clone());
+    let output = translator.to_cyrillic(&input);
     println!("\"{}\" => \"{}\"", input, output);
     assert_eq!(output, "Ы");
   }
