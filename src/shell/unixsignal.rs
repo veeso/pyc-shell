@@ -31,6 +31,7 @@ use nix::sys::signal::Signal;
 ///
 /// The UnixSignal enums represents the UNIX signals
 #[derive(Copy, Clone, PartialEq, std::fmt::Debug)]
+#[allow(dead_code)]
 pub enum UnixSignal {
     Sighup = 1,
     Sigint = 2,
@@ -70,6 +71,7 @@ impl UnixSignal {
     /// ### from_u8
     /// 
     /// Convert a u8 to a Unix Signal
+    #[allow(dead_code)]
     pub fn from_u8(sig: u8) -> Option<UnixSignal> {
         match sig {
             1 => Some(UnixSignal::Sighup),

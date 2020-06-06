@@ -1,6 +1,6 @@
-//! ## Utils
+//! ## Buffer
 //!
-//! `utils` module contains different utilities
+//! `buffer` contains utilities for console buffers
 
 /*
 *
@@ -23,6 +23,19 @@
 *
 */
 
-pub mod buffer;
-pub mod console;
-pub mod file;
+/// ### chars_to_string
+/// 
+/// Converts a characters vector to string
+pub fn chars_to_string(buff: &Vec<char>) -> String {
+    buff.iter().collect()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_buffer_chars_to_string() {
+        assert_eq!(chars_to_string(&vec!['a', 'b', 'c', 'л']), String::from("abcл"));
+    }
+}
