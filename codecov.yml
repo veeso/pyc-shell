@@ -1,5 +1,4 @@
 ignore:
   - src/main.rs
   - src/runtime.rs
-  - src/utils/console.rs
   - src/shell/proc/pipe.rs

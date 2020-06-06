@@ -33,7 +33,7 @@ const STDIN_FILENO: RawFd = 0;
 /// ## InputEvent
 /// 
 /// InputEvent enum represents an Input Event got from user on a read call
-#[derive(std::fmt::Debug)]
+#[derive(std::fmt::Debug, std::cmp::PartialEq)]
 pub enum InputEvent {
     Key(String),
     Ctrl(u8),
@@ -81,15 +81,26 @@ pub fn clear() {
 /// 
 /// Read user input and returns an individual InputEvent (or None)
 pub fn read() -> Option<InputEvent> {
+    let stdin_read = |buff: &mut [u8]| -> io::Result<()> {
+        io::stdin().read_exact(buff)
+    };
+    prepare_termios();
+    let ev: Option<InputEvent> = to_input_event(&input_ready, &stdin_read);
+    reset_termios();
+    ev
+}
+
+/// ### to_input_event
+/// 
+/// Get input through callback and convert it to an Input Event
+fn to_input_event(ready_fn: &dyn Fn() -> bool, read_fn: &dyn Fn(&mut [u8]) -> io::Result<()>) -> Option<InputEvent> {
     //Configure terminal
-    match input_ready() {
+    match ready_fn() {
         false => None,
         true => {
-            //Configure input
-            prepare_termios();
             //Read
             let mut buf: Vec<u8> = vec![0u8; 1];
-            let _ = io::stdin().read_exact(&mut buf);
+            let _ = read_fn(&mut buf);
             //Handle input
             let key: u8 = *buf.get(0).unwrap_or(&0);
             let ev: InputEvent = match key {
@@ -99,8 +110,8 @@ pub fn read() -> Option<InputEvent> {
                 0..=26 => InputEvent::Ctrl(key), //CTRL key (exclude 8, 10, 13)
                 27 => { //Is Arrow Key
                     //Read twice
-                    let _ = io::stdin().read_exact(&mut buf);
-                    let _ = io::stdin().read_exact(&mut buf);
+                    let _ = read_fn(&mut buf);
+                    let _ = read_fn(&mut buf);
                     let direction: char = *buf.get(0).unwrap_or(&0) as char;
                     match direction {
                         'A' => InputEvent::ArrowUp,
@@ -130,7 +141,7 @@ pub fn read() -> Option<InputEvent> {
                                 break
                             },
                             Err(_) => { //If not valid...
-                                if let Err(_) = io::stdin().read_exact(&mut buf) {
+                                if let Err(_) = read_fn(&mut buf) {
                                     break
                                 }
                                 continue
@@ -143,8 +154,6 @@ pub fn read() -> Option<InputEvent> {
                     }
                 }
             };
-            //Restore settings
-            reset_termios();
             Some(ev)
         }
     }
@@ -218,4 +227,159 @@ fn reset_termios() {
     term.c_lflag |= termios::ICANON;
     term.c_lflag &= termios::ECHO;
     let _ = termios::tcsetattr(STDIN_FILENO, termios::TCSADRAIN, &term);
+}
+
+#[cfg(test)]
+mod tests {
+
+    use super::*;
+
+    #[test]
+    fn test_utils_console_backspace() {
+        backspace();
+    }
+
+    #[test]
+    fn test_utils_console_move_cursor() {
+        move_cursor_left();
+        move_cursor_right();
+        carriage_return();
+    }
+
+    #[test]
+    fn test_utils_console_clear() {
+        clear();
+    }
+
+    #[test]
+    fn test_utils_console_print() {
+        rewrite(String::from("Foobar"));
+        print(String::from("foo"));
+        println(String::from("bar"));
+    }
+
+    #[test]
+    fn test_utils_console_input_ready() {
+        assert_eq!(input_ready(), false);
+    }
+    
+    #[test]
+    fn test_utils_console_termios() {
+        prepare_termios();
+        reset_termios();
+    }
+
+    #[test]
+    fn test_utils_console_read() {
+        //Test read - input ready false
+        let ready_fn = || -> bool {
+            false
+        };
+        let read_fn = |_buff: &mut [u8]| -> io::Result<()> {
+            Ok(())
+        };
+        assert!(to_input_event(&ready_fn, &read_fn).is_none());
+        //Teast read - Backspace
+        let ready_fn = || -> bool {
+            true
+        };
+        let read_fn = |buff: &mut [u8]| -> io::Result<()> {
+            buff[0] = 127;
+            Ok(())
+        };
+        assert_eq!(to_input_event(&ready_fn, &read_fn).unwrap(), InputEvent::Backspace);
+        let read_fn = |buff: &mut [u8]| -> io::Result<()> {
+            buff[0] = 8;
+            Ok(())
+        };
+        assert_eq!(to_input_event(&ready_fn, &read_fn).unwrap(), InputEvent::Backspace);
+        //Test read - enter
+        let read_fn = |buff: &mut [u8]| -> io::Result<()> {
+            buff[0] = 10;
+            Ok(())
+        };
+        assert_eq!(to_input_event(&ready_fn, &read_fn).unwrap(), InputEvent::Enter);
+        //Test read - Carriage return
+        let read_fn = |buff: &mut [u8]| -> io::Result<()> {
+            buff[0] = 13;
+            Ok(())
+        };
+        assert_eq!(to_input_event(&ready_fn, &read_fn).unwrap(), InputEvent::CarriageReturn);
+        //Test read - Ctrl key
+        let read_fn = |buff: &mut [u8]| -> io::Result<()> {
+            buff[0] = 3;
+            Ok(())
+        };
+        assert_eq!(to_input_event(&ready_fn, &read_fn).unwrap(), InputEvent::Ctrl(3));
+        //Test read - Arrow key
+        let read_fn = |buff: &mut [u8]| -> io::Result<()> {
+            let curr_value: u8 = buff[0];
+            match curr_value {
+                91 => buff[0] = 'A' as u8,
+                27 => buff[0] = 91,
+                _ => buff[0] = 27
+            }
+            Ok(())
+        };
+        assert_eq!(to_input_event(&ready_fn, &read_fn).unwrap(), InputEvent::ArrowUp);
+        let read_fn = |buff: &mut [u8]| -> io::Result<()> {
+            let curr_value: u8 = buff[0];
+            match curr_value {
+                91 => buff[0] = 'B' as u8,
+                27 => buff[0] = 91,
+                _ => buff[0] = 27
+            }
+            Ok(())
+        };
+        assert_eq!(to_input_event(&ready_fn, &read_fn).unwrap(), InputEvent::ArrowDown);
+        let read_fn = |buff: &mut [u8]| -> io::Result<()> {
+            let curr_value: u8 = buff[0];
+            match curr_value {
+                91 => buff[0] = 'C' as u8,
+                27 => buff[0] = 91,
+                _ => buff[0] = 27
+            }
+            Ok(())
+        };
+        assert_eq!(to_input_event(&ready_fn, &read_fn).unwrap(), InputEvent::ArrowRight);
+        let read_fn = |buff: &mut [u8]| -> io::Result<()> {
+            let curr_value: u8 = buff[0];
+            match curr_value {
+                91 => buff[0] = 'D' as u8,
+                27 => buff[0] = 91,
+                _ => buff[0] = 27
+            }
+            Ok(())
+        };
+        assert_eq!(to_input_event(&ready_fn, &read_fn).unwrap(), InputEvent::ArrowLeft);
+        //Test read - ASCII key
+        let read_fn = |buff: &mut [u8]| -> io::Result<()> {
+            buff[0] = 'A' as u8;
+            Ok(())
+        };
+        assert_eq!(to_input_event(&ready_fn, &read_fn).unwrap(), InputEvent::Key(String::from("A")));
+        //Test read - UTF8 (п)
+        let read_fn = |buff: &mut [u8]| -> io::Result<()> {
+            let curr_value: u8 = buff[0];
+            match curr_value {
+                0xd0 => buff[0] = 0xbf,
+                _ => buff[0] = 0xd0
+            }
+            Ok(())
+        };
+        assert_eq!(to_input_event(&ready_fn, &read_fn).unwrap(), InputEvent::Key(String::from("п")));
+        //Test read - UTF8 (😂)
+        let read_fn = |buff: &mut [u8]| -> io::Result<()> {
+            let curr_value: u8 = buff[0];
+            match curr_value {
+                0x98 => buff[0] = 0x82,
+                0x9f => buff[0] = 0x98,
+                0xf0 => buff[0] = 0x9f,
+                _ => buff[0] = 0xf0
+            }
+            Ok(())
+        };
+        assert_eq!(to_input_event(&ready_fn, &read_fn).unwrap(), InputEvent::Key(String::from("😂")));
+    }
+
 }

@@ -35,7 +35,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_buffer_chars_to_string() {
+    fn test_utils_buffer_chars_to_string() {
         assert_eq!(chars_to_string(&vec!['a', 'b', 'c', 'л']), String::from("abcл"));
     }
 }
