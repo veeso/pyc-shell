@@ -271,6 +271,7 @@ mod tests {
 
     #[test]
     fn test_utils_console_read() {
+        assert!(read().is_none());
         //Test read - input ready false
         let ready_fn = || -> bool {
             false
@@ -352,6 +353,17 @@ mod tests {
             Ok(())
         };
         assert_eq!(to_input_event(&ready_fn, &read_fn).unwrap(), InputEvent::ArrowLeft);
+        //Unknown Arrow
+        let read_fn = |buff: &mut [u8]| -> io::Result<()> {
+            let curr_value: u8 = buff[0];
+            match curr_value {
+                91 => buff[0] = 'E' as u8,
+                27 => buff[0] = 91,
+                _ => buff[0] = 27
+            }
+            Ok(())
+        };
+        assert!(to_input_event(&ready_fn, &read_fn).is_none());
         //Test read - ASCII key
         let read_fn = |buff: &mut [u8]| -> io::Result<()> {
             buff[0] = 'A' as u8;
@@ -380,6 +392,18 @@ mod tests {
             Ok(())
         };
         assert_eq!(to_input_event(&ready_fn, &read_fn).unwrap(), InputEvent::Key(String::from("😂")));
+        //Unknown key
+        let read_fn = |buff: &mut [u8]| -> io::Result<()> {
+            let curr_value: u8 = buff[0];
+            match curr_value {
+                0x98 => buff[0] = 0xff,
+                0x9f => buff[0] = 0x98,
+                0xf0 => buff[0] = 0x9f,
+                _ => buff[0] = 0xf0
+            }
+            Ok(())
+        };
+        assert!(to_input_event(&ready_fn, &read_fn).is_none());
     }
 
 }
