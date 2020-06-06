@@ -25,6 +25,7 @@
 
 pub mod proc;
 pub mod prompt;
+pub mod unixsignal;
 
 extern crate nix;
 extern crate whoami;
@@ -35,7 +36,6 @@ use prompt::ShellPrompt;
 use crate::config::PromptConfig;
 use crate::translator::ioprocessor::IOProcessor;
 
-use nix::sys::signal;
 use std::path::PathBuf;
 use std::time::{Duration};
 
@@ -111,12 +111,11 @@ impl Shell {
         self.process.write(input)
     }
 
-    #[allow(dead_code)]
-    /// ### sigint
+    /// ### raise
     ///
-    /// Send SIGINT to process. The signal is sent to shell or to subprocess (based on current execution state)
-    pub fn sigint(&mut self) -> Result<(), ShellError> {
-        self.process.raise(signal::SIGINT)
+    /// Send a signal to shell process
+    pub fn raise(&mut self, sig: unixsignal::UnixSignal) -> Result<(), ShellError> {
+        self.process.raise(sig.to_nix_signal())
     }
 
     /// ### get_state
@@ -298,13 +297,13 @@ mod tests {
     }
 
     #[test]
-    fn test_shell_sigint() {
+    fn test_shell_raise() {
         //Use universal accepted shell
         let shell: String = String::from("sh");
         //Instantiate and start a shell
         let mut shell_env: Shell = Shell::start(shell, vec![], &PromptConfig::default()).ok().unwrap();
         sleep(Duration::from_millis(500)); //DON'T REMOVE THIS SLEEP
-        assert!(shell_env.sigint().is_ok());
+        assert!(shell_env.raise(unixsignal::UnixSignal::Sigint).is_ok());
         //Wait shell to terminate
         sleep(Duration::from_millis(500));
         //Verify shell has terminated

@@ -36,6 +36,7 @@ use std::time::{Duration};
 use crate::config;
 use crate::shell::proc::ShellState;
 use crate::shell::{Shell};
+use crate::shell::unixsignal::UnixSignal;
 use crate::translator::ioprocessor::IOProcessor;
 use crate::utils::console::{self, InputEvent};
 use crate::utils::file;
@@ -164,10 +165,11 @@ pub fn run_interactive(processor: IOProcessor, config: &config::Config, shell: O
                             _ => {} //Unhandled
                         }
                     } else {
-                        //TODO: pass to child
+                        //Pass to child
                         let mut output = String::with_capacity(1);
                         output.push(sig as char);
                         let _ = shell.write(output);
+                        //FIXME: doesn't work
                     }
                 },
                 InputEvent::Key(k) => { //Push key
@@ -317,19 +319,12 @@ pub fn run_command(mut command: String, processor: IOProcessor, config: &config:
     }
     let _ = shell.write(String::from("\n"));
     let mut input_buffer: String = String::new();
-    let mut input_buffer_cursor: usize = 0;
     //@! Main loop
     loop { //Check state after reading/writing, since program could have already terminate
         //@! Read user input
         if let Some(ev) = console::read() {
             //Match input event
             match ev {
-                InputEvent::ArrowDown => {
-                    //TODO: history next
-                },
-                InputEvent::ArrowUp => {
-                    //TODO: history prev
-                },
                 InputEvent::Backspace => {
                     //Pop from buffer and backspace
                     let _ = input_buffer.pop();
@@ -339,7 +334,8 @@ pub fn run_command(mut command: String, processor: IOProcessor, config: &config:
                     console::carriage_return();
                 },
                 InputEvent::Ctrl(sig) => {
-                    //TODO: match signal
+                    //Send signal
+                    let _ = shell.raise(UnixSignal::from_u8(sig).unwrap());
                 },
                 InputEvent::Key(k) => {
                     //Push k to input buffer
@@ -363,7 +359,6 @@ pub fn run_command(mut command: String, processor: IOProcessor, config: &config:
                         }
                     }
                     //Clear input buffer
-                    input_buffer_cursor = 0;
                     input_buffer.clear();
                 },
                 _ => {}
