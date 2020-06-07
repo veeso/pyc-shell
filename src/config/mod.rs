@@ -36,7 +36,7 @@ use yaml_rust::{Yaml, YamlLoader};
 pub struct Config {
     pub language: String,
     pub shell_config: ShellConfig,
-    alias: HashMap<String, String>,
+    pub alias: HashMap<String, String>,
     pub output_config: OutputConfig,
     pub prompt_config: PromptConfig,
 }

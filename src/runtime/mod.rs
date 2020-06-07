@@ -28,7 +28,6 @@ extern crate ansi_term;
 extern crate nix;
 
 use ansi_term::Colour;
-use std::env;
 use std::path::Path;
 use std::thread::sleep;
 use std::time::{Duration};
@@ -46,16 +45,23 @@ use crate::utils::buffer;
 use crate::utils::console::{self, InputEvent};
 use crate::utils::file;
 
+/// ## RuntimeProps
+/// 
+/// Runtime Props is a wrapper for all the properties used by the Runtime module
+pub(self) struct RuntimeProps {
+    input_buffer: Vec<char>,
+    input_buffer_cursor: usize,
+    interactive: bool,
+    last_state: ShellState
+}
+
 /// ### run_interactive
 ///
 /// Run pyc in interactive mode
 
 pub fn run_interactive(processor: IOProcessor, config: &config::Config, shell: Option<String>) -> u8 {
     //Determine the shell to use
-    let (shell, args): (String, Vec<String>) = match shell {
-        Some(sh) => (sh, vec![]),
-        None => (config.shell_config.exec.clone(), config.shell_config.args.clone()) //Get shell from config
-    };
+    let (shell, args): (String, Vec<String>) = resolve_shell(&config, shell);
     //Intantiate and start a new shell
     let mut shell: Shell = match Shell::start(shell, args, &config.prompt_config) {
         Ok(sh) => sh,
@@ -241,6 +247,8 @@ pub fn run_interactive(processor: IOProcessor, config: &config::Config, shell: O
                                 console::print(format!("{} ", shell.get_promptline(&processor)));
                             } else if input.starts_with("history") {
                                 //TODO: print history
+                            } else if input.starts_with("!") {
+                                //TODO: command from history
                             } else { //Write input as usual
                                 if let Err(err) = shell.write(input) {
                                     print_err(
@@ -270,17 +278,9 @@ pub fn run_interactive(processor: IOProcessor, config: &config::Config, shell: O
             }
         };
         //@! Read Shell stdout
-        if let Ok((out, err)) = shell.read() {
-            if out.is_some() {
-                //Convert out to cyrillic
-                print_out(out.unwrap(), config.output_config.translate_output, &processor);
-            }
-            if err.is_some() {
-                //Convert err to cyrillic
-                print_err(err.unwrap().to_string(), config.output_config.translate_output, &processor);
-            }
-        }
-        sleep(Duration::from_nanos(10)); //Sleep for 10ns
+        read_from_shell(&mut shell, &config, &processor);
+        //Check if shell has terminated
+        sleep(Duration::from_nanos(100)); //Sleep for 100ns
     } //@! End of loop
     //Return shell exitcode
     match shell.stop() {
@@ -297,10 +297,7 @@ pub fn run_interactive(processor: IOProcessor, config: &config::Config, shell: O
 /// Run command in shell and return
 pub fn run_command(mut command: String, processor: IOProcessor, config: &config::Config, shell: Option<String>) -> u8 {
     //Determine the shell to use
-    let (shell, args): (String, Vec<String>) = match shell {
-        Some(sh) => (sh, vec![]),
-        None => (config.shell_config.exec.clone(), config.shell_config.args.clone()) //Get shell from config
-    };
+    let (shell, args): (String, Vec<String>) = resolve_shell(&config, shell);
     //Intantiate and start a new shell
     let mut shell: Shell = match Shell::start(shell, args, &config.prompt_config) {
         Ok(sh) => sh,
@@ -313,7 +310,7 @@ pub fn run_command(mut command: String, processor: IOProcessor, config: &config:
             return 255;
         }
     };
-    //Write command
+    //Prepare command
     while command.ends_with('\n') {
         command.pop();
     }
@@ -322,6 +319,7 @@ pub fn run_command(mut command: String, processor: IOProcessor, config: &config:
     }
     //FIXME: handle fish $status
     command.push_str("; exit $?\n");
+    //Write command
     if let Err(err) = shell.write(command) {
         print_err(
             String::from(format!("Could not start shell: {}", err)),
@@ -392,16 +390,8 @@ pub fn run_command(mut command: String, processor: IOProcessor, config: &config:
             }
         };
         //@! Read Shell stdout
-        if let Ok((out, err)) = shell.read() {
-            if out.is_some() {
-                //Convert out to cyrillic
-                print_out(out.unwrap(), config.output_config.translate_output, &processor);
-            }
-            if err.is_some() {
-                //Convert err to cyrillic
-                print_err(err.unwrap().to_string(), config.output_config.translate_output, &processor);
-            }
-        }
+        read_from_shell(&mut shell, &config, &processor);
+        //Check if shell has terminated
         if shell.get_state() == ShellState::Terminated {
             break;
         }
@@ -430,6 +420,43 @@ pub fn run_file(file: String, processor: IOProcessor, config: &config::Config, s
         }
     };
     //Join lines in a single command
+    let command: String = script_lines_to_string(&lines);
+    //Execute command
+    run_command(command, processor, config, shell)
+}
+
+//@! Shell functions
+
+/// ### read_from_shell
+/// 
+/// Read from shell stderr and stdout
+fn read_from_shell(shell: &mut Shell, config: &config::Config, processor: &IOProcessor) {
+    if let Ok((out, err)) = shell.read() {
+        if out.is_some() {
+            //Convert out to cyrillic
+            print_out(out.unwrap(), config.output_config.translate_output, &processor);
+        }
+        if err.is_some() {
+            //Convert err to cyrillic
+            print_err(err.unwrap().to_string(), config.output_config.translate_output, &processor);
+        }
+    }
+}
+
+/// ### resolve_shell
+/// 
+/// Resolve shell to use from configuration and arguments
+fn resolve_shell(config: &config::Config, shellopt: Option<String>) -> (String, Vec<String>) {
+    match shellopt {
+        Some(sh) => (sh, vec![]),
+        None => (config.shell_config.exec.clone(), config.shell_config.args.clone()) //Get shell from config
+    }
+}
+
+/// ### script_lines_to_string
+/// 
+/// Converts script lines to a single command as string
+fn script_lines_to_string(lines: &Vec<String>) -> String {
     let mut command: String = String::new();
     for line in lines.iter() {
         if line.starts_with("#") {
@@ -439,22 +466,12 @@ pub fn run_file(file: String, processor: IOProcessor, config: &config::Config, s
             continue;
         }
         command.push_str(line);
-        command.push(';');
+        //Don't add multiple semicolons
+        if ! line.ends_with(";") {
+            command.push(';');
+        }
     }
-    //Execute command
-    run_command(command, processor, config, shell)
-}
-
-#[allow(dead_code)]
-/// ### get_shell_from_env
-///
-/// Try to get the shell path from SHELL environment variable
-fn get_shell_from_env() -> Result<String, ()> {
-    if let Ok(val) = env::var("SHELL") {
-        Ok(val)
-    } else {
-        Err(())
-    }
+    command
 }
 
 /// ### resolve_command
@@ -469,7 +486,20 @@ fn resolve_command(argv: &mut Vec<String>, config: &config::Config) {
     };
 }
 
-//@! Shell functions
+/*
+/// ### get_shell_from_env
+///
+/// Try to get the shell path from SHELL environment variable
+fn get_shell_from_env() -> Result<String, ()> {
+    if let Ok(val) = env::var("SHELL") {
+        Ok(val)
+    } else {
+        Err(())
+    }
+}
+*/
+
+//@! Prompt functions
 
 /// ### print_err
 /// 
@@ -500,7 +530,9 @@ fn backspace(input_buffer: &mut Vec<char>, cursor: &mut usize) {
     //Remove from buffer and backspace (if possible)
     if *cursor > 0 {
         *cursor -= 1;
-        input_buffer.remove(*cursor);
+        if input_buffer.len() > *cursor {
+            input_buffer.remove(*cursor);
+        }
         console::backspace();
     }
 }
@@ -536,4 +568,150 @@ fn shellsignal_to_signal(sig: u8) -> Option<UnixSignal> {
         26 => Some(UnixSignal::Sigstop),
         _ => None
     }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    use crate::config::Config;
+
+    use crate::translator::ioprocessor::IOProcessor;
+    use crate::translator::new_translator;
+    use crate::translator::Language;
+
+    use std::collections::HashMap;
+    use std::time::Duration;
+    use std::thread::sleep;
+
+    #[test]
+    fn test_runtime_read_from_shell() {
+        let mut cfg: Config = Config::default();
+        cfg.output_config.translate_output = true;
+        let iop: IOProcessor = IOProcessor::new(Language::Russian, new_translator(Language::Russian));
+        let mut shell: Shell = Shell::start(String::from("sh"), vec![], &cfg.prompt_config).unwrap();
+        sleep(Duration::from_millis(100));
+        //Write
+        let _ = shell.write(String::from("echo 4\n"));
+        sleep(Duration::from_millis(100));
+        //Read
+        read_from_shell(&mut shell, &cfg, &iop);
+        //Don't translate
+        cfg.output_config.translate_output = false;
+        let _ = shell.write(String::from("echo 5\n"));
+        sleep(Duration::from_millis(100));
+        read_from_shell(&mut shell, &cfg, &iop);
+        //Try stderr
+        cfg.output_config.translate_output = true;
+        let _ = shell.write(String::from("poropero\n"));
+        sleep(Duration::from_millis(100));
+        read_from_shell(&mut shell, &cfg, &iop);
+        //Try stderr not translated
+        cfg.output_config.translate_output = false;
+        let _ = shell.write(String::from("poropero\n"));
+        sleep(Duration::from_millis(100));
+        read_from_shell(&mut shell, &cfg, &iop);
+        //Terminate shell
+        assert!(shell.stop().is_ok());
+        sleep(Duration::from_millis(250));
+    }
+
+    #[test]
+    fn test_runtime_resolve_shell() {
+        let mut cfg: Config = Config::default();
+        cfg.shell_config.args = vec![String::from("-i")];
+        //Resolve shell without cli option
+        assert_eq!(resolve_shell(&cfg, None), (String::from("bash"), vec![String::from("-i")]));
+        //Resolve shell with cli option
+        assert_eq!(resolve_shell(&cfg, Some(String::from("fish"))), (String::from("fish"), vec![]));
+    }
+
+    #[test]
+    fn test_runtime_script_lines_to_command() {
+        let lines: Vec<String> = vec![String::from("#!/bin/bash"), String::from(""), String::from("echo 4"), String::from("#this is a comment"), String::from("cat /tmp/output;")];
+        assert_eq!(script_lines_to_string(&lines), String::from("echo 4;cat /tmp/output;"));
+    }
+
+    #[test]
+    fn test_runtime_resolve_command() {
+        let mut alias_cfg: HashMap<String, String> = HashMap::new();
+        alias_cfg.insert(String::from("ll"), String::from("ls -l"));
+        let cfg: Config = Config {
+            language: String::from(""),
+            shell_config: config::ShellConfig::default(),
+            alias: alias_cfg,
+            output_config: config::OutputConfig::default(),
+            prompt_config: config::PromptConfig::default()
+        };
+        //Resolve command
+        let mut argv: Vec<String> = vec![String::from("ll"), String::from("/tmp/")];
+        resolve_command(&mut argv, &cfg);
+        assert_eq!(*argv.get(0).unwrap(), String::from("ls -l"));
+
+        //Unresolved command
+        let mut argv: Vec<String> = vec![String::from("du"), String::from("-hs")];
+        resolve_command(&mut argv, &cfg);
+        assert_eq!(*argv.get(0).unwrap(), String::from("du"));
+    }
+
+    #[test]
+    fn test_runtime_print() {
+        let iop: IOProcessor = IOProcessor::new(Language::Russian, new_translator(Language::Russian));
+        //Out
+        print_out(String::from("Hello"), true, &iop);
+        print_out(String::from("Hello"), false, &iop);
+        //Err
+        print_err(String::from("Hello"), true, &iop);
+        print_err(String::from("Hello"), false, &iop);
+    }
+
+    #[test]
+    fn test_runtime_backspace() {
+        let mut input_buffer: Vec<char> = vec!['a', 'b', 'c'];
+        let mut cursor: usize = 0;
+        //If cursor is 0, cursor and input buffer won't change
+        backspace(&mut input_buffer, &mut cursor);
+        assert_eq!(cursor, 0);
+        assert_eq!(input_buffer.len(), 3);
+        cursor = 3;
+        //Backspace from end of buffer
+        backspace(&mut input_buffer, &mut cursor);
+        assert_eq!(cursor, 2);
+        assert_eq!(input_buffer, vec!['a', 'b']);
+        //Set cursor to 1 and backspace from the middle
+        cursor = 1;
+        backspace(&mut input_buffer, &mut cursor);
+        assert_eq!(cursor, 0);
+        assert_eq!(input_buffer, vec!['b']);
+        //Try to delete with cursor out of range
+        let mut input_buffer: Vec<char> = vec!['a', 'b', 'c'];
+        let mut cursor: usize = 4;
+        backspace(&mut input_buffer, &mut cursor);
+        assert_eq!(cursor, 3);
+        assert_eq!(input_buffer.len(), 3);
+    }
+
+    #[test]
+    fn test_runtime_move_cursor() {
+        let mut cursor: usize = 12;
+        move_left(&mut cursor);
+        assert_eq!(cursor, 11);
+        cursor = 0;
+        move_left(&mut cursor);
+        assert_eq!(cursor, 0);
+        let buflen: usize = 255;
+        move_right(&mut cursor, buflen);
+        assert_eq!(cursor, 1);
+        let buflen: usize = 1;
+        move_right(&mut cursor, buflen);
+        assert_eq!(cursor, 1);
+    }
+
+    #[test]
+    fn test_runtime_shellsignal() {
+        assert_eq!(shellsignal_to_signal(3).unwrap(), UnixSignal::Sigint);
+        assert_eq!(shellsignal_to_signal(26).unwrap(), UnixSignal::Sigstop);
+        assert!(shellsignal_to_signal(255).is_none());
+    }
+
 }
