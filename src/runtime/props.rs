@@ -442,6 +442,7 @@ mod tests {
     fn test_runtimeprops_handle_input_event() {
         let mut props: RuntimeProps = new_runtime_props(true);
         let mut shell: Shell = Shell::start(String::from("sh"), Vec::new(), &props.config.prompt_config).unwrap();
+        sleep(Duration::from_millis(500)); //DON'T REMOVE THIS SLEEP
         props.input_buffer = vec!['l', 's', ' ', '-', 'l'];
         props.input_buffer_cursor = 5;
         //TODO: arrow up
@@ -567,11 +568,14 @@ mod tests {
         //Unhandled signal
         props.handle_input_event(InputEvent::Ctrl(1), &mut shell);
         //Terminate shell
+        sleep(Duration::from_millis(500)); //DON'T REMOVE THIS SLEEP
         let _ = shell.stop();
+        sleep(Duration::from_millis(500)); //DON'T REMOVE THIS SLEEP
 
         //Non interactive shell enter
         let mut props: RuntimeProps = new_runtime_props(false);
         let mut shell: Shell = Shell::start(String::from("sh"), Vec::new(), &props.config.prompt_config).unwrap();
+        sleep(Duration::from_millis(500)); //DON'T REMOVE THIS SLEEP
         props.input_buffer = vec!['l', 's'];
         props.input_buffer_cursor = 2;
         props.last_state = ShellState::SubprocessRunning;
@@ -582,6 +586,7 @@ mod tests {
         props.handle_input_event(InputEvent::Enter, &mut shell);
         assert_eq!(props.input_buffer.len(), 0);
         assert_eq!(props.input_buffer_cursor, 0);
+        sleep(Duration::from_millis(500)); //DON'T REMOVE THIS SLEEP
         let _ = shell.stop();
     }
 

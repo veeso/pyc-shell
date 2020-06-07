@@ -321,7 +321,7 @@ mod tests {
         cfg.output_config.translate_output = true;
         let iop: IOProcessor = IOProcessor::new(Language::Russian, new_translator(Language::Russian));
         let mut shell: Shell = Shell::start(String::from("sh"), vec![], &cfg.prompt_config).unwrap();
-        sleep(Duration::from_millis(100));
+        sleep(Duration::from_millis(500)); //DON'T REMOVE THIS SLEEP
         //Write
         let _ = shell.write(String::from("echo 4\n"));
         sleep(Duration::from_millis(100));
@@ -343,8 +343,9 @@ mod tests {
         sleep(Duration::from_millis(100));
         read_from_shell(&mut shell, &cfg, &iop);
         //Terminate shell
+        sleep(Duration::from_millis(500)); //DON'T REMOVE THIS SLEEP
         assert!(shell.stop().is_ok());
-        sleep(Duration::from_millis(250));
+        sleep(Duration::from_millis(500)); //DON'T REMOVE THIS SLEEP
     }
 
     #[test]
