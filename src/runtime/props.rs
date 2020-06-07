@@ -357,6 +357,9 @@ mod tests {
     use crate::translator::Language;
     use crate::translator::new_translator;
 
+    use std::time::Duration;
+    use std::thread::sleep;
+
     #[test]
     fn test_runtimeprops_new() {
         let props: RuntimeProps = new_runtime_props(true);
