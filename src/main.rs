@@ -174,10 +174,10 @@ fn main() {
     let processor: IOProcessor = IOProcessor::new(language, translator::new_translator(language));
     //Start runtime
     let rc: u8 = match command {
-        Some(command) => runtime::run_command(command, processor, &config, shell),
+        Some(command) => runtime::run_command(command, processor, config, shell),
         None => match file {
-            None => runtime::run_interactive(processor, &config, shell),
-            Some(file) => runtime::run_file(file, processor, &config, shell)
+            None => runtime::run_interactive(processor, config, shell),
+            Some(file) => runtime::run_file(file, processor, config, shell)
         }
     };
     std::process::exit(rc as i32);

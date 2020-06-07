@@ -27,6 +27,8 @@
 extern crate ansi_term;
 extern crate nix;
 
+mod props;
+
 use ansi_term::Colour;
 use std::path::Path;
 use std::thread::sleep;
@@ -34,6 +36,8 @@ use std::time::{Duration};
 
 //Config
 use crate::config;
+//Props
+use props::RuntimeProps;
 //Shell
 use crate::shell::proc::ShellState;
 use crate::shell::{Shell};
@@ -41,244 +45,59 @@ use crate::shell::unixsignal::UnixSignal;
 //Translator
 use crate::translator::ioprocessor::IOProcessor;
 //Utils
-use crate::utils::buffer;
-use crate::utils::console::{self, InputEvent};
+use crate::utils::console;
 use crate::utils::file;
 
-/// ## RuntimeProps
-/// 
-/// Runtime Props is a wrapper for all the properties used by the Runtime module
-pub(self) struct RuntimeProps {
-    input_buffer: Vec<char>,
-    input_buffer_cursor: usize,
-    interactive: bool,
-    last_state: ShellState
-}
+//@! Runners
 
 /// ### run_interactive
 ///
 /// Run pyc in interactive mode
 
-pub fn run_interactive(processor: IOProcessor, config: &config::Config, shell: Option<String>) -> u8 {
+pub fn run_interactive(processor: IOProcessor, config: config::Config, shell: Option<String>) -> u8 {
+    //Instantiate Runtime Props
+    let mut props: RuntimeProps = RuntimeProps::new(true, config, processor);
     //Determine the shell to use
-    let (shell, args): (String, Vec<String>) = resolve_shell(&config, shell);
+    let (shell, args): (String, Vec<String>) = resolve_shell(&props.config, shell);
     //Intantiate and start a new shell
-    let mut shell: Shell = match Shell::start(shell, args, &config.prompt_config) {
+    let mut shell: Shell = match Shell::start(shell, args, &props.config.prompt_config) {
         Ok(sh) => sh,
         Err(err) => {
             print_err(
                 String::from(format!("Could not start shell: {}", err)),
-                config.output_config.translate_output,
-                &processor,
+                props.config.output_config.translate_output,
+                &props.processor,
             );
             return 255;
         }
     };
     //@! Main loop
-    let mut last_state: ShellState = ShellState::Unknown;
-    let mut state_changed: bool = true; //Start with state changed, this determines whether the prompt should be printed
-    let mut input_buffer: Vec<char> = Vec::with_capacity(2048); //Expected as the maximum amount of bytes
-    let mut input_buffer_cursor: usize = 0;
-    while last_state != ShellState::Terminated {
+    while props.get_last_state() != ShellState::Terminated {
         //@! Print prompt if state is Idle and state has changed
         let current_state: ShellState = shell.get_state();
-        if current_state != last_state {
-            state_changed = true;
-            last_state = current_state;
+        if current_state != props.get_last_state() {
+            props.update_state(current_state);
         }
-        if state_changed && current_state == ShellState::Idle {
+        if props.get_state_changed() && current_state == ShellState::Idle {
             //Force shellenv to refresh info
             shell.refresh_env();
             //Print prompt
-            console::print(format!("{} ", shell.get_promptline(&processor)));
-            state_changed = false; //Force state changed to false
-        } else if state_changed {
-            state_changed = false; //Check has been done, nothing to do
+            console::print(format!("{} ", shell.get_promptline(&props.processor)));
+            props.report_state_changed_notified(); //Force state changed to false
+        } else if props.get_state_changed() {
+            props.report_state_changed_notified(); //Check has been done, nothing to do
         }
         //@! Read user input
         if let Some(ev) = console::read() {
-            //Match input event
-            match ev {
-                InputEvent::ArrowDown => {
-                    //TODO: history next
-                },
-                InputEvent::ArrowUp => {
-                    //TODO: history prev
-                },
-                InputEvent::ArrowLeft => {
-                    move_left(&mut input_buffer_cursor);
-                },
-                InputEvent::ArrowRight => {
-                    move_right(&mut input_buffer_cursor, input_buffer.len());
-                },
-                InputEvent::Backspace => {
-                    backspace(&mut input_buffer, &mut input_buffer_cursor);
-                },
-                InputEvent::CarriageReturn => {
-                    console::carriage_return();
-                },
-                InputEvent::Ctrl(sig) => {
-                    //Check running state 
-                    //if running state is Idle, it will be handled by the console,
-                    //otherwise by the shell process
-                    if last_state == ShellState::Idle {
-                        match sig {
-                            1 => { //CTRL + A
-                                //We must return at the beginning of the string
-                                for _ in 0..input_buffer_cursor {
-                                    //Move left
-                                    console::move_cursor_left();
-                                }
-                                input_buffer_cursor = 0; //Reset cursor
-                            }, 
-                            2 => { //CTRL + B
-                                move_left(&mut input_buffer_cursor);
-                            },
-                            3 => { //CTRL + C
-                                //Abort input and go to newline
-                                input_buffer.clear();
-                                input_buffer_cursor = 0;
-                                console::println(String::new());
-                                console::print(format!("{} ", shell.get_promptline(&processor)));
-                            },
-                            4 => { //CTRL + D
-                                backspace(&mut input_buffer, &mut input_buffer_cursor);
-                            },
-                            5 => { //CTRL + E
-                                for _ in input_buffer_cursor..input_buffer.len() {
-                                    console::move_cursor_right();
-                                }
-                                input_buffer_cursor = input_buffer.len();
-                            },
-                            6 => { //CTRL + F
-                                move_right(&mut input_buffer_cursor, input_buffer.len());
-                            },
-                            7 => { //CTRL + G
-                                //TODO: exit rev search
-                            },
-                            8 => { //CTRL + H
-                                backspace(&mut input_buffer, &mut input_buffer_cursor);
-                            },
-                            11 => { // CTRL + K
-                                //Delete all characters after cursor
-                                while input_buffer_cursor < input_buffer.len() {
-                                    let _ = input_buffer.pop();
-                                }
-                            },
-                            12 => { // CTRL + L
-                                //Clear, but doesn't reset input
-                                console::clear();
-                                console::print(format!("{} {}", shell.get_promptline(&processor), buffer::chars_to_string(&input_buffer)));
-                            },
-                            18 => { // CTRL + R
-                                //TODO: rev search
-                            },
-                            _ => {} //Unhandled
-                        }
-                    } else {
-                        //Pass to child
-                        //FIXME: doesn't work
-                        //let mut output = String::with_capacity(1);
-                        //output.push(sig as char);
-                        //let _ = shell.write(output);
-                        if let Some(sig) = shellsignal_to_signal(sig) {
-                            if let Err(_) = shell.raise(sig) {
-                                print_err(String::from("Could not send signal to shell"), config.output_config.translate_output, &processor);
-                            }
-                        }
-                    }
-                },
-                InputEvent::Key(k) => { //Push key
-                    //Push k to input buffer
-                    for ch in k.chars() {
-                        input_buffer.insert(input_buffer_cursor, ch);
-                        input_buffer_cursor += 1;
-                    }
-                    //Print key
-                    console::print(k);
-                },
-                InputEvent::Enter => { //@! Send input
-                    //@! Handle enter...
-                    //Newline first
-                    console::println(String::new());
-                    //Convert input buffer to string
-                    let stdin_input: String = buffer::chars_to_string(&input_buffer);
-                    //If input is empty, print prompt (if state is IDLE)
-                    if stdin_input.trim().len() == 0 {
-                        if last_state == ShellState::Idle {
-                            console::print(format!("{} ", shell.get_promptline(&processor)));
-                        }
-                    } else {
-                        //Treat input
-                        //If state is Idle, convert expression, otherwise convert text
-                        let input: String = match last_state {
-                            ShellState::Idle => {
-                                //Resolve alias
-                                let mut argv: Vec<String> = Vec::with_capacity(stdin_input.matches(" ").count() + 1);
-                                for arg in stdin_input.split_whitespace() {
-                                    argv.push(String::from(arg));
-                                }
-                                //Process arg 0
-                                resolve_command(&mut argv, &config);
-                                //Rejoin arguments
-                                let input: String = argv.join(" ") + "\n";
-                                match processor.expression_to_latin(&input) {
-                                    Ok(ex) => ex,
-                                    Err(err) => {
-                                        print_err(String::from(format!("Input error: {:?}", err)), config.output_config.translate_output, &processor);
-                                        //Clear input buffer
-                                        input_buffer.clear();
-                                        input_buffer_cursor = 0;
-                                        continue;
-                                    }
-                                }
-                            },
-                            ShellState::SubprocessRunning => processor.text_to_latin(&buffer::chars_to_string(&input_buffer)),
-                            _ => continue
-                        };
-                        //Clear input buffer
-                        input_buffer.clear();
-                        input_buffer_cursor = 0;
-                        if last_state == ShellState::Idle {
-                            //Check if clear command
-                            if input.starts_with("clear") {
-                                //Clear screen, then write prompt
-                                console::clear();
-                                console::print(format!("{} ", shell.get_promptline(&processor)));
-                            } else if input.starts_with("history") {
-                                //TODO: print history
-                            } else if input.starts_with("!") {
-                                //TODO: command from history
-                            } else { //Write input as usual
-                                if let Err(err) = shell.write(input) {
-                                    print_err(
-                                        String::from(err.to_string()),
-                                        config.output_config.translate_output,
-                                        &processor,
-                                    );
-                                }
-                            }
-                        } else { //Write input as usual
-                            if let Err(err) = shell.write(input) {
-                                print_err(
-                                    String::from(err.to_string()),
-                                    config.output_config.translate_output,
-                                    &processor,
-                                );
-                            }
-                        }
-                        //Update state after write
-                        let new_state = shell.get_state(); //Force last state to be changed
-                        if new_state != last_state {
-                            last_state = new_state;
-                            state_changed = true;
-                        }
-                    }
-                }
-            }
+            props.handle_input_event(ev, &mut shell);
         };
+        //Update state after write
+        let new_state = shell.get_state(); //Force last state to be changed
+        if new_state != props.get_last_state() {
+            props.update_state(new_state);
+        }
         //@! Read Shell stdout
-        read_from_shell(&mut shell, &config, &processor);
+        read_from_shell(&mut shell, &props.config, &props.processor);
         //Check if shell has terminated
         sleep(Duration::from_nanos(100)); //Sleep for 100ns
     } //@! End of loop
@@ -286,7 +105,7 @@ pub fn run_interactive(processor: IOProcessor, config: &config::Config, shell: O
     match shell.stop() {
         Ok(rc) => rc,
         Err(err) => {
-            print_err(format!("Could not stop shell: {}", err), config.output_config.translate_output, &processor);
+            print_err(format!("Could not stop shell: {}", err), props.config.output_config.translate_output, &props.processor);
             255
         }
     }
@@ -295,17 +114,19 @@ pub fn run_interactive(processor: IOProcessor, config: &config::Config, shell: O
 /// ### run_command
 /// 
 /// Run command in shell and return
-pub fn run_command(mut command: String, processor: IOProcessor, config: &config::Config, shell: Option<String>) -> u8 {
+pub fn run_command(mut command: String, processor: IOProcessor, config: config::Config, shell: Option<String>) -> u8 {
+    //Instantiate Runtime Props
+    let mut props: RuntimeProps = RuntimeProps::new(false, config, processor);
     //Determine the shell to use
-    let (shell, args): (String, Vec<String>) = resolve_shell(&config, shell);
+    let (shell, args): (String, Vec<String>) = resolve_shell(&props.config, shell);
     //Intantiate and start a new shell
-    let mut shell: Shell = match Shell::start(shell, args, &config.prompt_config) {
+    let mut shell: Shell = match Shell::start(shell, args, &props.config.prompt_config) {
         Ok(sh) => sh,
         Err(err) => {
             print_err(
                 String::from(format!("Could not start shell: {}", err)),
-                config.output_config.translate_output,
-                &processor,
+                props.config.output_config.translate_output,
+                &props.processor,
             );
             return 255;
         }
@@ -323,74 +144,20 @@ pub fn run_command(mut command: String, processor: IOProcessor, config: &config:
     if let Err(err) = shell.write(command) {
         print_err(
             String::from(format!("Could not start shell: {}", err)),
-            config.output_config.translate_output,
-            &processor,
+            props.config.output_config.translate_output,
+            &props.processor,
         );
         return 255;
     }
     let _ = shell.write(String::from("\n"));
-    let mut input_buffer: Vec<char> = Vec::with_capacity(2048);
-    let mut input_buffer_cursor: usize = 0;
     //@! Main loop
     loop { //Check state after reading/writing, since program could have already terminate
         //@! Read user input
         if let Some(ev) = console::read() {
-            //Match input event
-            match ev {
-                InputEvent::CarriageReturn => {
-                    console::carriage_return();
-                },
-                InputEvent::ArrowLeft => {
-                    move_left(&mut input_buffer_cursor);
-                },
-                InputEvent::ArrowRight => {
-                    move_right(&mut input_buffer_cursor, input_buffer.len());
-                },
-                InputEvent::Backspace => {
-                    backspace(&mut input_buffer, &mut input_buffer_cursor);
-                },
-                InputEvent::Ctrl(sig) => {
-                    //Send signal
-                    if let Some(sig) = shellsignal_to_signal(sig) {
-                        if let Err(_) = shell.raise(sig) {
-                            print_err(String::from("Could not send signal to shell"), config.output_config.translate_output, &processor);
-                        }
-                    }
-                },
-                InputEvent::Key(k) => {
-                    //Push k to input buffer
-                    for ch in k.chars() {
-                        input_buffer.insert(input_buffer_cursor, ch);
-                        input_buffer_cursor += 1;
-                    }
-                    //Print key
-                    console::print(k);
-                },
-                InputEvent::Enter => {
-                    //@! Handle enter...
-                    let stdin_input: String = buffer::chars_to_string(&input_buffer);
-                    //If input is empty, ignore it
-                    if stdin_input.trim().len() > 0 {
-                        //Treat input
-                        //Convert text
-                        let input: String = processor.text_to_latin(&stdin_input);
-                        if let Err(err) = shell.write(input) {
-                            print_err(
-                                String::from(err.to_string()),
-                                config.output_config.translate_output,
-                                &processor,
-                            );
-                        }
-                    }
-                    //Clear input buffer
-                    input_buffer.clear();
-                    input_buffer_cursor = 0;
-                },
-                _ => {}
-            }
+            props.handle_input_event(ev, &mut shell);
         };
         //@! Read Shell stdout
-        read_from_shell(&mut shell, &config, &processor);
+        read_from_shell(&mut shell, &props.config, &props.processor);
         //Check if shell has terminated
         if shell.get_state() == ShellState::Terminated {
             break;
@@ -401,7 +168,7 @@ pub fn run_command(mut command: String, processor: IOProcessor, config: &config:
     match shell.stop() {
         Ok(rc) => rc,
         Err(err) => {
-            print_err(format!("Could not stop shell: {}", err), config.output_config.translate_output, &processor);
+            print_err(format!("Could not stop shell: {}", err), props.config.output_config.translate_output, &props.processor);
             255
         }
     }
@@ -410,7 +177,7 @@ pub fn run_command(mut command: String, processor: IOProcessor, config: &config:
 /// ### run_file
 /// 
 /// Run shell reading commands from file
-pub fn run_file(file: String, processor: IOProcessor, config: &config::Config, shell: Option<String>) -> u8 {
+pub fn run_file(file: String, processor: IOProcessor, config: config::Config, shell: Option<String>) -> u8 {
     let file_path: &Path = Path::new(file.as_str());
     let lines: Vec<String> = match file::read_lines(file_path) {
         Ok(lines) => lines,
@@ -523,42 +290,6 @@ fn print_out(out: String, to_cyrillic: bool, processor: &IOProcessor) {
     };
 }
 
-/// ### backspace
-/// 
-/// Perform backspace on current console and buffers
-fn backspace(input_buffer: &mut Vec<char>, cursor: &mut usize) {
-    //Remove from buffer and backspace (if possible)
-    if *cursor > 0 {
-        *cursor -= 1;
-        if input_buffer.len() > *cursor {
-            input_buffer.remove(*cursor);
-        }
-        console::backspace();
-    }
-}
-
-/// ### move_left
-/// 
-/// Move cursor to left
-fn move_left(cursor: &mut usize) {
-    //If possible, move the cursor right
-    if *cursor != 0 {
-        *cursor -= 1;
-        console::move_cursor_left();
-    }
-}
-
-/// ### move_right
-/// 
-/// Move cursor to right
-fn move_right(cursor: &mut usize, buflen: usize) {
-     //If possible, move the cursor left
-     if *cursor + 1 <= buflen {
-        *cursor += 1;
-        console::move_cursor_right();
-    }
-}
-
 /// ### shellsignal_to_signal
 /// 
 /// Converts a signal received on prompt to a UnixSignal
@@ -663,48 +394,6 @@ mod tests {
         //Err
         print_err(String::from("Hello"), true, &iop);
         print_err(String::from("Hello"), false, &iop);
-    }
-
-    #[test]
-    fn test_runtime_backspace() {
-        let mut input_buffer: Vec<char> = vec!['a', 'b', 'c'];
-        let mut cursor: usize = 0;
-        //If cursor is 0, cursor and input buffer won't change
-        backspace(&mut input_buffer, &mut cursor);
-        assert_eq!(cursor, 0);
-        assert_eq!(input_buffer.len(), 3);
-        cursor = 3;
-        //Backspace from end of buffer
-        backspace(&mut input_buffer, &mut cursor);
-        assert_eq!(cursor, 2);
-        assert_eq!(input_buffer, vec!['a', 'b']);
-        //Set cursor to 1 and backspace from the middle
-        cursor = 1;
-        backspace(&mut input_buffer, &mut cursor);
-        assert_eq!(cursor, 0);
-        assert_eq!(input_buffer, vec!['b']);
-        //Try to delete with cursor out of range
-        let mut input_buffer: Vec<char> = vec!['a', 'b', 'c'];
-        let mut cursor: usize = 4;
-        backspace(&mut input_buffer, &mut cursor);
-        assert_eq!(cursor, 3);
-        assert_eq!(input_buffer.len(), 3);
-    }
-
-    #[test]
-    fn test_runtime_move_cursor() {
-        let mut cursor: usize = 12;
-        move_left(&mut cursor);
-        assert_eq!(cursor, 11);
-        cursor = 0;
-        move_left(&mut cursor);
-        assert_eq!(cursor, 0);
-        let buflen: usize = 255;
-        move_right(&mut cursor, buflen);
-        assert_eq!(cursor, 1);
-        let buflen: usize = 1;
-        move_right(&mut cursor, buflen);
-        assert_eq!(cursor, 1);
     }
 
     #[test]
