@@ -286,6 +286,7 @@ mod tests {
         //Verify shell status
         assert_eq!(shell_env.get_state(), ShellState::Idle);
         //Terminate the shell gracefully
+        sleep(Duration::from_millis(500));
         let command: String = String::from("exit 5\n");
         assert!(shell_env.write(command).is_ok());
         //Wait shell to terminate

@@ -16,7 +16,7 @@ before_cache: |
 script:
   - cargo clean
   - cargo build --verbose --all
-  - cargo test --lib --verbose
+  - cargo test --lib --verbose -- --test-threads 1
 after_success: |
   if [[ "$TRAVIS_RUST_VERSION" == stable ]]; then
     cargo tarpaulin --out Xml --ignore-tests
