@@ -289,7 +289,7 @@ mod tests {
         let command: String = String::from("exit 5\n");
         assert!(shell_env.write(command).is_ok());
         //Wait shell to terminate
-        sleep(Duration::from_millis(500));
+        sleep(Duration::from_millis(1000));
         //Verify shell has terminated
         assert_eq!(shell_env.get_state(), ShellState::Terminated);
         //Verify exitcode to be 0
