@@ -289,7 +289,10 @@ impl RuntimeProps {
                     }
                 },
                 ShellState::SubprocessRunning => self.processor.text_to_latin(&buffer::chars_to_string(&self.input_buffer)),
-                _ => return
+                _ => {
+                    self.clear_buffer();
+                    return;
+                }
             };
             //Clear input buffer
             self.clear_buffer();
@@ -305,20 +308,12 @@ impl RuntimeProps {
                     //TODO: command from history
                 } else { //Write input as usual
                     if let Err(err) = shell.write(input) {
-                        print_err(
-                            String::from(err.to_string()),
-                            self.config.output_config.translate_output,
-                            &self.processor,
-                        );
+                        print_err(String::from(err.to_string()), self.config.output_config.translate_output, &self.processor);
                     }
                 }
             } else { //Write input as usual
                 if let Err(err) = shell.write(input) {
-                    print_err(
-                        String::from(err.to_string()),
-                        self.config.output_config.translate_output,
-                        &self.processor,
-                    );
+                    print_err(String::from(err.to_string()), self.config.output_config.translate_output, &self.processor);
                 }
             }
         }
@@ -336,11 +331,7 @@ impl RuntimeProps {
             //Convert text
             let input: String = self.processor.text_to_latin(&stdin_input);
             if let Err(err) = shell.write(input) {
-                print_err(
-                    String::from(err.to_string()),
-                    self.config.output_config.translate_output,
-                    &self.processor,
-                );
+                print_err(String::from(err.to_string()), self.config.output_config.translate_output, &self.processor);
             }
         }
         self.clear_buffer();
@@ -425,17 +416,18 @@ mod tests {
     fn test_runtimeprops_move_cursor() {
         let mut props: RuntimeProps = new_runtime_props(true);
         props.input_buffer = vec!['a', 'b', 'c', 'd', 'e'];
+        //Move left
         props.input_buffer_cursor = 5;
         props.move_left();
         assert_eq!(props.input_buffer_cursor, 4);
+        //Try to move left when is at 0
         props.input_buffer_cursor = 0;
         props.move_left();
         assert_eq!(props.input_buffer_cursor, 0);
+        //Move right
         props.move_right();
         assert_eq!(props.input_buffer_cursor, 1);
-        props.input_buffer = vec!['a', 'b', 'c', 'd', 'e', 'f'];
-        props.move_left();
-        assert_eq!(props.input_buffer_cursor, 0);
+        //Move out of bounds
         props.input_buffer = vec!['a'];
         props.move_right();
         assert_eq!(props.input_buffer_cursor, 1);
@@ -449,7 +441,9 @@ mod tests {
         props.input_buffer = vec!['l', 's', ' ', '-', 'l'];
         props.input_buffer_cursor = 5;
         //TODO: arrow up
+        props.handle_input_event(InputEvent::ArrowUp, &mut shell);
         //TODO: arrow down
+        props.handle_input_event(InputEvent::ArrowDown, &mut shell);
         //Move cursor to left by 1 position
         props.handle_input_event(InputEvent::ArrowLeft, &mut shell);
         assert_eq!(props.input_buffer_cursor, 4);
@@ -558,6 +552,13 @@ mod tests {
         props.handle_input_event(InputEvent::Enter, &mut shell);
         assert_eq!(props.input_buffer.len(), 0);
         assert_eq!(props.input_buffer_cursor, 0);
+        //Enter once has terminated
+        props.last_state = ShellState::Terminated;
+        props.input_buffer = vec!['l', 's'];
+        props.input_buffer_cursor = 2;
+        props.handle_input_event(InputEvent::Enter, &mut shell);
+        assert_eq!(props.input_buffer.len(), 0);
+        assert_eq!(props.input_buffer_cursor, 0);
         //Write as text
         props.last_state = ShellState::SubprocessRunning;
         props.input_buffer = vec!['h', 'e', 'l', 'l', 'o'];
@@ -591,6 +592,18 @@ mod tests {
         assert_eq!(props.input_buffer_cursor, 0);
         sleep(Duration::from_millis(500)); //DON'T REMOVE THIS SLEEP
         let _ = shell.stop();
+        sleep(Duration::from_millis(500)); //DON'T REMOVE THIS SLEEP
+        assert_eq!(shell.get_state(), ShellState::Terminated);
+        //Send signal once has terminated
+        props.last_state = ShellState::SubprocessRunning;
+        props.handle_input_event(InputEvent::Ctrl(2), &mut shell);
+        //Enter when process has terminated
+        props.input_buffer = vec!['l', 's'];
+        props.input_buffer_cursor = 2;
+        props.last_state = ShellState::SubprocessRunning;
+        props.handle_input_event(InputEvent::Enter, &mut shell);
+        assert_eq!(props.input_buffer.len(), 0);
+        assert_eq!(props.input_buffer_cursor, 0);
     }
 
     fn new_runtime_props(interactive: bool) -> RuntimeProps {
