@@ -32,6 +32,8 @@ use std::collections::HashMap;
 use std::fmt;
 use yaml_rust::{Yaml, YamlLoader};
 
+use std::path::PathBuf;
+
 //Types
 pub struct Config {
     pub language: String,
@@ -110,7 +112,7 @@ impl Config {
     /// ### parse_config
     ///
     /// `parse_config` parse a YAML configuration file and return a Config struct
-    pub fn parse_config(config_file: String) -> Result<Config, ConfigError> {
+    pub fn parse_config(config_file: PathBuf) -> Result<Config, ConfigError> {
         //Read configuration file
         let config_str: String = match std::fs::read_to_string(config_file.clone()) {
             Ok(config) => config,
@@ -118,17 +120,13 @@ impl Config {
                 std::io::ErrorKind::NotFound => {
                     return Err(ConfigError {
                         code: ConfigErrorCode::NoSuchFileOrDirectory,
-                        message: String::from(
-                            ["No such file or directory: ", config_file.as_str()].join(" "),
-                        ),
+                        message: format!("No such file or directory: {}", config_file.display()),
                     })
                 }
                 _ => {
                     return Err(ConfigError {
                         code: ConfigErrorCode::CouldNotReadFile,
-                        message: String::from(
-                            ["Could not read file ", config_file.as_str()].join(" "),
-                        ),
+                        message: format!("Could not read file {}", config_file.display())
                     })
                 }
             },
@@ -453,15 +451,15 @@ mod tests {
     fn test_config_file() {
         //Try to parse a configuration file
         let config_file: tempfile::NamedTempFile = write_config_file_en();
-        let config_file_path: String = String::from(config_file.path().to_str().unwrap());
-        println!("Generated config file: {}", config_file_path);
+        let config_file_path: PathBuf = PathBuf::from(config_file.path().to_str().unwrap());
+        println!("Generated config file: {}", config_file_path.display());
         assert!(Config::parse_config(config_file_path).is_ok())
     }
 
     #[test]
     fn test_config_no_file() {
         assert_eq!(
-            Config::parse_config(String::from("config.does.not.exist.yml"))
+            Config::parse_config(PathBuf::from("config.does.not.exist.yml"))
                 .err()
                 .unwrap()
                 .code,
