@@ -471,7 +471,7 @@ mod tests {
     #[test]
     fn test_config_not_accessible() {
         assert_eq!(
-            Config::parse_config(String::from("/dev/ttyS0"))
+            Config::parse_config(PathBuf::from("/dev/ttyS0"))
                 .err()
                 .unwrap()
                 .code,
