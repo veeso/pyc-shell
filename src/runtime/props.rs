@@ -44,6 +44,7 @@ pub(super) struct RuntimeProps {
     last_state: ShellState,
     state_changed: bool,
     rev_search: bool,
+    history_index: usize
 }
 
 impl RuntimeProps {
@@ -59,7 +60,8 @@ impl RuntimeProps {
             interactive: interactive,
             last_state: ShellState::Unknown,
             state_changed: true,
-            rev_search: false
+            rev_search: false,
+            history_index: 0
         }
     }
 
@@ -69,6 +71,11 @@ impl RuntimeProps {
     pub(super) fn clear_buffer(&mut self) {
         self.input_buffer.clear();
         self.input_buffer_cursor = 0;
+    }
+
+    fn reset_history_index(&mut self) {
+        //Reset history index too
+        self.history_index = 0;
     }
 
     /// ### get_state
@@ -144,7 +151,8 @@ impl RuntimeProps {
         match ev {
             InputEvent::ArrowDown => {
                 if self.interactive && self.last_state == ShellState::Idle {
-                    //TODO: history next
+                    //Get previous element in history
+                    self.perform_history_backward(shell);
                 } else {
                     //Pass key
                     let _ = shell.write(console::input_event_to_string(ev));
@@ -152,7 +160,8 @@ impl RuntimeProps {
             },
             InputEvent::ArrowUp => {
                 if self.interactive && self.last_state == ShellState::Idle {
-                    //TODO: history prev
+                    //Get next element in history
+                    self.perform_history_forward(shell);
                 } else {
                     //Pass key
                     let _ = shell.write(console::input_event_to_string(ev));
@@ -204,6 +213,8 @@ impl RuntimeProps {
                         3 => { //CTRL + C
                             //Abort input and go to newline
                             self.clear_buffer();
+                            //Reset history index
+                            self.reset_history_index();
                             console::println(String::new());
                             console::print(format!("{} ", shell.get_promptline(&self.processor)));
                         },
@@ -280,6 +291,8 @@ impl RuntimeProps {
     /// 
     /// Perform enter in interactive shell mode
     fn perform_interactive_enter(&mut self, shell: &mut Shell) {
+        //Reset history index
+        self.reset_history_index();
         //Newline first
         console::println(String::new());
         //Convert input buffer to string
@@ -365,6 +378,64 @@ impl RuntimeProps {
         self.clear_buffer();
     }
 
+    /// ### perform_history_backward
+    /// 
+    /// Get previous element in history and put it into the buffer
+    fn perform_history_backward(&mut self, shell: &mut Shell) {
+        //Match history size
+        if self.history_index > 1 {
+            //Decrement history index
+            self.history_index -= 1;
+            //Check if history has index
+            if let Some(cmd) = shell.history.at(self.history_index - 1) {
+                let prev_len: usize = self.input_buffer.len();
+                //Clear buffer
+                self.clear_buffer();
+                //Push command to buffer
+                for ch in cmd.chars() {
+                    //Push character
+                    self.input_buffer.push(ch);
+                    //Increment buffer pointer
+                    self.input_buffer_cursor += 1;
+                }
+                //Rewrite line
+                console::rewrite(cmd, prev_len);
+            }
+        } else if self.history_index == 1 {
+            let prev_len: usize = self.input_buffer.len();
+            //Put history index to 0
+            self.history_index = 0;
+            //Clear buffer
+            self.clear_buffer();
+            console::rewrite(String::from(""), prev_len);
+        }
+    }
+
+    /// ### perform_history_forward
+    /// 
+    /// Get next element in history and put it into the buffer
+    fn perform_history_forward(&mut self, shell: &mut Shell) {
+        //Match history size
+        if self.history_index + 1 <= shell.history.len() {
+            //Increment history index
+            self.history_index += 1;
+            //Check if history has index
+            if let Some(cmd) = shell.history.at(self.history_index - 1) {
+                let prev_len: usize = self.input_buffer.len();
+                //Clear buffer
+                self.clear_buffer();
+                //Push command to buffer
+                for ch in cmd.chars() {
+                    //Push character
+                    self.input_buffer.push(ch);
+                    //Increment buffer pointer
+                    self.input_buffer_cursor += 1;
+                }
+                //Rewrite line
+                console::rewrite(cmd, prev_len);
+            }
+        }
+    }
 }
 
 #[cfg(test)]
@@ -390,6 +461,7 @@ mod tests {
         assert_eq!(props.last_state, ShellState::Unknown);
         assert_eq!(props.state_changed, true);
         assert_eq!(props.rev_search, false);
+        assert_eq!(props.history_index, 0);
     }
 
     #[test]
@@ -400,6 +472,10 @@ mod tests {
         props.clear_buffer();
         assert_eq!(props.input_buffer.len(), 0);
         assert_eq!(props.input_buffer_cursor, 0);
+        //History index
+        props.history_index = 128;
+        props.reset_history_index();
+        assert_eq!(props.history_index, 0);
     }
 
     #[test]
@@ -466,14 +542,48 @@ mod tests {
         let mut props: RuntimeProps = new_runtime_props(true);
         let mut shell: Shell = Shell::start(String::from("sh"), Vec::new(), &props.config.prompt_config).unwrap();
         sleep(Duration::from_millis(500)); //DON'T REMOVE THIS SLEEP
+        props.update_state(ShellState::Idle);
+        //Prepare history
+        shell.history.push(String::from("pwd"));
+        shell.history.push(String::from("ls -l"));
+        assert_eq!(props.history_index, 0);
+        //Arrow up
+        props.handle_input_event(InputEvent::ArrowUp, &mut shell);
+        assert_eq!(props.history_index, 1); //History index increased
+        assert_eq!(props.input_buffer, vec!['l', 's', ' ', '-', 'l']); //ls -l
+        assert_eq!(props.input_buffer_cursor, 5);
+        //index 2
+        props.handle_input_event(InputEvent::ArrowUp, &mut shell);
+        assert_eq!(props.history_index, 2); //History index increased
+        assert_eq!(props.input_buffer, vec!['p', 'w', 'd']); //pwd
+        assert_eq!(props.input_buffer_cursor, 3);
+        //Nothing bad should happen, input buffer won't change, history index won't be increased
+        props.handle_input_event(InputEvent::ArrowUp, &mut shell);
+        assert_eq!(props.history_index, 2); //History index didn't change
+        assert_eq!(props.input_buffer, vec!['p', 'w', 'd']); //pwd
+        assert_eq!(props.input_buffer_cursor, 3);
+        //Arrow down
+        props.handle_input_event(InputEvent::ArrowDown, &mut shell);
+        assert_eq!(props.history_index, 1); //History index decreased
+        assert_eq!(props.input_buffer, vec!['l', 's', ' ', '-', 'l']); //ls -l
+        assert_eq!(props.input_buffer_cursor, 5);
+        props.handle_input_event(InputEvent::ArrowDown, &mut shell);
+        assert_eq!(props.history_index, 0); //History index decreased
+        assert_eq!(props.input_buffer.len(), 0); //Empty
+        //Buffer should now be empty
+        assert_eq!(props.input_buffer.len(), 0);
+        assert_eq!(props.input_buffer_cursor, 0);
+        //Another arrow down should change nothing
+        props.input_buffer = vec!['l', 's'];
+        props.input_buffer_cursor = 2;
+        props.handle_input_event(InputEvent::ArrowDown, &mut shell);
+        assert_eq!(props.history_index, 0); //History index decreased
+        assert_eq!(props.input_buffer.len(), 2); //Empty
+        assert_eq!(props.input_buffer_cursor, 2);
+        //Arrow left
+        //Move cursor to left by 1 position
         props.input_buffer = vec!['l', 's', ' ', '-', 'l'];
         props.input_buffer_cursor = 5;
-        props.update_state(ShellState::Idle);
-        //TODO: arrow up
-        props.handle_input_event(InputEvent::ArrowUp, &mut shell);
-        //TODO: arrow down
-        props.handle_input_event(InputEvent::ArrowDown, &mut shell);
-        //Move cursor to left by 1 position
         props.handle_input_event(InputEvent::ArrowLeft, &mut shell);
         assert_eq!(props.input_buffer_cursor, 4);
         //Move cursor to right by 1 position
@@ -495,9 +605,11 @@ mod tests {
         props.handle_input_event(InputEvent::Ctrl(2), &mut shell);
         assert_eq!(props.input_buffer_cursor, 1);
         //CTRL C
+        props.history_index = 255;
         props.handle_input_event(InputEvent::Ctrl(3), &mut shell);
         assert_eq!(props.input_buffer.len(), 0);
         assert_eq!(props.input_buffer_cursor, 0);
+        assert_eq!(props.history_index, 0); //Reset history index
         //CTRL D
         props.input_buffer = vec!['l', 's', ' ', '-', 'l'];
         props.input_buffer_cursor = 5;
@@ -553,13 +665,16 @@ mod tests {
         props.handle_input_event(InputEvent::Enter, &mut shell);
         assert_eq!(props.input_buffer.len(), 0);
         assert_eq!(props.input_buffer_cursor, 0);
+        assert_eq!(props.history_index, 0);
         //Enter (command)
+        props.history_index = 255;
         props.last_state = ShellState::Idle;
         props.input_buffer = vec!['l', 's'];
         props.input_buffer_cursor = 2;
         props.handle_input_event(InputEvent::Enter, &mut shell);
         assert_eq!(props.input_buffer.len(), 0);
         assert_eq!(props.input_buffer_cursor, 0);
+        assert_eq!(props.history_index, 0); //Reset history index
         //@! Check if ls is now in history
         assert_eq!(shell.history.at(0).unwrap(), String::from("ls"));
         //Enter (clear)
