@@ -94,6 +94,12 @@ impl ShellHistory {
     /// Push a new entry to the history.
     /// The entry is stored at the front of the history. The first the newest
     pub fn push(&mut self, line: String) {
+        //Duplicates not allowed
+        if let Some(last_line) = self.at(0) {
+            if last_line == line {
+                return
+            }
+        }
         //Check if history overflows the size
         let size: usize = (self.history.capacity() + 1) / 2;
         if self.history.len() + 1 > size {
@@ -126,6 +132,9 @@ mod tests {
         history.push(String::from("pwd"));
         assert_eq!(history.len(), 3);
         assert_eq!(history.at(0).unwrap(), String::from("pwd"));
+        //Duplicates are not allowed
+        history.push(String::from("pwd"));
+        assert_eq!(history.len(), 3);
         //Fill history with 2048 elements
         let mut history_vec: Vec<String> = Vec::with_capacity(2048);
         for i in 0..2048 {
