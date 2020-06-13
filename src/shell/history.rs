@@ -93,7 +93,11 @@ impl ShellHistory {
     /// 
     /// Push a new entry to the history.
     /// The entry is stored at the front of the history. The first the newest
-    pub fn push(&mut self, line: String) {
+    pub fn push(&mut self, mut line: String) {
+        //@! Remove newline
+        while line.ends_with("\n") {
+            line.pop();
+        }
         //Duplicates not allowed
         if let Some(last_line) = self.at(0) {
             if last_line == line {
@@ -129,7 +133,7 @@ mod tests {
         assert_eq!(history.at(1).unwrap(), String::from("ls"));
         assert!(history.at(2).is_none());
         //Push element
-        history.push(String::from("pwd"));
+        history.push(String::from("pwd\n\n\n")); //@! Newlines must be removed
         assert_eq!(history.len(), 3);
         assert_eq!(history.at(0).unwrap(), String::from("pwd"));
         //Duplicates are not allowed
