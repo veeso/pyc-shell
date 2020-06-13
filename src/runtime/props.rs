@@ -323,6 +323,8 @@ impl RuntimeProps {
             //Clear input buffer
             self.clear_buffer();
             if self.last_state == ShellState::Idle {
+                //Push input to history
+                shell.history.push(input.clone());
                 //Check if clear command
                 if input.starts_with("clear") {
                     //Clear screen, then write prompt
@@ -558,6 +560,8 @@ mod tests {
         props.handle_input_event(InputEvent::Enter, &mut shell);
         assert_eq!(props.input_buffer.len(), 0);
         assert_eq!(props.input_buffer_cursor, 0);
+        //@! Check if ls is now in history
+        assert_eq!(shell.history.at(0).unwrap(), String::from("ls"));
         //Enter (clear)
         props.last_state = ShellState::Idle;
         props.input_buffer = vec!['c', 'l', 'e', 'a', 'r'];
