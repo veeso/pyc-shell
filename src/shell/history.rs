@@ -63,7 +63,7 @@ impl ShellHistory {
     /// Dump history
     pub fn dump(&mut self) -> Vec<String> {
         let mut history: Vec<String> = Vec::with_capacity(self.history.len());
-        for entry in self.history.iter() {
+        for entry in self.history.iter().rev() {
             history.push(entry.clone());
         }
         history
@@ -162,8 +162,9 @@ mod tests {
         //Dump history
         let dump: Vec<String> = history.dump();
         assert_eq!(dump.len(), 2);
-        assert_eq!(*dump.get(0).unwrap(), String::from("cd /tmp/"));
-        assert_eq!(*dump.get(1).unwrap(), String::from("ls -l"));
+        //Older commands first
+        assert_eq!(*dump.get(0).unwrap(), String::from("ls -l"));
+        assert_eq!(*dump.get(1).unwrap(), String::from("cd /tmp/"));
     }
 
 }
