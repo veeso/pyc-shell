@@ -143,22 +143,46 @@ impl RuntimeProps {
     pub(super) fn handle_input_event(&mut self, ev: InputEvent, shell: &mut Shell) {
         match ev {
             InputEvent::ArrowDown => {
-                //TODO: history next
+                if self.interactive && self.last_state == ShellState::Idle {
+                    //TODO: history next
+                } else {
+                    //Pass key
+                    let _ = shell.write(console::input_event_to_string(ev));
+                }
             },
             InputEvent::ArrowUp => {
-                //TODO: history prev
+                if self.interactive && self.last_state == ShellState::Idle {
+                    //TODO: history prev
+                } else {
+                    //Pass key
+                    let _ = shell.write(console::input_event_to_string(ev));
+                }
             },
             InputEvent::ArrowLeft => {
-                self.move_left();
+                if self.interactive && self.last_state == ShellState::Idle {
+                    self.move_left();
+                } else {
+                    //Pass key
+                    let _ = shell.write(console::input_event_to_string(ev));
+                }
             },
             InputEvent::ArrowRight => {
-                self.move_right();
+                if self.interactive && self.last_state == ShellState::Idle {
+                    self.move_right();
+                } else {
+                    //Pass key
+                    let _ = shell.write(console::input_event_to_string(ev));
+                }
             },
             InputEvent::Backspace => {
                 self.backspace();
             },
             InputEvent::CarriageReturn => {
-                console::carriage_return();
+                if self.interactive && self.last_state == ShellState::Idle {
+                    console::carriage_return();
+                } else {
+                    let _ = shell.write(console::input_event_to_string(ev));
+                }
             },
             InputEvent::Ctrl(sig) => {
                 //Check running state 
@@ -220,14 +244,16 @@ impl RuntimeProps {
                 } else {
                     //Pass to child
                     //FIXME: doesn't work
+                    let _ = shell.write(console::input_event_to_string(ev));
                     //let mut output = String::with_capacity(1);
                     //output.push(sig as char);
                     //let _ = shell.write(output);
+                    /*
                     if let Some(sig) = super::shellsignal_to_signal(sig) {
                         if let Err(_) = shell.raise(sig) {
                             print_err(String::from("Could not send signal to shell"), self.config.output_config.translate_output, &self.processor);
                         }
-                    }
+                    }*/
                 }
             },
             InputEvent::Key(k) => { //Push key
@@ -440,6 +466,7 @@ mod tests {
         sleep(Duration::from_millis(500)); //DON'T REMOVE THIS SLEEP
         props.input_buffer = vec!['l', 's', ' ', '-', 'l'];
         props.input_buffer_cursor = 5;
+        props.update_state(ShellState::Idle);
         //TODO: arrow up
         props.handle_input_event(InputEvent::ArrowUp, &mut shell);
         //TODO: arrow down
@@ -575,7 +602,10 @@ mod tests {
         sleep(Duration::from_millis(500)); //DON'T REMOVE THIS SLEEP
         let _ = shell.stop();
         sleep(Duration::from_millis(500)); //DON'T REMOVE THIS SLEEP
+    }
 
+    #[test]
+    fn test_runtimeprops_handle_input_event_not_interactive() {
         //Non interactive shell enter
         let mut props: RuntimeProps = new_runtime_props(false);
         let mut shell: Shell = Shell::start(String::from("sh"), Vec::new(), &props.config.prompt_config).unwrap();
@@ -590,6 +620,14 @@ mod tests {
         props.handle_input_event(InputEvent::Enter, &mut shell);
         assert_eq!(props.input_buffer.len(), 0);
         assert_eq!(props.input_buffer_cursor, 0);
+        //Arrows
+        props.handle_input_event(InputEvent::ArrowDown, &mut shell);
+        props.handle_input_event(InputEvent::ArrowLeft, &mut shell);
+        props.handle_input_event(InputEvent::ArrowRight, &mut shell);
+        props.handle_input_event(InputEvent::ArrowUp, &mut shell);
+        //Signal
+        props.handle_input_event(InputEvent::Ctrl(3), &mut shell);
+        //Stop shell
         sleep(Duration::from_millis(500)); //DON'T REMOVE THIS SLEEP
         let _ = shell.stop();
         sleep(Duration::from_millis(500)); //DON'T REMOVE THIS SLEEP
@@ -604,6 +642,7 @@ mod tests {
         props.handle_input_event(InputEvent::Enter, &mut shell);
         assert_eq!(props.input_buffer.len(), 0);
         assert_eq!(props.input_buffer_cursor, 0);
+        sleep(Duration::from_millis(500)); //DON'T REMOVE THIS SLEEP
     }
 
     fn new_runtime_props(interactive: bool) -> RuntimeProps {

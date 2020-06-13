@@ -293,6 +293,7 @@ fn print_out(out: String, to_cyrillic: bool, processor: &IOProcessor) {
 /// ### shellsignal_to_signal
 /// 
 /// Converts a signal received on prompt to a UnixSignal
+#[allow(dead_code)]
 fn shellsignal_to_signal(sig: u8) -> Option<UnixSignal> {
     match sig {
         3 => Some(UnixSignal::Sigint),

@@ -229,6 +229,28 @@ fn reset_termios() {
     let _ = termios::tcsetattr(STDIN_FILENO, termios::TCSADRAIN, &term);
 }
 
+/// ### input_event_to_string
+/// 
+/// Converts an input event to a string
+pub fn input_event_to_string(ev: InputEvent) -> String {
+    match ev {
+        InputEvent::ArrowDown => String::from("\x1b[B"),
+        InputEvent::ArrowLeft => String::from("\x1b[D"),
+        InputEvent::ArrowRight => String::from("\x1b[C"),
+        InputEvent::ArrowUp => String::from("\x1b[A"),
+        InputEvent::Backspace => String::from("\x7F"),
+        InputEvent::CarriageReturn => String::from("\x0D"),
+        InputEvent::Ctrl(sig) => {
+            let ch = sig as char;
+            let mut s = String::new();
+            s.push(ch);
+            s
+        },
+        InputEvent::Enter => String::from("\x0A"),
+        InputEvent::Key(k) => String::from(k)
+    }
+}
+
 #[cfg(test)]
 mod tests {
 
@@ -404,6 +426,19 @@ mod tests {
             Ok(())
         };
         assert!(to_input_event(&ready_fn, &read_fn).is_none());
+    }
+
+    #[test]
+    fn test_utils_console_input_event_to_str() {
+        assert_eq!(input_event_to_string(InputEvent::ArrowDown), String::from("\x1b[B"));
+        assert_eq!(input_event_to_string(InputEvent::ArrowLeft), String::from("\x1b[D"));
+        assert_eq!(input_event_to_string(InputEvent::ArrowRight), String::from("\x1b[C"));
+        assert_eq!(input_event_to_string(InputEvent::ArrowUp), String::from("\x1b[A"));
+        assert_eq!(input_event_to_string(InputEvent::Backspace), String::from("\x7F"));
+        assert_eq!(input_event_to_string(InputEvent::CarriageReturn), String::from("\x0D"));
+        assert_eq!(input_event_to_string(InputEvent::Ctrl(3)), String::from("\x03"));
+        assert_eq!(input_event_to_string(InputEvent::Enter), String::from("\x0A"));
+        assert_eq!(input_event_to_string(InputEvent::Key(String::from("A"))), String::from("A"));
     }
 
 }
