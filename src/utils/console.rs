@@ -162,8 +162,10 @@ fn to_input_event(ready_fn: &dyn Fn() -> bool, read_fn: &dyn Fn(&mut [u8]) -> io
 /// ### rewrite
 /// 
 /// Rewrite current stdout line
-pub fn rewrite(row: String) {
-    print!("\r\x1b[K");
+pub fn rewrite(row: String, len: usize) {
+    for _ in 0..len {
+        backspace();
+    }
     print(row);
 }
 
@@ -275,8 +277,8 @@ mod tests {
 
     #[test]
     fn test_utils_console_print() {
-        rewrite(String::from("Foobar"));
         print(String::from("foo"));
+        rewrite(String::from("Foobar"), 3);
         println(String::from("bar"));
     }
 
