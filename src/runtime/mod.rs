@@ -30,7 +30,7 @@ extern crate nix;
 mod props;
 
 use ansi_term::Colour;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::thread::sleep;
 use std::time::{Duration};
 
@@ -54,7 +54,7 @@ use crate::utils::file;
 ///
 /// Run pyc in interactive mode
 
-pub fn run_interactive(processor: IOProcessor, config: config::Config, shell: Option<String>) -> u8 {
+pub fn run_interactive(processor: IOProcessor, config: config::Config, shell: Option<String>, history_file: Option<PathBuf>) -> u8 {
     //Instantiate Runtime Props
     let mut props: RuntimeProps = RuntimeProps::new(true, config, processor);
     //Determine the shell to use
@@ -69,6 +69,17 @@ pub fn run_interactive(processor: IOProcessor, config: config::Config, shell: Op
                 &props.processor,
             );
             return 255;
+        }
+    };
+    //If history file is set, load history
+    if let Some(history_file) = history_file.clone() {
+        match file::read_lines(history_file.clone()) {
+            Ok(lines) => shell.history.load(lines),
+            Err(err) => print_err(
+                String::from(format!("Could not load history from '{}': {}", history_file.display(), err)),
+                props.config.output_config.translate_output,
+                &props.processor,
+            )
         }
     };
     //@! Main loop
@@ -101,6 +112,17 @@ pub fn run_interactive(processor: IOProcessor, config: config::Config, shell: Op
         //Check if shell has terminated
         sleep(Duration::from_nanos(100)); //Sleep for 100ns
     } //@! End of loop
+    //Write history back to file
+    if let Some(history_file) = history_file {
+        let lines: Vec<String> = shell.history.dump();
+        if let Err(err) = file::write_lines(history_file.clone(), lines) {
+            print_err(
+                String::from(format!("Could not write history to '{}': {}", history_file.display(), err)),
+                props.config.output_config.translate_output,
+                &props.processor,
+            );
+        }
+    };
     //Return shell exitcode
     match shell.stop() {
         Ok(rc) => rc,

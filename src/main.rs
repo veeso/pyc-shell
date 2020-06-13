@@ -33,6 +33,7 @@ use ansi_term::{Colour, Style};
 use dirs::home_dir;
 use getopts::Options;
 use std::env;
+use std::path::PathBuf;
 
 //Internal modules
 mod config;
@@ -76,9 +77,19 @@ fn main() {
     let args: Vec<String> = env::args().collect();
     let program: String = args[0].clone();
     //Program CLI options
-    let config_file: String;
+    let config_file: PathBuf;
     let mut shell: Option<String> = None;
     let language: Option<translator::Language>;
+    //Get home directory
+    let pyc_config_dir: Option<PathBuf> = match home_dir() {
+        Some(path) => {
+            let mut cfg: PathBuf = PathBuf::from(path);
+            cfg.push(".config/pyc/");
+            Some(PathBuf::from(cfg))
+        },
+        None => None,
+    };
+    //Process options
     let mut opts = Options::new();
     opts.optopt("c", "command", "Specify command to run. Shell returns after running the command", "<command>");
     opts.optopt("C", "config", "Specify YAML configuration file", "<config>");
@@ -123,14 +134,22 @@ fn main() {
     };
     //Set config file to '-C' file or to default file
     config_file = match matches.opt_str("C") {
-        Some(cfg_override) => cfg_override,
+        Some(cfg_override) => PathBuf::from(cfg_override.as_str()),
         None => {
             //Default path
-            let home: String = match home_dir() {
-                Some(path) => String::from(path.to_str().unwrap()),
-                None => String::from("~"),
-            };
-            String::from(home + "/.config/pyc/pyc.yml")
+            if let Some(dir) = pyc_config_dir.clone() {
+                let mut pyc_config_file: PathBuf = dir;
+                pyc_config_file.push("pyc.yml");
+                pyc_config_file
+            } else {
+                eprintln!(
+                    "{}",
+                    Colour::Red.paint(format!(
+                        "Could not find home directory for this user"
+                    ))
+                );
+                std::process::exit(255);
+            }
         }
     };
     //Check if oneshot and get args
@@ -149,7 +168,7 @@ fn main() {
                     Colour::Red.paint(format!(
                         "{}: {}; {}",
                         String::from("No such file or directory"),
-                        config_file,
+                        config_file.display(),
                         String::from("Using default configuration")
                     ))
                 );
@@ -176,7 +195,18 @@ fn main() {
     let rc: u8 = match command {
         Some(command) => runtime::run_command(command, processor, config, shell),
         None => match file {
-            None => runtime::run_interactive(processor, config, shell),
+            None => {
+                //Get history file
+                let history_file: Option<PathBuf> = match pyc_config_dir {
+                    None => None,
+                    Some(dir) => {
+                        let mut pyc_history_file: PathBuf = dir;
+                        pyc_history_file.push("pyc_history");
+                        Some(pyc_history_file)
+                    }
+                };
+                runtime::run_interactive(processor, config, shell, history_file)
+            },
             Some(file) => runtime::run_file(file, processor, config, shell)
         }
     };
