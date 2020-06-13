@@ -23,6 +23,7 @@
 *
 */
 
+pub mod history;
 pub mod proc;
 pub mod prompt;
 pub mod unixsignal;
@@ -30,6 +31,7 @@ pub mod unixsignal;
 extern crate nix;
 extern crate whoami;
 
+use history::ShellHistory;
 use proc::{ShellError, ShellProc, ShellState};
 use prompt::ShellPrompt;
 
@@ -43,6 +45,7 @@ use std::time::{Duration};
 ///
 /// Shell represents the current user shell configuration
 pub struct Shell {
+    pub history: ShellHistory,
     process: ShellProc,
     prompt: ShellPrompt,
     props: ShellProps
@@ -83,7 +86,8 @@ impl Shell {
         Ok(Shell {
             process: shell_process,
             prompt: shell_prompt,
-            props: ShellProps::new(hostname, user, wrkdir)
+            props: ShellProps::new(hostname, user, wrkdir),
+            history: ShellHistory::new()
         })
     }
 
@@ -94,6 +98,7 @@ impl Shell {
         while self.get_state() != ShellState::Terminated {
             let _ = self.process.kill();
         }
+        self.history.clear();
         self.process.cleanup()
     }
 
@@ -193,6 +198,8 @@ mod tests {
         assert_ne!(shell_env.process.pid, 0);
         //Verify shell status
         assert_eq!(shell_env.get_state(), ShellState::Idle);
+        //Verify history capacity
+        assert_eq!(shell_env.history.len(), 0);
         //Get username etc
         println!("Username: {}", shell_env.props.username);
         println!("Hostname: {}", shell_env.props.hostname);
