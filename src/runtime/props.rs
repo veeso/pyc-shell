@@ -23,7 +23,7 @@
 *
 */
 
-use super::{print_err, resolve_command};
+use super::{print_err, print_out, resolve_command};
 
 use crate::config::Config;
 use crate::shell::Shell;
@@ -344,7 +344,12 @@ impl RuntimeProps {
                     console::clear();
                     console::print(format!("{} ", shell.get_promptline(&self.processor)));
                 } else if input.starts_with("history") {
-                    //TODO: print history
+                    //Print history
+                    let history_lines: Vec<String> = shell.history.dump();
+                    for (idx, line) in history_lines.iter().enumerate() {
+                        print_out(format!("{} {}", self.indent_history_index(idx), line), self.config.output_config.translate_output, &self.processor);
+                    }
+                    console::print(format!("{} ", shell.get_promptline(&self.processor)));
                 } else if input.starts_with("!") {
                     //TODO: command from history
                 } else { //Write input as usual
@@ -434,6 +439,21 @@ impl RuntimeProps {
                 //Rewrite line
                 console::rewrite(cmd, prev_len);
             }
+        }
+    }
+
+    /// ### indent_history_index
+    /// 
+    /// Format history index to 4 digts
+    fn indent_history_index(&self, index: usize) -> String {
+        if index < 10 {
+            format!("   {}", index)
+        } else if index < 100 {
+            format!("  {}", index)
+        } else if index < 1000 {
+            format!(" {}", index)
+        } else {
+            format!("{}", index)
         }
     }
 }
@@ -762,6 +782,15 @@ mod tests {
         assert_eq!(props.input_buffer.len(), 0);
         assert_eq!(props.input_buffer_cursor, 0);
         sleep(Duration::from_millis(500)); //DON'T REMOVE THIS SLEEP
+    }
+
+    #[test]
+    fn test_runtimeprops_indent_history_index() {
+        let props: RuntimeProps = new_runtime_props(true);
+        assert_eq!(props.indent_history_index(0), String::from("   0"));
+        assert_eq!(props.indent_history_index(10), String::from("  10"));
+        assert_eq!(props.indent_history_index(100), String::from(" 100"));
+        assert_eq!(props.indent_history_index(1000), String::from("1000"));
     }
 
     fn new_runtime_props(interactive: bool) -> RuntimeProps {
