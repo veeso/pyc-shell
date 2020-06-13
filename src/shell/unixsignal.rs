@@ -109,6 +109,47 @@ impl UnixSignal {
         }
     }
 
+    #[cfg(target_os = "macos")]
+    /// ### to_nix_signal
+    /// 
+    /// Converts a UnixSignal to a nix::signal
+    pub fn to_nix_signal(&self) -> Signal {
+        match self {
+            UnixSignal::Sigabrt => Signal::SIGABRT,
+            UnixSignal::Sigalrm => Signal::SIGALRM,
+            UnixSignal::Sigbus => Signal::SIGBUS,
+            UnixSignal::Sigchld => Signal::SIGCHLD,
+            UnixSignal::Sigcont => Signal::SIGCONT,
+            UnixSignal::Sigfpe => Signal::SIGFPE,
+            UnixSignal::Sighup => Signal::SIGHUP,
+            UnixSignal::Sigill => Signal::SIGILL,
+            UnixSignal::Sigint => Signal::SIGINT,
+            UnixSignal::Sigio => Signal::SIGIO,
+            UnixSignal::Sigkill => Signal::SIGKILL,
+            UnixSignal::Sigpipe => Signal::SIGPIPE,
+            UnixSignal::Sigprof => Signal::SIGPROF,
+            UnixSignal::Sigpwr => Signal::SIGABRT,
+            UnixSignal::Sigquit => Signal::SIGQUIT,
+            UnixSignal::Sigsegv => Signal::SIGSEGV,
+            UnixSignal::Sigstkflt => Signal::SIGABRT,
+            UnixSignal::Sigstop => Signal::SIGSTOP,
+            UnixSignal::Sigsys => Signal::SIGSYS,
+            UnixSignal::Sigterm => Signal::SIGTERM,
+            UnixSignal::Sigtrap => Signal::SIGTRAP,
+            UnixSignal::Sigtstp => Signal::SIGTSTP,
+            UnixSignal::Sigttin => Signal::SIGTTIN,
+            UnixSignal::Sigttou => Signal::SIGTTOU,
+            UnixSignal::Sigurg => Signal::SIGURG,
+            UnixSignal::Sigusr1 => Signal::SIGUSR1,
+            UnixSignal::Sigusr2 => Signal::SIGUSR2,
+            UnixSignal::Sigvtalrm => Signal::SIGVTALRM,
+            UnixSignal::Sigwinch => Signal::SIGWINCH,
+            UnixSignal::Sigxcpu => Signal::SIGXCPU,
+            UnixSignal::Sigxfsz => Signal::SIGXFSZ
+        }
+    }
+
+    #[cfg(any(target_os = "freebsd", target_os =  "linux", target_os =  "openbsd", target_os =  "netbsd"))]
     /// ### to_nix_signal
     /// 
     /// Converts a UnixSignal to a nix::signal
@@ -191,6 +232,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(any(target_os = "freebsd", target_os =  "linux", target_os =  "openbsd", target_os =  "netbsd"))]
     fn test_unixsignal_to_nix() {
         assert_eq!(UnixSignal::Sigabrt.to_nix_signal(), Signal::SIGABRT);
         assert_eq!(UnixSignal::Sighup.to_nix_signal(), Signal::SIGHUP);
@@ -222,6 +264,42 @@ mod tests {
         assert_eq!(UnixSignal::Sigwinch.to_nix_signal(), Signal::SIGWINCH);
         assert_eq!(UnixSignal::Sigio.to_nix_signal(), Signal::SIGIO);
         assert_eq!(UnixSignal::Sigpwr.to_nix_signal(), Signal::SIGPWR);
+        assert_eq!(UnixSignal::Sigsys.to_nix_signal(), Signal::SIGSYS);
+    }
+
+    #[test]
+    #[cfg(target_os = "macos")]
+    fn test_unixsignal_to_nix() {
+        assert_eq!(UnixSignal::Sigabrt.to_nix_signal(), Signal::SIGABRT);
+        assert_eq!(UnixSignal::Sighup.to_nix_signal(), Signal::SIGHUP);
+        assert_eq!(UnixSignal::Sigint.to_nix_signal(), Signal::SIGINT);
+        assert_eq!(UnixSignal::Sigquit.to_nix_signal(), Signal::SIGQUIT);
+        assert_eq!(UnixSignal::Sigill.to_nix_signal(), Signal::SIGILL);
+        assert_eq!(UnixSignal::Sigtrap.to_nix_signal(), Signal::SIGTRAP);
+        assert_eq!(UnixSignal::Sigbus.to_nix_signal(), Signal::SIGBUS);
+        assert_eq!(UnixSignal::Sigfpe.to_nix_signal(), Signal::SIGFPE);
+        assert_eq!(UnixSignal::Sigkill.to_nix_signal(), Signal::SIGKILL);
+        assert_eq!(UnixSignal::Sigusr1.to_nix_signal(), Signal::SIGUSR1);
+        assert_eq!(UnixSignal::Sigsegv.to_nix_signal(), Signal::SIGSEGV);
+        assert_eq!(UnixSignal::Sigusr2.to_nix_signal(), Signal::SIGUSR2);
+        assert_eq!(UnixSignal::Sigpipe.to_nix_signal(), Signal::SIGPIPE);
+        assert_eq!(UnixSignal::Sigalrm.to_nix_signal(), Signal::SIGALRM);
+        assert_eq!(UnixSignal::Sigterm.to_nix_signal(), Signal::SIGTERM);
+        assert_eq!(UnixSignal::Sigstkflt.to_nix_signal(), Signal::SIGABRT);
+        assert_eq!(UnixSignal::Sigchld.to_nix_signal(), Signal::SIGCHLD);
+        assert_eq!(UnixSignal::Sigcont.to_nix_signal(), Signal::SIGCONT);
+        assert_eq!(UnixSignal::Sigstop.to_nix_signal(), Signal::SIGSTOP);
+        assert_eq!(UnixSignal::Sigtstp.to_nix_signal(), Signal::SIGTSTP);
+        assert_eq!(UnixSignal::Sigttin.to_nix_signal(), Signal::SIGTTIN);
+        assert_eq!(UnixSignal::Sigttou.to_nix_signal(), Signal::SIGTTOU);
+        assert_eq!(UnixSignal::Sigurg.to_nix_signal(), Signal::SIGURG);
+        assert_eq!(UnixSignal::Sigxcpu.to_nix_signal(), Signal::SIGXCPU);
+        assert_eq!(UnixSignal::Sigxfsz.to_nix_signal(), Signal::SIGXFSZ);
+        assert_eq!(UnixSignal::Sigvtalrm.to_nix_signal(), Signal::SIGVTALRM);
+        assert_eq!(UnixSignal::Sigprof.to_nix_signal(), Signal::SIGPROF);
+        assert_eq!(UnixSignal::Sigwinch.to_nix_signal(), Signal::SIGWINCH);
+        assert_eq!(UnixSignal::Sigio.to_nix_signal(), Signal::SIGIO);
+        assert_eq!(UnixSignal::Sigpwr.to_nix_signal(), Signal::SIGABRT);
         assert_eq!(UnixSignal::Sigsys.to_nix_signal(), Signal::SIGSYS);
     }
 }
