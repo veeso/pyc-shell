@@ -114,6 +114,7 @@ impl Shell {
     /// ### raise
     ///
     /// Send a signal to shell process
+    #[allow(dead_code)]
     pub fn raise(&mut self, sig: unixsignal::UnixSignal) -> Result<(), ShellError> {
         self.process.raise(sig.to_nix_signal())
     }
