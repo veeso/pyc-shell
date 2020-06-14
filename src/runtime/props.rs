@@ -335,33 +335,8 @@ impl RuntimeProps {
             };
             //Clear input buffer
             self.clear_buffer();
-            if self.last_state == ShellState::Idle {
-                //Push input to history
-                shell.history.push(input.clone());
-                //Check if clear command
-                if input.starts_with("clear") {
-                    //Clear screen, then write prompt
-                    console::clear();
-                    console::print(format!("{} ", shell.get_promptline(&self.processor)));
-                } else if input.starts_with("history") {
-                    //Print history
-                    let history_lines: Vec<String> = shell.history.dump();
-                    for (idx, line) in history_lines.iter().enumerate() {
-                        print_out(format!("{} {}", self.indent_history_index(idx), line), self.config.output_config.translate_output, &self.processor);
-                    }
-                    console::print(format!("{} ", shell.get_promptline(&self.processor)));
-                } else if input.starts_with("!") {
-                    //TODO: command from history
-                } else { //Write input as usual
-                    if let Err(err) = shell.write(input) {
-                        print_err(String::from(err.to_string()), self.config.output_config.translate_output, &self.processor);
-                    }
-                }
-            } else { //Write input as usual
-                if let Err(err) = shell.write(input) {
-                    print_err(String::from(err.to_string()), self.config.output_config.translate_output, &self.processor);
-                }
-            }
+            //Process input
+            self.process_input_interactive(shell, input);
         }
     }
 
@@ -381,6 +356,69 @@ impl RuntimeProps {
             }
         }
         self.clear_buffer();
+    }
+
+    /// ### process_input_interactive
+    /// 
+    /// Process input after enter in interactive mode
+    fn process_input_interactive(&mut self, shell: &mut Shell, mut input: String) {
+        if self.last_state == ShellState::Idle {
+            //@! Handle events before anything else
+            if input.starts_with("!") {
+                //Execute command from history
+                //Get index
+                let history_index: &str = &input.as_str()[1..input.len() - 1];
+                //Convert index to number
+                if let Ok(history_index) = history_index.parse::<usize>() {
+                    //Check if index is bigger than history lenght
+                    if history_index >= shell.history.len() {
+                        print_err(format!("!{}: event not found", history_index), self.config.output_config.translate_output, &self.processor);
+                        console::print(format!("{} ", shell.get_promptline(&self.processor)));
+                        return;
+                    }
+                    //Reverse index
+                    let history_index: usize = shell.history.len() - history_index - 1;
+                    match shell.history.at(history_index) {
+                        Some(cmd) => { //Event exists, replace input with command
+                            //Reverse index
+                            input = format!("{}\n", cmd);
+                        },
+                        None => { //Event doesn't exist
+                            print_err(format!("!{}: event not found", history_index), self.config.output_config.translate_output, &self.processor);
+                            console::print(format!("{} ", shell.get_promptline(&self.processor)));
+                            return;
+                        }
+                    }
+                } else { //Event is Not a number
+                    print_err(format!("!{}: event not found", history_index), self.config.output_config.translate_output, &self.processor);
+                    console::print(format!("{} ", shell.get_promptline(&self.processor)));
+                    return;
+                }
+            }
+            //Push input to history
+            shell.history.push(input.clone());
+            //Check if clear command
+            if input.starts_with("clear") {
+                //Clear screen, then write prompt
+                console::clear();
+                console::print(format!("{} ", shell.get_promptline(&self.processor)));
+            } else if input.starts_with("history") {
+                //Print history
+                let history_lines: Vec<String> = shell.history.dump();
+                for (idx, line) in history_lines.iter().enumerate() {
+                    print_out(format!("{} {}", self.indent_history_index(idx), line), self.config.output_config.translate_output, &self.processor);
+                }
+                console::print(format!("{} ", shell.get_promptline(&self.processor)));
+            } else { //@! Write input as usual
+                if let Err(err) = shell.write(input) {
+                    print_err(String::from(err.to_string()), self.config.output_config.translate_output, &self.processor);
+                }
+            }
+        } else { //Write input as usual
+            if let Err(err) = shell.write(input) {
+                print_err(String::from(err.to_string()), self.config.output_config.translate_output, &self.processor);
+            }
+        }
     }
 
     /// ### perform_history_backward
@@ -711,10 +749,22 @@ mod tests {
         props.handle_input_event(InputEvent::Enter, &mut shell);
         assert_eq!(props.input_buffer.len(), 0);
         assert_eq!(props.input_buffer_cursor, 0);
-        //Enter (!)
+        //Enter (! => Out of range)
         props.last_state = ShellState::Idle;
         props.input_buffer = vec!['!', '4', '0'];
         props.input_buffer_cursor = 3;
+        props.handle_input_event(InputEvent::Enter, &mut shell);
+        assert_eq!(props.input_buffer.len(), 0);
+        assert_eq!(props.input_buffer_cursor, 0);
+        //Enter (! => Valid)
+        props.input_buffer = vec!['!', '1'];
+        props.input_buffer_cursor = 2;
+        props.handle_input_event(InputEvent::Enter, &mut shell);
+        assert_eq!(props.input_buffer.len(), 0);
+        assert_eq!(props.input_buffer_cursor, 0);
+        //Enter (! => String)
+        props.input_buffer = vec!['!', 'f', 'o', 'o'];
+        props.input_buffer_cursor = 4;
         props.handle_input_event(InputEvent::Enter, &mut shell);
         assert_eq!(props.input_buffer.len(), 0);
         assert_eq!(props.input_buffer_cursor, 0);
