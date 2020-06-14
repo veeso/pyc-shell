@@ -15,6 +15,7 @@ Current version: 0.2.0 (??/??/2020)
     - [How it works](#how-it-works)
   - [Features](#features)
   - [Supported alphabets](#supported-alphabets)
+    - [Planned alphabets](#planned-alphabets)
   - [Installation](#installation)
     - [Cargo](#cargo)
     - [Deb / Rpm](#deb--rpm)
@@ -70,16 +71,22 @@ Basically Рус is a shell interface, which means that it reads the user input,
 
 - ![br](https://raw.githubusercontent.com/gosquared/flags/master/flags/flags/shiny/24/Belarus.png) Belarusian Cyrillic - According to russian cyrillic [GOST 7.79-2000](https://en.wikipedia.org/wiki/GOST_7.79-2000) with some differences ([See here](./docs/translators/by.md))
 - ![br](https://raw.githubusercontent.com/gosquared/flags/master/flags/flags/shiny/24/Bulgaria.png) Bulgarian Cyrillic - According to russian cyrillic [GOST 7.79-2000](https://en.wikipedia.org/wiki/GOST_7.79-2000) with some differences ([See here](./docs/translators/ru.md))
-- ![br](https://raw.githubusercontent.com/gosquared/flags/master/flags/flags/shiny/24/India.png) Devanagari - *TBD*
-- ![br](https://raw.githubusercontent.com/gosquared/flags/master/flags/flags/shiny/24/South-Korea.png)![br](https://raw.githubusercontent.com/gosquared/flags/master/flags/flags/shiny/24/North-Korea.png) Hangŭl - *TBD*
-- ![br](https://raw.githubusercontent.com/gosquared/flags/master/flags/flags/shiny/24/Japan.png) Hiragana - *Coming soon*
+- ![br](https://raw.githubusercontent.com/gosquared/flags/master/flags/flags/shiny/24/South-Korea.png)![br](https://raw.githubusercontent.com/gosquared/flags/master/flags/flags/shiny/24/North-Korea.png) Hangŭl - TODO: complete
+- ![br](https://raw.githubusercontent.com/gosquared/flags/master/flags/flags/shiny/24/Japan.png) Hiragana - TODO: complete
+- ![br](https://raw.githubusercontent.com/gosquared/flags/master/flags/flags/shiny/24/Russia.png) Russian Cyrillic - According to russian cyrillic [GOST 7.79-2000](https://en.wikipedia.org/wiki/GOST_7.79-2000) with some differences ([See here](./docs/translators/ru.md))
+
+### Planned alphabets
+
+- ![br](https://raw.githubusercontent.com/gosquared/flags/master/flags/flags/shiny/24/India.png) Devanagari - *Coming soon (0.3.0)*
 - ![br](https://raw.githubusercontent.com/gosquared/flags/master/flags/flags/shiny/24/Macedonia.png) Macedonian Cyrillic - *TBD*
 - ![br](https://raw.githubusercontent.com/gosquared/flags/master/flags/flags/shiny/24/Montenegro.png) Montenegrin Cyrillic - *TBD*
-- ![br](https://raw.githubusercontent.com/gosquared/flags/master/flags/flags/shiny/24/Russia.png) Russian Cyrillic - According to russian cyrillic [GOST 7.79-2000](https://en.wikipedia.org/wiki/GOST_7.79-2000) with some differences ([See here](./docs/translators/ru.md))
-- ![br](https://raw.githubusercontent.com/gosquared/flags/master/flags/flags/shiny/24/Serbia.png)![br](https://raw.githubusercontent.com/gosquared/flags/master/flags/flags/shiny/24/Bosnia-and-Herzegovina.png) Serbian Cyrillic - *TBD*
-- ![br](https://raw.githubusercontent.com/gosquared/flags/master/flags/flags/shiny/24/Ukraine.png) Ukrainian Cyrillic - *TBD*
+- ![br](https://raw.githubusercontent.com/gosquared/flags/master/flags/flags/shiny/24/Serbia.png)![br](https://raw.githubusercontent.com/gosquared/flags/master/flags/flags/shiny/24/Bosnia-and-Herzegovina.png) Serbian Cyrillic - *Coming soon (0.3.0)*
+- ![br](https://raw.githubusercontent.com/gosquared/flags/master/flags/flags/shiny/24/Ukraine.png) Ukrainian Cyrillic - *Coming soon (0.3.0)*
 
 Other alphabets are not planned for the moment.  
+
+---
+
 Can't find yours? Contribute to the project implementing it 😀! [Read More](./CONTRIBUTING.md)
 
 ## Installation
