@@ -502,7 +502,7 @@ mod tests {
 
     use crate::config::Config;
     use crate::translator::ioprocessor::IOProcessor;
-    use crate::translator::Language;
+    use crate::translator::lang::Language;
     use crate::translator::new_translator;
 
     use std::time::Duration;

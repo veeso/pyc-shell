@@ -332,7 +332,7 @@ mod tests {
 
     use crate::translator::ioprocessor::IOProcessor;
     use crate::translator::new_translator;
-    use crate::translator::Language;
+    use crate::translator::lang::Language;
 
     use std::collections::HashMap;
     use std::time::Duration;

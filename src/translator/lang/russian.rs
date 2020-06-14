@@ -23,7 +23,8 @@
 *
 */
 
-use super::{Russian, Translator};
+use super::Russian;
+use super::super::Translator;
 
 impl Translator for Russian {
   /// ### Russian translator
@@ -467,7 +468,7 @@ mod tests {
   use crate::translator::{new_translator, Language};
 
   #[test]
-  fn test_russian_to_latin() {
+  fn test_translator_lang_belarusian_to_latin() {
     //Simple commands
     let translator: Box<dyn Translator> = new_translator(Language::Russian);
     //ls -l
@@ -604,7 +605,7 @@ mod tests {
   }
 
   #[test]
-  fn test_latin_to_russian() {
+  fn test_translator_lang_russian_to_cyrillic() {
     let translator: Box<dyn Translator> = new_translator(Language::Russian);
     //Test all
     let input: String = String::from("a b c d e f g h i j k l m n o p q r s t u v w x y z");

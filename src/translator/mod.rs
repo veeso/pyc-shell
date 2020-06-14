@@ -26,31 +26,9 @@
 use std::fmt;
 
 pub mod ioprocessor;
+pub mod lang;
 
-/// ### Language
-///
-/// Cyrillic alphabet language
-/// NOTE: add here new languages
-#[derive(Copy, Clone, PartialEq, fmt::Debug)]
-pub enum Language {
-  Russian,
-}
-
-impl ToString for Language {
-  fn to_string(&self) -> String {
-    match self {
-      Language::Russian => String::from("рус")
-    }
-  }
-}
-
-/// ## Languages
-///
-/// Languages are empty structs which must implement the Translator trait
-
-//NOTE: languages are listed here
-struct Russian {}
-mod russian;
+use lang::Language;
 
 /// ### Translator
 ///
@@ -75,7 +53,8 @@ pub trait Translator {
 /// associating the correct conversion functions
 pub fn new_translator(language: Language) -> Box<dyn Translator> {
   match language {
-    Language::Russian => Box::new(Russian {}),
+    //Language::Belarusian => Box::new(lang::Belarusian {}),
+    Language::Russian => Box::new(lang::Russian {}),
   }
 }
 
@@ -85,9 +64,9 @@ mod tests {
   use super::*;
 
   #[test]
-  fn test_language() {
-    let language: Language = Language::Russian;
-    assert_eq!(language.to_string(), String::from("рус"))
+  fn test_translator_new() {
+    //Just don't panic
+    let _ = new_translator(Language::Russian);
   }
 
 }

@@ -173,7 +173,7 @@ Let's see the steps to implement the translators, imagine we're going to impleme
 
 1. Define translator
 
-    Go to ```src/translator/mod.rs```
+    Go to ```src/translator/lang/mod.rs```
 
     Add your language to Language enum
 
@@ -207,6 +207,9 @@ Let's see the steps to implement the translators, imagine we're going to impleme
     mod emoji;
     ```
 
+2. Add it to translator constructor
+
+    Move to ```src/translator/mod.rs```
     Add it to new_translator
 
     ```rs
@@ -218,9 +221,9 @@ Let's see the steps to implement the translators, imagine we're going to impleme
     }
     ```
 
-2. Implement Translator
+3. Implement Translator
 
-    First create a new file ```src/translator/{ALPHABET}.rs```.
+    First create a new file ```src/translator/lang/{ALPHABET}.rs```.
 
     ```rs
     use super::{Emoji, Translator};
@@ -244,7 +247,7 @@ Let's see the steps to implement the translators, imagine we're going to impleme
 
     To see how a Translator is implemented consider [Russian.rs](https://github.com/ChristianVisintin/Pyc/blob/master/src/translator/russian.rs) as example.
 
-3. Add it to Prompt Language module
+4. Add it to Prompt Language module
 
     Move to ```src/shell/prompt/modules/language.rs```
 
@@ -265,7 +268,7 @@ Let's see the steps to implement the translators, imagine we're going to impleme
     }
     ```
 
-4. Add it to str_to_language in main
+5. Add it to str_to_language in main
 
     Move to ```src/main.rs```
 
@@ -288,7 +291,7 @@ Let's see the steps to implement the translators, imagine we're going to impleme
     }
     ```
 
-5. Write documentation
+6. Write documentation
 
     Add the alphabet in the README in the ```Supported alphabets```.
 

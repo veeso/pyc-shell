@@ -43,6 +43,7 @@ mod translator;
 mod utils;
 
 use translator::ioprocessor::IOProcessor;
+use translator::lang::Language;
 
 /// ### print_usage
 ///
@@ -57,9 +58,9 @@ fn print_usage(program: &String, opts: Options) {
 ///
 /// Convert CLI option language string to Language enum
 
-fn str_to_language(lang: String) -> translator::Language {
+fn str_to_language(lang: String) -> Language {
     match lang.as_str() {
-        "ru" | "рус" => translator::Language::Russian,
+        "ru" | "рус" => Language::Russian,
         _ => {
             eprintln!(
                 "{}",
@@ -68,7 +69,7 @@ fn str_to_language(lang: String) -> translator::Language {
                     lang
                 ))
             );
-            translator::Language::Russian
+            Language::Russian
         }
     }
 }
@@ -79,7 +80,7 @@ fn main() {
     //Program CLI options
     let config_file: PathBuf;
     let mut shell: Option<String> = None;
-    let language: Option<translator::Language>;
+    let language: Option<Language>;
     //Get home directory
     let pyc_config_dir: Option<PathBuf> = match home_dir() {
         Some(path) => {
@@ -185,7 +186,7 @@ fn main() {
         },
     };
     //Set language
-    let language: translator::Language = match language {
+    let language: Language = match language {
         Some(l) => l,
         None => str_to_language(config.language.clone())
     };

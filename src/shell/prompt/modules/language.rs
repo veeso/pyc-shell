@@ -23,7 +23,7 @@
 *
 */
 
-use crate::translator::Language;
+use crate::translator::lang::Language;
 
 use super::colors::PromptColor;
 
@@ -35,14 +35,24 @@ pub fn language_to_str(language: Language) -> String {
         lang_str.push_str("   ");
     }
     match language {
+        /*Language::Belarusian => String::from(format!(
+            "{}{}{}{}{}{}{}",
+            PromptColor::Red.to_string(),
+            lang_str.chars().nth(0).unwrap_or(' '),
+            PromptColor::White.to_string(),
+            lang_str.chars().nth(1).unwrap_or(' '),
+            PromptColor::Green.to_string(),
+            lang_str.chars().nth(2).unwrap_or(' '),
+            PromptColor::Reset.to_string()
+        )),*/
         Language::Russian => String::from(format!(
             "{}{}{}{}{}{}{}",
             PromptColor::White.to_string(),
-            lang_str.chars().nth(0).unwrap(),
+            lang_str.chars().nth(0).unwrap_or(' '),
             PromptColor::Blue.to_string(),
-            lang_str.chars().nth(1).unwrap(),
+            lang_str.chars().nth(1).unwrap_or(' '),
             PromptColor::Red.to_string(),
-            lang_str.chars().nth(2).unwrap(),
+            lang_str.chars().nth(2).unwrap_or(' '),
             PromptColor::Reset.to_string()
         ))
     }
