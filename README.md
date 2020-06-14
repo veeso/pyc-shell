@@ -33,7 +33,7 @@ Current version: 0.2.0 (??/??/2020)
     - [Shell alias not working](#shell-alias-not-working)
     - [Text editors dont' work](#text-editors-dont-work)
   - [Upcoming Features](#upcoming-features)
-    - [Pyc 0.2.0](#pyc-020)
+    - [Pyc 0.3.0](#pyc-030)
     - [Others](#others)
   - [Contributions](#contributions)
   - [Changelog](#changelog)
@@ -84,7 +84,7 @@ Can't find yours? Contribute to the project implementing it 😀! [Read More](./
 
 ## Installation
 
-If you're considering to install Pyc I want to thank you 💛! I hope this project can be useful for you!  
+If you're considering to install Pyc I want to thank you 💛 ! I hope this project can be useful for you!  
 If you want to contribute to this project, don't forget to check out our contribute guide. [Read More](./CONTRIBUTING.md)
 
 ### Cargo
@@ -284,24 +284,19 @@ I will try to fix this issue
 
 ## Upcoming Features
 
-### Pyc 0.2.0
+### Pyc 0.3.0
 
 - New translators:
-  - Belarusian
-  - Bulgarian
-  - Hiragana
-- History
-- Keyboard signals
+  - Devanagari
+  - Serbian
+  - Ukrainian
+- Fish support
 
 ### Others
 
-- other trnaslators:
-  - Ukrainian
-  - Serbian
+- other translators:
   - Macedonian
-  - Hangŭl
   - Montenegrin
-- Fish support
 
 ## Contributions
 
