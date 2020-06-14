@@ -35,16 +35,16 @@ pub fn language_to_str(language: Language) -> String {
         lang_str.push_str("   ");
     }
     match language {
-        /*Language::Belarusian => String::from(format!(
+        Language::Belarusian => String::from(format!(
             "{}{}{}{}{}{}{}",
             PromptColor::Red.to_string(),
             lang_str.chars().nth(0).unwrap_or(' '),
-            PromptColor::White.to_string(),
-            lang_str.chars().nth(1).unwrap_or(' '),
             PromptColor::Green.to_string(),
+            lang_str.chars().nth(1).unwrap_or(' '),
+            PromptColor::White.to_string(),
             lang_str.chars().nth(2).unwrap_or(' '),
             PromptColor::Reset.to_string()
-        )),*/
+        )),
         Language::Russian => String::from(format!(
             "{}{}{}{}{}{}{}",
             PromptColor::White.to_string(),
@@ -65,6 +65,11 @@ mod tests {
 
     #[test]
     fn test_prompt_lang_flag() {
+        //Belarusian
+        let expected_str = String::from("\x1b[31mб\x1b[32mе\x1b[37mл\x1b[0m");
+        println!("{}", language_to_str(Language::Belarusian));
+        assert_eq!(language_to_str(Language::Belarusian), expected_str);
+        //Russian
         let expected_str = String::from("\x1b[37mр\x1b[34mу\x1b[31mс\x1b[0m");
         println!("{}", language_to_str(Language::Russian));
         assert_eq!(language_to_str(Language::Russian), expected_str);

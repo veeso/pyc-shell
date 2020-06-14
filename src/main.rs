@@ -61,6 +61,7 @@ fn print_usage(program: &String, opts: Options) {
 fn str_to_language(lang: String) -> Language {
     match lang.as_str() {
         "ru" | "рус" => Language::Russian,
+        "by" | "бел" => Language::Belarusian,
         _ => {
             eprintln!(
                 "{}",

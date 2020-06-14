@@ -29,7 +29,7 @@
 /// NOTE: add here new languages
 #[derive(Copy, Clone, PartialEq, std::fmt::Debug)]
 pub enum Language {
-  //Belarusian,
+  Belarusian,
   Russian,
 }
 
@@ -38,15 +38,15 @@ pub enum Language {
 /// Languages are empty structs which must implement the Translator trait
 
 //NOTE: languages are listed here
-//pub(crate) struct Belarusian {}
+pub(crate) struct Belarusian {}
 pub(crate) struct Russian {}
-//mod belarusian;
+mod belarusian;
 mod russian;
 
 impl ToString for Language {
     fn to_string(&self) -> String {
         match self {
-        //Language::Belarusian => String::from("бел"),
+        Language::Belarusian => String::from("бел"),
         Language::Russian => String::from("рус")
         }
     }
@@ -59,7 +59,7 @@ mod tests {
 
   #[test]
   fn test_translator_language_to_string() {
-    //assert_eq!(Language::Belarusian.to_string(), String::from("бел"));
+    assert_eq!(Language::Belarusian.to_string(), String::from("бел"));
     assert_eq!(Language::Russian.to_string(), String::from("рус"));
   }
 

@@ -23,8 +23,6 @@
 *
 */
 
-use std::fmt;
-
 pub mod ioprocessor;
 pub mod lang;
 
@@ -53,7 +51,7 @@ pub trait Translator {
 /// associating the correct conversion functions
 pub fn new_translator(language: Language) -> Box<dyn Translator> {
   match language {
-    //Language::Belarusian => Box::new(lang::Belarusian {}),
+    Language::Belarusian => Box::new(lang::Belarusian {}),
     Language::Russian => Box::new(lang::Russian {}),
   }
 }

@@ -468,7 +468,7 @@ mod tests {
   use crate::translator::{new_translator, Language};
 
   #[test]
-  fn test_translator_lang_belarusian_to_latin() {
+  fn test_translator_lang_russian_to_latin() {
     //Simple commands
     let translator: Box<dyn Translator> = new_translator(Language::Russian);
     //ls -l
