@@ -207,6 +207,17 @@ Let's see the steps to implement the translators, imagine we're going to impleme
     mod emoji;
     ```
 
+    Add it to new_translator
+
+    ```rs
+    pub fn new_translator(language: Language) -> Box<dyn Translator> {
+      match language {
+        Language::Emoji => Box::new(Emoji {}),
+        Language::Russian => Box::new(Russian {}),
+      }
+    }
+    ```
+
 2. Implement Translator
 
     First create a new file ```src/translator/{ALPHABET}.rs```.
