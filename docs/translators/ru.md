@@ -4,6 +4,8 @@
   - [Cyrillic to latin](#cyrillic-to-latin)
   - [Latin to Cyrillic](#latin-to-cyrillic)
 
+🇷🇺 This document contains the documentation for the rules used to transliterate Russian Cyrillic 🇷🇺
+
 ## Cyrillic to latin
 
 The conversion from cyrillic to latin follows the [GOST 7.79-2000](https://en.wikipedia.org/wiki/GOST_7.79-2000) standard with some differences. The entire conversion table is illustrated here below:
@@ -84,7 +86,7 @@ The conversion from cyrillic to latin follows the [GOST 7.79-2000](https://en.wi
 | TS    | Ц       | Unless if followed by S       |
 | U     | У       |                               |
 | V     | В       |                               |
-| W     | В       |                               |
+| W     | У       |                               |
 | X     | КС      |                               |
 | Y     | Ы       | Unless if followed by E       |
 | YE    | E       |                               |
