@@ -98,6 +98,10 @@ impl ShellHistory {
         while line.ends_with("\n") {
             line.pop();
         }
+        //Ignore empty lines
+        if line.is_empty() {
+            return;
+        }
         //Duplicates not allowed
         if let Some(last_line) = self.at(0) {
             if last_line == line {
@@ -138,6 +142,9 @@ mod tests {
         assert_eq!(history.at(0).unwrap(), String::from("pwd"));
         //Duplicates are not allowed
         history.push(String::from("pwd"));
+        assert_eq!(history.len(), 3);
+        //Empty lines are not allowed
+        history.push(String::from("\n"));
         assert_eq!(history.len(), 3);
         //Fill history with 2048 elements
         let mut history_vec: Vec<String> = Vec::with_capacity(2048);
