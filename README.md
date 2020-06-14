@@ -68,14 +68,14 @@ Basically Рус is a shell interface, which means that it reads the user input,
 
 ## Supported alphabets
 
-- ![br](https://raw.githubusercontent.com/gosquared/flags/master/flags/flags/shiny/24/Russia.png) Russian Cyrillic - According to russian cyrillic [GOST 7.79-2000](https://en.wikipedia.org/wiki/GOST_7.79-2000) with some differences ([See here](./docs/translators/ru.md))
 - ![br](https://raw.githubusercontent.com/gosquared/flags/master/flags/flags/shiny/24/Belarus.png) Belarusian Cyrillic - According to russian cyrillic [GOST 7.79-2000](https://en.wikipedia.org/wiki/GOST_7.79-2000) with some differences ([See here](./docs/translators/by.md))
-- ![br](https://raw.githubusercontent.com/gosquared/flags/master/flags/flags/shiny/24/Bulgaria.png) Bulgarian Cyrillic - *Coming soon* (for the moment, you can use Russian)
+- ![br](https://raw.githubusercontent.com/gosquared/flags/master/flags/flags/shiny/24/Bulgaria.png) Bulgarian Cyrillic - According to russian cyrillic [GOST 7.79-2000](https://en.wikipedia.org/wiki/GOST_7.79-2000) with some differences ([See here](./docs/translators/ru.md))
 - ![br](https://raw.githubusercontent.com/gosquared/flags/master/flags/flags/shiny/24/India.png) Devanagari - *TBD*
 - ![br](https://raw.githubusercontent.com/gosquared/flags/master/flags/flags/shiny/24/South-Korea.png)![br](https://raw.githubusercontent.com/gosquared/flags/master/flags/flags/shiny/24/North-Korea.png) Hangŭl - *TBD*
 - ![br](https://raw.githubusercontent.com/gosquared/flags/master/flags/flags/shiny/24/Japan.png) Hiragana - *Coming soon*
 - ![br](https://raw.githubusercontent.com/gosquared/flags/master/flags/flags/shiny/24/Macedonia.png) Macedonian Cyrillic - *TBD*
 - ![br](https://raw.githubusercontent.com/gosquared/flags/master/flags/flags/shiny/24/Montenegro.png) Montenegrin Cyrillic - *TBD*
+- ![br](https://raw.githubusercontent.com/gosquared/flags/master/flags/flags/shiny/24/Russia.png) Russian Cyrillic - According to russian cyrillic [GOST 7.79-2000](https://en.wikipedia.org/wiki/GOST_7.79-2000) with some differences ([See here](./docs/translators/ru.md))
 - ![br](https://raw.githubusercontent.com/gosquared/flags/master/flags/flags/shiny/24/Serbia.png)![br](https://raw.githubusercontent.com/gosquared/flags/master/flags/flags/shiny/24/Bosnia-and-Herzegovina.png) Serbian Cyrillic - *TBD*
 - ![br](https://raw.githubusercontent.com/gosquared/flags/master/flags/flags/shiny/24/Ukraine.png) Ukrainian Cyrillic - *TBD*
 
@@ -154,6 +154,9 @@ prompt:
   - args: shell CLI arguments
 - alias: list of alias. When the first word of a command is one of the configured alias, it is automatically replaced with the associated latin expression.
 - language: Pyc default language (can be overridden with cli options)
+  - **Belarusian**: by | бел
+  - **Bulgarian**: bg | бг | блг
+  - **Russian**: ru | рус
 - output: output configuration
   - translate: indicates to pyc whether the output has to be converted to cyrillic or not
 - prompt: Prompt configuration (See [Prompt Configuration](#prompt-line-configuration))
@@ -219,6 +222,7 @@ The developer documentation can be found on Rust Docs at <https://docs.rs/pyc-sh
 The documentation related to translator modules can be instead found here:
 
 - [Belarusian transliteration](docs/by.md)
+- [Bulgarian transliteration](docs/bg.md)
 - [Russian transliteration](docs/ru.md)
 
 ## Escape text

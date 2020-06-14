@@ -1,6 +1,6 @@
-//! ### Russian
+//! ### Bulgarian
 //!
-//! `russian` language implementation of Translator trait
+//! `bulgarian` language implementation of Translator trait
 
 /*
 *
@@ -23,13 +23,14 @@
 *
 */
 
-use super::Russian;
+
+use super::Bulgarian;
 use super::super::Translator;
 
-impl Translator for Russian {
-  /// ### Russian translator
+impl Translator for Bulgarian {
+  /// ### Bulgarian translator
 
-  /// Converts a string which contains russian cyrillic characters into a latin string.
+  /// Converts a string which contains bulgarian cyrillic characters into a latin string.
   /// Characters between '"' (quotes) are escaped, expressions inside escaped blocks are translitarated anyway
   /// Transliteration according to GOST 7.79-2000
   fn to_latin(&self, input: &String) -> String {
@@ -242,8 +243,8 @@ impl Translator for Russian {
         'ч' => "ch",
         'Ш' => "SH",
         'ш' => "sh",
-        'Щ' => "SHH",
-        'щ' => "shh",
+        'Щ' => "SHT",
+        'щ' => "sht",
         'Ъ' => "'",
         'ъ' => "'",
         'Ы' => "Y",
@@ -257,7 +258,7 @@ impl Translator for Russian {
         'Ц' => "Z",
         'ц' => "z",
         '№' => "#",
-        '₽' => "$",
+        '€' => "$",
         _ => {
           unchanged_str = c.to_string();
           unchanged_str.as_str()
@@ -267,7 +268,7 @@ impl Translator for Russian {
     output
   }
 
-  /// Converts a string which contains latin characters into a russian cyrillic string.
+  /// Converts a string which contains latin characters into a bulgarian cyrillic string.
   /// Characters between quotes are escapes
   fn to_cyrillic(&self, input: &String) -> String {
     let mut output: String = String::new();
@@ -468,9 +469,9 @@ mod tests {
   use crate::translator::{new_translator, Language};
 
   #[test]
-  fn test_translator_lang_russian_to_latin() {
+  fn test_translator_lang_bulgarian_to_latin() {
     //Simple commands
-    let translator: Box<dyn Translator> = new_translator(Language::Russian);
+    let translator: Box<dyn Translator> = new_translator(Language::Bulgarian);
     //ls -l
     let input: String = String::from("лс -л");
     let output = translator.to_latin(&input);
@@ -497,12 +498,12 @@ mod tests {
     let input: String = String::from("абкьдэфгхижйкълмнопкюрстуввьксызшщёюячц");
     let output = translator.to_latin(&input);
     println!("\"{}\" => \"{}\"", input, output);
-    assert_eq!(output, "abcdefghijjklmnopqrstuvwxyzshshhyoyuyachz");
+    assert_eq!(output, "abcdefghijjklmnopqrstuvwxyzshshtyoyuyachz");
     //Test all letters (Uppercase)
     let input: String = String::from("АБКЬДЭФГХИЖЙКЪЛМНОПКЮРСТУВВЬКСЫЗШЩЁЮЯЧЦ");
     let output = translator.to_latin(&input);
     println!("\"{}\" => \"{}\"", input, output);
-    assert_eq!(output, "ABCDEFGHIJJKLMNOPQRSTUVWXYZSHSHHYOYUYACHZ");
+    assert_eq!(output, "ABCDEFGHIJJKLMNOPQRSTUVWXYZSHSHTYOYUYACHZ");
     //Special cases 'Q'
     let input: String = String::from("москюуитто_пуб");
     let output = translator.to_latin(&input);
@@ -598,15 +599,15 @@ mod tests {
     println!("\"{}\" => \"{}\"", input, output);
     assert_eq!(output, "'`'`");
     //Symbols
-    let input: String = String::from("№ ₽");
+    let input: String = String::from("№ €");
     let output = translator.to_latin(&input);
     println!("\"{}\" => \"{}\"", input, output);
     assert_eq!(output, "# $");
   }
 
   #[test]
-  fn test_translator_lang_russian_to_cyrillic() {
-    let translator: Box<dyn Translator> = new_translator(Language::Russian);
+  fn test_translator_lang_bulgarian_to_cyrillic() {
+    let translator: Box<dyn Translator> = new_translator(Language::Bulgarian);
     //Test all
     let input: String = String::from("a b c d e f g h i j k l m n o p q r s t u v w x y z");
     let output = translator.to_cyrillic(&input);

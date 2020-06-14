@@ -62,6 +62,7 @@ fn str_to_language(lang: String) -> Language {
     match lang.as_str() {
         "ru" | "рус" => Language::Russian,
         "by" | "бел" => Language::Belarusian,
+        "bg" | "бг" | "блг" => Language::Bulgarian,
         _ => {
             eprintln!(
                 "{}",

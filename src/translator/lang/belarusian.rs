@@ -1,6 +1,6 @@
 //! ### Belarusian
 //!
-//! Belarusian language implementation of Translator trait
+//! `belarusian` language implementation of Translator trait
 
 /*
 *

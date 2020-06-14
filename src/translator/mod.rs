@@ -52,6 +52,7 @@ pub trait Translator {
 pub fn new_translator(language: Language) -> Box<dyn Translator> {
   match language {
     Language::Belarusian => Box::new(lang::Belarusian {}),
+    Language::Bulgarian => Box::new(lang::Bulgarian {}),
     Language::Russian => Box::new(lang::Russian {}),
   }
 }
@@ -64,6 +65,8 @@ mod tests {
   #[test]
   fn test_translator_new() {
     //Just don't panic
+    let _ = new_translator(Language::Belarusian);
+    let _ = new_translator(Language::Bulgarian);
     let _ = new_translator(Language::Russian);
   }
 

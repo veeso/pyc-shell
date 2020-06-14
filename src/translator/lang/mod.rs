@@ -30,6 +30,7 @@
 #[derive(Copy, Clone, PartialEq, std::fmt::Debug)]
 pub enum Language {
   Belarusian,
+  Bulgarian,
   Russian,
 }
 
@@ -39,14 +40,17 @@ pub enum Language {
 
 //NOTE: languages are listed here
 pub(crate) struct Belarusian {}
+pub(crate) struct Bulgarian {}
 pub(crate) struct Russian {}
 mod belarusian;
+mod bulgarian;
 mod russian;
 
 impl ToString for Language {
     fn to_string(&self) -> String {
         match self {
         Language::Belarusian => String::from("бел"),
+        Language::Bulgarian => String::from("блг"),
         Language::Russian => String::from("рус")
         }
     }
@@ -60,6 +64,7 @@ mod tests {
   #[test]
   fn test_translator_language_to_string() {
     assert_eq!(Language::Belarusian.to_string(), String::from("бел"));
+    assert_eq!(Language::Bulgarian.to_string(), String::from("блг"));
     assert_eq!(Language::Russian.to_string(), String::from("рус"));
   }
 
