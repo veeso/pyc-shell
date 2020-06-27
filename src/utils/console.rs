@@ -190,7 +190,7 @@ pub fn println(row: String) {
 fn input_ready() -> bool {
     prepare_termios();
     let mut poll_fds: [nix::poll::PollFd; 1] = [nix::poll::PollFd::new(STDIN_FILENO, nix::poll::PollFlags::POLLIN | nix::poll::PollFlags::POLLRDBAND | nix::poll::PollFlags::POLLHUP)];
-    let ready: bool = match nix::poll::poll(&mut poll_fds, 10) {
+    let ready: bool = match nix::poll::poll(&mut poll_fds, 100) {
         Ok(ret) => {
             if ret > 0 && poll_fds[0].revents().is_some() { //Stdin is available to be read
                 let event: nix::poll::PollFlags = poll_fds[0].revents().unwrap();
