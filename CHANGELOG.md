@@ -1,9 +1,9 @@
 # Changelog
 
 - [Changelog](#changelog)
-  - [Pyc 0.2.0 (??/??/2020)](#pyc-020-2020)
+  - [Pyc 0.2.0 (27/06/2020)](#pyc-020-27062020)
 
-## Pyc 0.2.0 (??/??/2020)
+## Pyc 0.2.0 (27/06/2020)
 
 - Prompt improvements
   - Added left/right arrows handler to move cursor
@@ -17,6 +17,5 @@
 - New translators:
   - 🇧🇾 Belarusian
   - 🇧🇬 Bulgarian
-  - 🇰🇷🇰🇵 Hangŭl
 - Improved code coverage
 - General performance improvement

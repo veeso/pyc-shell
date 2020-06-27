@@ -4,7 +4,7 @@
 
 ~ Use your alphabet with your favourite shell ~  
 Developed by Christian Visintin  
-Current version: 0.2.0 (??/??/2020)
+Current version: [0.1.0 (27/06/2020)](./CHANGELOG.md#pyc-020-27062020)
 
 ---
 
@@ -71,16 +71,16 @@ Basically Рус is a shell interface, which means that it reads the user input,
 
 - ![by](https://raw.githubusercontent.com/gosquared/flags/master/flags/flags/shiny/24/Belarus.png) Belarusian Cyrillic - According to russian cyrillic [GOST 7.79-2000](https://en.wikipedia.org/wiki/GOST_7.79-2000) with some differences ([See here](./docs/translators/by.md))
 - ![bg](https://raw.githubusercontent.com/gosquared/flags/master/flags/flags/shiny/24/Bulgaria.png) Bulgarian Cyrillic - According to russian cyrillic [GOST 7.79-2000](https://en.wikipedia.org/wiki/GOST_7.79-2000) with some differences ([See here](./docs/translators/ru.md))
-- ![ko](https://raw.githubusercontent.com/gosquared/flags/master/flags/flags/shiny/24/South-Korea.png) Hangŭl - TODO: complete
 - ![ru](https://raw.githubusercontent.com/gosquared/flags/master/flags/flags/shiny/24/Russia.png) Russian Cyrillic - According to russian cyrillic [GOST 7.79-2000](https://en.wikipedia.org/wiki/GOST_7.79-2000) with some differences ([See here](./docs/translators/ru.md))
 
 ### Planned alphabets
 
 - ![in](https://raw.githubusercontent.com/gosquared/flags/master/flags/flags/shiny/24/India.png) Devanagari - *Coming soon (0.3.0)*
+- ![kr](https://raw.githubusercontent.com/gosquared/flags/master/flags/flags/shiny/24/South-Korea.png) Hangŭl - According to [Revised Romanization of Korean](https://en.wikipedia.org/wiki/Revised_Romanization_of_Korean) *Coming soon (0.3.0)*
 - ![mk](https://raw.githubusercontent.com/gosquared/flags/master/flags/flags/shiny/24/Macedonia.png) Macedonian Cyrillic - *TBD*
-- ![mo](https://raw.githubusercontent.com/gosquared/flags/master/flags/flags/shiny/24/Montenegro.png) Montenegrin Cyrillic - *TBD*
-- ![sr](https://raw.githubusercontent.com/gosquared/flags/master/flags/flags/shiny/24/Serbia.png)![br](https://raw.githubusercontent.com/gosquared/flags/master/flags/flags/shiny/24/Bosnia-and-Herzegovina.png) Serbian Cyrillic - *Coming soon (0.3.0)*
-- ![uk](https://raw.githubusercontent.com/gosquared/flags/master/flags/flags/shiny/24/Ukraine.png) Ukrainian Cyrillic - *Coming soon (0.3.0)*
+- ![me](https://raw.githubusercontent.com/gosquared/flags/master/flags/flags/shiny/24/Montenegro.png) Montenegrin Cyrillic - *TBD*
+- ![rs](https://raw.githubusercontent.com/gosquared/flags/master/flags/flags/shiny/24/Serbia.png)![br](https://raw.githubusercontent.com/gosquared/flags/master/flags/flags/shiny/24/Bosnia-and-Herzegovina.png) Serbian Cyrillic - *Coming soon (0.3.0)*
+- ![ua](https://raw.githubusercontent.com/gosquared/flags/master/flags/flags/shiny/24/Ukraine.png) Ukrainian Cyrillic - *Coming soon (0.3.0)*
 
 Other alphabets are not planned for the moment.  
 
