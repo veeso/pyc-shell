@@ -18,6 +18,5 @@
   - 🇧🇾 Belarusian
   - 🇧🇬 Bulgarian
   - 🇰🇷🇰🇵 Hangŭl
-  - 🇯🇵 Hiragana
 - Improved code coverage
 - General performance improvement
