@@ -4,7 +4,7 @@
 
 ~ Use your alphabet with your favourite shell ~  
 Developed by Christian Visintin  
-Current version: [0.1.0 (27/06/2020)](./CHANGELOG.md#pyc-020-27062020)
+Current version: [0.2.0 (27/06/2020)](./CHANGELOG.md#pyc-020-27062020)
 
 ---
 
