@@ -81,7 +81,7 @@ impl Shell {
         //Get process username
         let user: String = whoami::username();
         //Get hostname
-        let hostname: String = whoami::host();
+        let hostname: String = Shell::get_hostname();
         let wrkdir: PathBuf = shell_process.wrkdir.clone();
         Ok(Shell {
             process: shell_process,
@@ -136,7 +136,7 @@ impl Shell {
     /// Refresh Shell Environment information
     pub fn refresh_env(&mut self) {
         self.props.username = whoami::username();
-        self.props.hostname = whoami::host();
+        self.props.hostname = Shell::get_hostname();
         self.props.wrkdir = self.process.wrkdir.clone();
         self.props.exit_status = self.process.exit_status;
         self.props.elapsed_time = self.process.exec_time;
@@ -148,6 +148,16 @@ impl Shell {
     pub fn get_promptline(&mut self, processor: &IOProcessor) -> String {
         self.prompt.get_line(&self.props, processor)
     }
+
+    /// ### get_hostname
+    /// 
+    /// Get hostname without domain
+    fn get_hostname() -> String {
+        let full_hostname: String = whoami::hostname();
+        let tokens: Vec<&str> = full_hostname.split(".").collect();
+        String::from(*tokens.get(0).unwrap())
+    }
+
 }
 
 //@! Shell Props
@@ -319,5 +329,10 @@ mod tests {
         assert_eq!(shell_env.get_state(), ShellState::Terminated);
         //Verify exitcode to be 0
         assert_eq!(shell_env.stop().unwrap(), 2);
+    }
+
+    #[test]
+    fn test_shell_hostname() {
+        assert_ne!(Shell::get_hostname(), String::from(""));
     }
 }

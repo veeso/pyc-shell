@@ -62,7 +62,7 @@ impl ShellProc {
             Err(err) => return Err(err)
         };
         //Fork process
-        match nix::unistd::fork() {
+        match unsafe {nix::unistd::fork()} {
             Ok(nix::unistd::ForkResult::Parent { child, .. }) => {
                 //Prepare echo command
                 //FIXME: handle fish $status
