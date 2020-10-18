@@ -6,8 +6,10 @@
 
 ## Pyc 0.3.0
 
-Released on 27.06.2020
+Released on ??
 
+- New translators:
+  - 🇺🇦 Ukrainian
 - Prompt configuration:
   - new ```commit_prepend``` and ```commit_append``` keys
 - Reverse search for prompt
