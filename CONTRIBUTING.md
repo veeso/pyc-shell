@@ -171,7 +171,18 @@ As we've seen before, a translator is a struct which implements the ```Translato
 
 Let's see the steps to implement the translators, imagine we're going to implement the Emoji alphabet:
 
-1. Define translator
+1. Define translation table
+
+    Define the translations rules as did for example with [Russian](docs/translators/ru.md) and create a markdown document with exact same syntax and reporting the standard used to create the translator.
+
+    To implement a Translator there are basically 4 rules:
+
+    - If a standard for transliteration exists, please follow it as much it's possible.
+    - All characters from source alphabet must be transliterated to latin
+    - All latin characters must have a transliteration to source alphabet
+    - Write tests to cover all its combinations.
+
+2. Define translator
 
     Go to ```src/translator/lang/mod.rs```
 
@@ -207,7 +218,7 @@ Let's see the steps to implement the translators, imagine we're going to impleme
     mod emoji;
     ```
 
-2. Add it to translator constructor
+3. Add it to translator constructor
 
     Move to ```src/translator/mod.rs```
     Add it to new_translator
@@ -221,9 +232,10 @@ Let's see the steps to implement the translators, imagine we're going to impleme
     }
     ```
 
-3. Implement Translator
+4. Implement Translator
 
     First create a new file ```src/translator/lang/{ALPHABET}.rs```.
+    Then following the rules you've defined at point 1, implement it.
 
     ```rs
     use super::{Emoji, Translator};
@@ -238,16 +250,7 @@ Let's see the steps to implement the translators, imagine we're going to impleme
     }
     ```
 
-    To implement a Translator there are basically 4 rules:
-
-    - If a standard for transliteration exists, please follow it as much it's possible.
-    - All characters from source alphabet must be transliterated to latin
-    - All latin characters must have a transliteration to source alphabet
-    - Write tests to cover all its combinations.
-
-    To see how a Translator is implemented consider [Russian.rs](https://github.com/ChristianVisintin/Pyc/blob/master/src/translator/russian.rs) as example.
-
-4. Add it to Prompt Language module
+5. Add it to Prompt Language module
 
     Move to ```src/shell/prompt/modules/language.rs```
 
@@ -268,7 +271,7 @@ Let's see the steps to implement the translators, imagine we're going to impleme
     }
     ```
 
-5. Add it to str_to_language in main
+6. Add it to str_to_language in main
 
     Move to ```src/main.rs```
 
@@ -291,7 +294,7 @@ Let's see the steps to implement the translators, imagine we're going to impleme
     }
     ```
 
-6. Write documentation
+7. Write documentation
 
     Add the alphabet in the README in the ```Supported alphabets```.
 
@@ -299,7 +302,7 @@ Let's see the steps to implement the translators, imagine we're going to impleme
     - ![br](https://raw.githubusercontent.com/gosquared/flags/master/flags/flags/shiny/24/Emoji.png) Emoji - According to emoji standard [EMOJI-2020](https://en.wikipedia.org/wiki/EMOJI-2020) with some differences ([See here](./docs/translators/emoji.md))
     ```
 
-    Finally write the Emoji doc in ```docs/translators/emoji.md```
+    Finally review the Emoji doc in ```docs/translators/emoji.md```
     Here you have to write a lookup table which describes how you transliterate the characters from the two alphabets.
 
 ### Implement Prompt Modules
