@@ -175,12 +175,11 @@ Let's see the steps to implement the translators, imagine we're going to impleme
 
     Define the translations rules as did for example with [Russian](docs/translators/ru.md) and create a markdown document with exact same syntax and reporting the standard used to create the translator.
 
-    To implement a Translator there are basically 4 rules:
+    To implement a Translator there are basically 3 rules:
 
     - If a standard for transliteration exists, please follow it as much it's possible.
     - All characters from source alphabet must be transliterated to latin
     - All latin characters must have a transliteration to source alphabet
-    - Write tests to cover all its combinations.
 
 2. Define translator
 
@@ -235,7 +234,7 @@ Let's see the steps to implement the translators, imagine we're going to impleme
 4. Implement Translator
 
     First create a new file ```src/translator/lang/{ALPHABET}.rs```.
-    Then following the rules you've defined at point 1, implement it.
+    Then following the rules you've defined at point 1, implement it and write tests to cover all its combinations.
 
     ```rs
     use super::{Emoji, Translator};
