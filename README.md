@@ -33,9 +33,11 @@ Current version: [0.3.0 (??/??/2020)](./CHANGELOG.md#pyc-030)
     - [Fish doesn't work](#fish-doesnt-work)
     - [Shell alias not working](#shell-alias-not-working)
     - [Text editors dont' work](#text-editors-dont-work)
-  - [Upcoming Features](#upcoming-features)
-    - [Pyc 0.3.0](#pyc-030)
-    - [Others](#others)
+  - [Upcoming Features and Releases](#upcoming-features-and-releases)
+    - [Development Status](#development-status)
+    - [Planned releases](#planned-releases)
+      - [Pyc 0.3.0](#pyc-030)
+      - [Pyc 0.4.0](#pyc-040)
   - [Contributions](#contributions)
   - [Changelog](#changelog)
   - [License](#license)
@@ -297,21 +299,37 @@ I will try to fix this issue
 
 ---
 
-## Upcoming Features
+## Upcoming Features and Releases
 
-### Pyc 0.3.0
+### Development Status
 
-- New translators:
-  - Devanagari
-  - Serbian
-  - Ukrainian
-- Fish support
+Pyc-shell is an active project, development effort is minimum at the moment due to my spare time and to the little interest from the community. In addition I'm working on other bigger projects.
 
-### Others
+### Planned releases
 
-- other translators:
+No new releases are planned for 2020.
+
+#### Pyc 0.3.0
+
+Planned for December 2020
+
+- translators:
+  - devanagari
+  - hangul
+  - ukrainian
+  - serbian
+- reverse search
+- new configurations keys
+
+#### Pyc 0.4.0
+
+Planned for 2021
+
+- translators:
   - Macedonian
   - Montenegrin
+- Fish support
+- Text editors support
 
 ## Contributions
 
