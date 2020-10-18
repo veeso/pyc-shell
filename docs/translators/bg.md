@@ -10,47 +10,47 @@
 
 The conversion from cyrillic to latin follows the [GOST 7.79-2000](https://en.wikipedia.org/wiki/GOST_7.79-2000) standard with some differences. The entire conversion table is illustrated here below:
 
-| Russian | Latin | Notes                                                                                                                                                  |
-|---------|-------|--------------------------------------------------------------------------------------------------------------------------------------------------------|
-| А       | A     |                                                                                                                                                        |
-| Б       | B     |                                                                                                                                                        |
-| К       | C     | K is translated into C, only when not followed ```'Е','Э','И','Й','Ы','ъ'```, or it is preceeded by ```'К','А','И','О'```. You can force a 'C' using ```'Кь'```  |
-| Ч       | CH    |                                                                                                                                                        |
-| Ц       | Z     |                                                                                                                                                        |
-| Д       | D     |                                                                                                                                                        |
-| Э       | E     |                                                                                                                                                        |
-| Ф       | F     |                                                                                                                                                        |
-| Г       | G     |                                                                                                                                                        |
-| Х       | H     |                                                                                                                                                        |
-| И       | I     |                                                                                                                                                        |
-| Ж       | J     |                                                                                                                                                        |
-| Й       | J     |                                                                                                                                                        |
-| Ё       | JO    |                                                                                                                                                        |
-| К       | K     | K is converted to latin K only when followed by ```'Е','Э','И','Й','Ы','ъ'``` ,or it is NOT preceeded by ```'К','А','И','О'``` .You can force a K using ```'КЪ'``` |
-| Л       | L     |                                                                                                                                                        |
-| М       | M     |                                                                                                                                                        |
-| Н       | N     |                                                                                                                                                        |
-| О       | O     |                                                                                                                                                        |
-| П       | P     |                                                                                                                                                        |
-| Кю      | Q     |                                                                                                                                                        |
-| Р       | R     |                                                                                                                                                        |
-| С       | S     |                                                                                                                                                        |
-| Ш       | SH    |                                                                                                                                                        |
-| Щ       | SHT   |                                                                                                                                                        |
-| Т       | T     |                                                                                                                                                        |
-| У       | U     |                                                                                                                                                        |
-| В       | V     |                                                                                                                                                        |
-| Вь      | W     |                                                                                                                                                        |
-| КС      | X     |                                                                                                                                                        |
-| Ы       | Y     |                                                                                                                                                        |
-| Я       | YA    |                                                                                                                                                        |
-| Е       | YE    |                                                                                                                                                        |
-| Ю       | YU    |                                                                                                                                                        |
-| З       | Z     |                                                                                                                                                        |
-| €       | $     |                                                                                                                                                        |
-| Ъ       | '     |                                                                                                                                                        |
-| Ь       | `     |                                                                                                                                                        |
-| №       | #     |                                                                                                                                                        |
+| Bulgarian | Latin | Notes                                                                                                                                                  |
+|-----------|-------|--------------------------------------------------------------------------------------------------------------------------------------------------------|
+| А         | A     |                                                                                                                                                        |
+| Б         | B     |                                                                                                                                                        |
+| К         | C     | K is translated into C, only when not followed ```'Е','Э','И','Й','Ы','ъ'```, or it is preceeded by ```'К','А','И','О'```. You can force a 'C' using ```'Кь'```  |
+| Ч         | CH    |                                                                                                                                                        |
+| Ц         | Z     |                                                                                                                                                        |
+| Д         | D     |                                                                                                                                                        |
+| Э         | E     |                                                                                                                                                        |
+| Ф         | F     |                                                                                                                                                        |
+| Г         | G     |                                                                                                                                                        |
+| Х         | H     |                                                                                                                                                        |
+| И         | I     |                                                                                                                                                        |
+| Ж         | J     |                                                                                                                                                        |
+| Й         | J     |                                                                                                                                                        |
+| Ё         | JO    |                                                                                                                                                        |
+| К         | K     | K is converted to latin K only when followed by ```'Е','Э','И','Й','Ы','ъ'``` ,or it is NOT preceeded by ```'К','А','И','О'``` .You can force a K using ```'КЪ'``` |
+| Л         | L     |                                                                                                                                                        |
+| М         | M     |                                                                                                                                                        |
+| Н         | N     |                                                                                                                                                        |
+| О         | O     |                                                                                                                                                        |
+| П         | P     |                                                                                                                                                        |
+| Кю        | Q     |                                                                                                                                                        |
+| Р         | R     |                                                                                                                                                        |
+| С         | S     |                                                                                                                                                        |
+| Ш         | SH    |                                                                                                                                                        |
+| Щ         | SHT   |                                                                                                                                                        |
+| Т         | T     |                                                                                                                                                        |
+| У         | U     |                                                                                                                                                        |
+| В         | V     |                                                                                                                                                        |
+| Вь        | W     |                                                                                                                                                        |
+| КС        | X     |                                                                                                                                                        |
+| Ы         | Y     |                                                                                                                                                        |
+| Я         | YA    |                                                                                                                                                        |
+| Е         | YE    |                                                                                                                                                        |
+| Ю         | YU    |                                                                                                                                                        |
+| З         | Z     |                                                                                                                                                        |
+| €         | $     |                                                                                                                                                        |
+| Ъ         | '     |                                                                                                                                                        |
+| Ь         | `     |                                                                                                                                                        |
+| №         | #     |                                                                                                                                                        |
 
 ## Latin to Cyrillic
 
