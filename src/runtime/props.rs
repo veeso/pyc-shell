@@ -23,7 +23,7 @@
 *
 */
 
-use super::{print_err, print_out, resolve_command};
+use super::{print_err, print_out, console_fmt, resolve_command};
 
 use crate::config::Config;
 use crate::shell::Shell;
@@ -43,7 +43,8 @@ pub(super) struct RuntimeProps {
     interactive: bool,
     last_state: ShellState,
     state_changed: bool,
-    rev_search: bool,
+    rev_search: Option<String>, // Reverse search match
+    rev_search_idx: usize, // Reverse search last match index
     history_index: usize
 }
 
@@ -60,7 +61,8 @@ impl RuntimeProps {
             interactive: interactive,
             last_state: ShellState::Unknown,
             state_changed: true,
-            rev_search: false,
+            rev_search: None,
+            rev_search_idx: 0,
             history_index: 0
         }
     }
@@ -215,6 +217,8 @@ impl RuntimeProps {
                             self.clear_buffer();
                             //Reset history index
                             self.reset_history_index();
+                            // Unset reverse search
+                            self.rev_search = None;
                             console::println(String::new());
                             console::print(format!("{} ", shell.get_promptline(&self.processor)));
                         },
@@ -231,7 +235,13 @@ impl RuntimeProps {
                             self.move_right();
                         },
                         7 => { //CTRL + G
-                            //TODO: exit rev search
+                            // exit rev search (and clear buffer)
+                            self.rev_search = None;
+                            self.rev_search_idx = 0;
+                            //Abort input and go to newline
+                            self.clear_buffer();
+                            console::println(String::new());
+                            console::print(format!("{} ", shell.get_promptline(&self.processor)));
                         },
                         8 => { //CTRL + H
                             self.backspace();
@@ -248,7 +258,27 @@ impl RuntimeProps {
                             console::print(format!("{} {}", shell.get_promptline(&self.processor), buffer::chars_to_string(&self.input_buffer)));
                         },
                         18 => { // CTRL + R
-                            //TODO: rev search
+                            // If reverse search is empty, set reverse search match
+                            if self.rev_search.is_none() {
+                                // Set reverse search to current input buffer
+                                let curr_stdin: String = buffer::chars_to_string(&self.input_buffer);
+                                self.rev_search = Some(curr_stdin.clone());
+                                // Set index to first element (0)
+                                self.rev_search_idx = 0;
+                                // Write reverse-i-search prompt
+                                console::rewrite(format!("{}`{}':  ", console_fmt(String::from("(reverse-i-search)"), self.config.output_config.translate_output, &self.processor),  curr_stdin), curr_stdin.len());
+                            }
+                            // Find current input in history starting from bottom
+                            if let Some(matched) = self.search_reverse(shell) {
+                                // Set matched as current input
+                                let prev_length: usize = self.input_buffer.len();
+                                self.input_buffer.clear();
+                                self.input_buffer = matched.chars().collect();
+                                // Set cursor to new length
+                                self.input_buffer_cursor = self.input_buffer.len();
+                                // Print prompt
+                                console::rewrite(matched, prev_length);
+                            }
                         },
                         _ => {} //Unhandled
                     }
@@ -273,6 +303,12 @@ impl RuntimeProps {
                     self.input_buffer.insert(self.input_buffer_cursor, ch);
                     self.input_buffer_cursor += 1;
                 }
+                // If rev search, put new input buffer to reverse search
+                if self.rev_search.is_some() {
+                    // Set reverse search to current input buffer
+                    let curr_stdin: String = buffer::chars_to_string(&self.input_buffer);
+                    self.rev_search = Some(curr_stdin.clone());
+                }
                 //Print key
                 console::print(k);
             },
@@ -293,6 +329,8 @@ impl RuntimeProps {
     fn perform_interactive_enter(&mut self, shell: &mut Shell) {
         //Reset history index
         self.reset_history_index();
+        // Exit reverse search
+        self.rev_search = None;
         //Newline first
         console::println(String::new());
         //Convert input buffer to string
@@ -494,6 +532,32 @@ impl RuntimeProps {
             format!("{}", index)
         }
     }
+
+    /// ### search_reverse
+    /// 
+    /// Perform reverse search
+    /// Returns matched command in history
+    
+    fn search_reverse(&mut self, shell: &Shell) -> Option<String> {
+        let current_match: String = match &self.rev_search {
+            Some(s) => s.clone(),
+            None => return None
+        };
+        // Iterate over history
+        for i in self.rev_search_idx..shell.history.len() {
+            // Check if element at index matches (and is different than previous match)
+            if let Some(check_match) = shell.history.at(i) {
+                if check_match.contains(current_match.as_str()) {
+                    // Update index
+                    self.rev_search_idx = i + 1; // i + 1, in order to avoid same result at next cycle
+                    // Return match
+                    return Some(check_match.clone())
+                }
+            }
+        }
+        // Return None if not found
+        None
+    }
 }
 
 #[cfg(test)]
@@ -518,7 +582,8 @@ mod tests {
         assert_eq!(props.interactive, true);
         assert_eq!(props.last_state, ShellState::Unknown);
         assert_eq!(props.state_changed, true);
-        assert_eq!(props.rev_search, false);
+        assert_eq!(props.rev_search, None);
+        assert_eq!(props.rev_search_idx, 0);
         assert_eq!(props.history_index, 0);
     }
 
@@ -668,6 +733,21 @@ mod tests {
         assert_eq!(props.input_buffer.len(), 0);
         assert_eq!(props.input_buffer_cursor, 0);
         assert_eq!(props.history_index, 0); //Reset history index
+        //CTRL R ( reverse search; set input buffer to ifc)
+        props.input_buffer = vec!['i', 'f', 'c'];
+        props.input_buffer_cursor = 3;
+        shell.history.push(String::from("ifconfig eth0"));
+        props.handle_input_event(InputEvent::Ctrl(18), &mut shell);
+        // Input buffer should now be 'ifconfig eth'
+        assert_eq!(props.input_buffer, vec!['i', 'f', 'c', 'o', 'n', 'f', 'i', 'g', ' ', 'e', 't', 'h', '0']);
+        assert_eq!(props.rev_search, Some(String::from("ifc")));
+        assert_eq!(props.rev_search_idx, 1); // 0 + 1
+        //CTRL G ( exit rev-search )
+        props.handle_input_event(InputEvent::Ctrl(7), &mut shell);
+        assert_eq!(props.input_buffer.len(), 0);
+        assert_eq!(props.input_buffer_cursor, 0);
+        assert_eq!(props.rev_search, None);
+        assert_eq!(props.rev_search_idx, 0); // 0
         //CTRL D
         props.input_buffer = vec!['l', 's', ' ', '-', 'l'];
         props.input_buffer_cursor = 5;
@@ -682,8 +762,6 @@ mod tests {
         props.input_buffer_cursor = 1;
         props.handle_input_event(InputEvent::Ctrl(6), &mut shell);
         assert_eq!(props.input_buffer_cursor, 2);
-        //CTRL G TODO: rev search
-        props.handle_input_event(InputEvent::Ctrl(7), &mut shell);
         //CTRL H
         props.handle_input_event(InputEvent::Ctrl(8), &mut shell);
         assert_eq!(props.input_buffer, vec!['l', ' ', '-']);
@@ -696,8 +774,6 @@ mod tests {
         props.handle_input_event(InputEvent::Ctrl(12), &mut shell);
         assert_eq!(props.input_buffer, vec!['l']);
         assert_eq!(props.input_buffer_cursor, 1);
-        //CTRL R TODO: rev search
-        props.handle_input_event(InputEvent::Ctrl(18), &mut shell);
         //Unhandled ctrl key
         props.handle_input_event(InputEvent::Ctrl(255), &mut shell);
         assert_eq!(props.input_buffer, vec!['l']);
@@ -841,6 +917,31 @@ mod tests {
         assert_eq!(props.indent_history_index(10), String::from("  10"));
         assert_eq!(props.indent_history_index(100), String::from(" 100"));
         assert_eq!(props.indent_history_index(1000), String::from("1000"));
+    }
+
+    #[test]
+    fn test_runtimeprops_reverse_search() {
+        let mut props: RuntimeProps = new_runtime_props(true);
+        let mut shell: Shell = Shell::start(String::from("sh"), Vec::new(), &props.config.prompt_config).unwrap();
+        sleep(Duration::from_millis(500)); //DON'T REMOVE THIS SLEEP
+        props.update_state(ShellState::Idle);
+        //Prepare history
+        shell.history.push(String::from("pwd"));
+        shell.history.push(String::from("ifconfig"));
+        shell.history.push(String::from("ls -l"));
+        shell.history.push(String::from("ls"));
+        shell.history.push(String::from("ls -la"));
+        shell.history.push(String::from("lsd")); // Newer ls match
+        shell.history.push(String::from("if")); // Newer if match
+        // Perform reverse search
+        props.rev_search = Some(String::from("ls"));
+        props.rev_search_idx = 0;
+        assert_eq!(props.search_reverse(&mut shell), Some(String::from("lsd")));
+        assert_eq!(props.search_reverse(&mut shell), Some(String::from("ls -la")));
+        assert_eq!(props.search_reverse(&mut shell), Some(String::from("ls")));
+        assert_eq!(props.search_reverse(&mut shell), Some(String::from("ls -l")));
+        assert_eq!(props.search_reverse(&mut shell), None);
+        assert_eq!(props.search_reverse(&mut shell), None); // No panic?
     }
 
     fn new_runtime_props(interactive: bool) -> RuntimeProps {

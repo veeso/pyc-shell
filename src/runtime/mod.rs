@@ -312,6 +312,17 @@ fn print_out(out: String, to_cyrillic: bool, processor: &IOProcessor) {
     };
 }
 
+/// ### console_fmt
+/// 
+/// Format console message
+
+fn console_fmt(out: String, to_cyrillic: bool, processor: &IOProcessor) -> String {
+    match to_cyrillic {
+        true => format!("{}", processor.text_to_cyrillic(&out)),
+        false => format!("{}", out)
+    }
+}
+
 /// ### shellsignal_to_signal
 /// 
 /// Converts a signal received on prompt to a UnixSignal
@@ -418,6 +429,14 @@ mod tests {
         //Err
         print_err(String::from("Hello"), true, &iop);
         print_err(String::from("Hello"), false, &iop);
+    }
+
+    #[test]
+    fn test_runtime_console_fmt() {
+        let iop: IOProcessor = IOProcessor::new(Language::Russian, new_translator(Language::Russian));
+        //Out
+        assert_eq!(console_fmt(String::from("Hello"), true, &iop), String::from("Хэлло"));
+        assert_eq!(console_fmt(String::from("Hello"), false, &iop), String::from("Hello"));
     }
 
     #[test]
