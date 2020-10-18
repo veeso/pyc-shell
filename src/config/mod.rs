@@ -63,6 +63,8 @@ pub struct PromptConfig {
     pub rc_err: String,
     pub git_branch: String,
     pub git_commit_ref: usize,
+    pub git_commit_prepend: Option<String>,
+    pub git_commit_append: Option<String>
 }
 
 #[derive(Copy, Clone, PartialEq, fmt::Debug)]
@@ -323,6 +325,8 @@ impl PromptConfig {
             rc_err: String::from("✖"),
             git_branch: String::from("on "),
             git_commit_ref: 8,
+            git_commit_append: None,
+            git_commit_prepend: None
         }
     }
 
@@ -406,6 +410,18 @@ impl PromptConfig {
                 Ok(ret) => ret,
                 Err(err) => return Err(err),
             };
+        //Git commit prepend
+        let git_commit_prepend: Option<String> =
+            match ConfigParser::get_string(&git, String::from("commit_prepend")) {
+                Ok(ret) => Some(ret),
+                Err(_) => None,
+            };
+        //Git commit append
+        let git_commit_append: Option<String> =
+            match ConfigParser::get_string(&git, String::from("commit_append")) {
+                Ok(ret) => Some(ret),
+                Err(_) => None,
+            };
         Ok(PromptConfig {
             prompt_line: prompt_line,
             history_size: history_size,
@@ -417,6 +433,8 @@ impl PromptConfig {
             rc_err: rc_err,
             git_branch: git_branch,
             git_commit_ref: git_commit_ref,
+            git_commit_append: git_commit_append,
+            git_commit_prepend: git_commit_prepend
         })
     }
 }
@@ -438,6 +456,8 @@ mod tests {
         assert_eq!(prompt_config.break_str, String::from("❯"));
         assert_eq!(prompt_config.git_branch, String::from("on "));
         assert_eq!(prompt_config.git_commit_ref, 8);
+        assert_eq!(prompt_config.git_commit_prepend, None);
+        assert_eq!(prompt_config.git_commit_append, None);
         assert_eq!(prompt_config.history_size, 256);
         assert_eq!(prompt_config.min_duration, 2000);
         assert_eq!(prompt_config.rc_err, String::from("✖"));
@@ -614,7 +634,7 @@ mod tests {
 
     #[test]
     fn test_config_prompt() {
-        let config: String = String::from("prompt:\n  prompt_line: \"${USER} on ${HOSTNAME} in ${WRKDIR} ${GIT_BRANCH} (${GIT_COMMIT}) ${CMD_TIME}\"\n  history_size: 1024\n  translate: true\n  break:\n    enabled: false\n    with: \">\"\n  duration:\n    min_elapsed_time: 5000\n  rc:\n    ok: \"^_^\"\n    error: \"x_x\"\n  git:\n    branch: \"on \"\n    commit_ref_len: 4\n");
+        let config: String = String::from("prompt:\n  prompt_line: \"${USER} on ${HOSTNAME} in ${WRKDIR} ${GIT_BRANCH} (${GIT_COMMIT}) ${CMD_TIME}\"\n  history_size: 1024\n  translate: true\n  break:\n    enabled: false\n    with: \">\"\n  duration:\n    min_elapsed_time: 5000\n  rc:\n    ok: \"^_^\"\n    error: \"x_x\"\n  git:\n    branch: \"on \"\n    commit_ref_len: 4\n    commit_prepend: \"(\"\n    commit_append: \")\"\n");
         let config: Config = Config::parse_config_str(config).ok().unwrap();
         //Verify config parameters
         let prompt_config: PromptConfig = config.prompt_config;
@@ -623,6 +643,8 @@ mod tests {
         assert_eq!(prompt_config.break_str, String::from(">"));
         assert_eq!(prompt_config.git_branch, String::from("on "));
         assert_eq!(prompt_config.git_commit_ref, 4);
+        assert_eq!(prompt_config.git_commit_prepend, Some(String::from("(")));
+        assert_eq!(prompt_config.git_commit_append, Some(String::from(")")));
         assert_eq!(prompt_config.history_size, 1024);
         assert_eq!(prompt_config.min_duration, 5000);
         assert_eq!(prompt_config.rc_err, String::from("x_x"));

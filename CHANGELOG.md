@@ -8,6 +8,8 @@
 
 Released on 27.06.2020
 
+- Prompt configuration:
+  - new ```commit_prepend``` and ```commit_append``` keys
 - Reverse search for prompt
   - KeyBinding: CTRL+R (enter reverse search)
   - KeyBinding: CTRL+G (exit reverse search)

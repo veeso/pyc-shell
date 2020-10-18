@@ -22,3 +22,5 @@ prompt:
   git:
     branch: "on  "
     commit_ref_len: 8
+    commit_prepend: "("
+    commit_append: ")"

@@ -153,6 +153,8 @@ prompt:
   git:
     branch: "on  "
     commit_ref_len: 8
+    commit_prepend: "("
+    commit_append: ")"
 ```
 
 - shell: Shell configuration
@@ -180,6 +182,8 @@ prompt:
   - git: git module
     - branch: string to write before writing branch name
     - commit_ref_len: length of commit reference
+    - commit_prepend: string to prepend to commit ref
+    - commit_append: string to append to commit ref
 
 ### Prompt Line Configuration
 
