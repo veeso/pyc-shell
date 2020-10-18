@@ -64,6 +64,16 @@ pub fn language_to_str(language: Language) -> String {
             PromptColor::Red.to_string(),
             lang_str.chars().nth(2).unwrap_or(' '),
             PromptColor::Reset.to_string()
+        )),
+        Language::Ukrainian => String::from(format!(
+            "{}{}{}{}{}{}{}",
+            PromptColor::Cyan.to_string(),
+            lang_str.chars().nth(0).unwrap_or(' '),
+            PromptColor::Yellow.to_string(),
+            lang_str.chars().nth(1).unwrap_or(' '),
+            PromptColor::Cyan.to_string(),
+            lang_str.chars().nth(2).unwrap_or(' '),
+            PromptColor::Reset.to_string()
         ))
     }
 }
@@ -87,5 +97,9 @@ mod tests {
         let expected_str = String::from("\x1b[37mр\x1b[34mу\x1b[31mс\x1b[0m");
         println!("{}", language_to_str(Language::Russian));
         assert_eq!(language_to_str(Language::Russian), expected_str);
+        // Ukrainian
+        let expected_str = String::from("\x1b[36mу\x1b[33mк\x1b[36mр\x1b[0m");
+        println!("{}", language_to_str(Language::Ukrainian));
+        assert_eq!(language_to_str(Language::Ukrainian), expected_str);
     }
 }

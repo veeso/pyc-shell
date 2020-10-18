@@ -25,8 +25,6 @@ The conversion from cyrillic to latin follows the [GOST 7.79-2000](https://en.wi
 | И, І      | I     |                                                                                                                                                        |
 | Ї         | YI    |                                                                                                                                                        |
 | Ж         | J     |                                                                                                                                                        |
-| Й         | J     |                                                                                                                                                        |
-| Ё         | JO    |                                                                                                                                                        |
 | К         | K     | K is converted to latin K only when followed by ```'Е','Э','И','Й','Ы','ъ'``` ,or it is NOT preceeded by ```'К','А','И','О'``` .You can force a K using ```'КЪ'``` |
 | Л         | L     |                                                                                                                                                        |
 | М         | M     |                                                                                                                                                        |
@@ -43,7 +41,7 @@ The conversion from cyrillic to latin follows the [GOST 7.79-2000](https://en.wi
 | В         | V     |                                                                                                                                                        |
 | Вь        | W     |                                                                                                                                                        |
 | КС        | X     |                                                                                                                                                        |
-| Ы         | Y     |                                                                                                                                                        |
+| Й         | Y     |                                                                                                                                                        |
 | Я         | YA    |                                                                                                                                                        |
 | Є         | YE    |                                                                                                                                                        |
 | Ю         | YU    |                                                                                                                                                        |
@@ -67,10 +65,9 @@ The conversion from cyrillic to latin follows the [GOST 7.79-2000](https://en.wi
 | G     | Г         |                                                   |
 | G     | ДЖ        | If g is followed by Y, E, I                       |
 | H     | Х         |                                                   |
-| I     | И         | Unless if followed be U, A, O or preceeded by 'y' |
+| I     | И         | Unless if followed be U, A or preceeded by 'y'    |
 | IU    | Ю         |                                                   |
 | IA    | Я         |                                                   |
-| IO    | Ё         |                                                   |
 | J     | Ж         |                                                   |
 | K     | К         |                                                   |
 | L     | Л         |                                                   |
@@ -88,7 +85,7 @@ The conversion from cyrillic to latin follows the [GOST 7.79-2000](https://en.wi
 | V     | В         |                                                   |
 | W     | У         |                                                   |
 | X     | КС        |                                                   |
-| Y     | Ы         | Unless if followed by E                           |
+| Y     | Й         | Unless if followed by E                           |
 | YE    | Є         |                                                   |
 | YI    | Ї         |                                                   |
 | Z     | З         |                                                   |

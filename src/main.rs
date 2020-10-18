@@ -63,6 +63,7 @@ fn str_to_language(lang: String) -> Language {
         "ru" | "рус" => Language::Russian,
         "by" | "бел" => Language::Belarusian,
         "bg" | "бг" | "блг" => Language::Bulgarian,
+        "ua" | "укр" => Language::Ukrainian,
         _ => {
             eprintln!(
                 "{}",
