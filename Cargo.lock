@@ -296,7 +296,7 @@ checksum = "c36fa947111f5c62a733b652544dd0016a43ce89619538a8ef92724a6f501a20"
 
 [[package]]
 name = "pyc-shell"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "ansi_term",
  "dirs",
