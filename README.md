@@ -307,8 +307,6 @@ Pyc-shell is an active project, development effort is minimum at the moment due 
 
 ### Planned releases
 
-No new releases are planned for 2020.
-
 #### Pyc 0.3.0
 
 Planned for December 2020
