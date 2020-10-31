@@ -60,7 +60,7 @@ The conversion from cyrillic to latin follows the [GOST 7.79-2000](https://en.wi
 | CH    | Ч         |                                                   |
 | Ч     | CH        |                                                   |
 | D     | Д         |                                                   |
-| E     | Е         | Unkess if preceeded by 'Y'                        |
+| E     | Е         | Unless if preceeded by 'Y'                        |
 | F     | Ф         |                                                   |
 | G     | Г         |                                                   |
 | G     | ДЖ        | If g is followed by Y, E, I                       |

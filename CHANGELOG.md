@@ -9,6 +9,7 @@
 Released on ??
 
 - New translators:
+  - 🇷🇸 Serbian
   - 🇺🇦 Ukrainian
 - Prompt configuration:
   - new ```commit_prepend``` and ```commit_append``` keys

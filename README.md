@@ -72,22 +72,22 @@ Basically Рус is a shell interface, which means that it reads the user input,
 
 - ![by](https://raw.githubusercontent.com/gosquared/flags/master/flags/flags/shiny/24/Belarus.png) Belarusian Cyrillic - According to belarusian cyrillic [GOST 7.79-2000](https://en.wikipedia.org/wiki/GOST_7.79-2000) with some differences ([See here](./docs/translators/by.md))
 - ![bg](https://raw.githubusercontent.com/gosquared/flags/master/flags/flags/shiny/24/Bulgaria.png) Bulgarian Cyrillic - According to bulgarian cyrillic [GOST 7.79-2000](https://en.wikipedia.org/wiki/GOST_7.79-2000) with some differences ([See here](./docs/translators/ru.md))
+- ![rs](https://raw.githubusercontent.com/gosquared/flags/master/flags/flags/shiny/24/Serbia.png)![br](https://raw.githubusercontent.com/gosquared/flags/master/flags/flags/shiny/24/Bosnia-and-Herzegovina.png) Serbian Cyrillic - According to serbian cyrillic [GOST 7.79-2000](https://en.wikipedia.org/wiki/GOST_7.79-2000) with some differences ([See here](./docs/translators/rs.md))
 - ![ru](https://raw.githubusercontent.com/gosquared/flags/master/flags/flags/shiny/24/Russia.png) Russian Cyrillic - According to russian cyrillic [GOST 7.79-2000](https://en.wikipedia.org/wiki/GOST_7.79-2000) with some differences ([See here](./docs/translators/ru.md))
 - ![ua](https://raw.githubusercontent.com/gosquared/flags/master/flags/flags/shiny/24/Ukraine.png) Ukrainian Cyrillic - According to ukrainian cyrillic [GOST 7.79-2000](https://en.wikipedia.org/wiki/GOST_7.79-2000) with some differences ([See here](./docs/translators/ua.md))
 
 ### Planned alphabets
 
-- ![in](https://raw.githubusercontent.com/gosquared/flags/master/flags/flags/shiny/24/India.png) Devanagari - *Coming soon (0.3.0)*
 - ![kr](https://raw.githubusercontent.com/gosquared/flags/master/flags/flags/shiny/24/South-Korea.png) Hangŭl - According to [Revised Romanization of Korean](https://en.wikipedia.org/wiki/Revised_Romanization_of_Korean) - *Coming soon (0.3.0)*
-- ![mk](https://raw.githubusercontent.com/gosquared/flags/master/flags/flags/shiny/24/Macedonia.png) Macedonian Cyrillic - *Coming soon (0.4.0)*
-- ![me](https://raw.githubusercontent.com/gosquared/flags/master/flags/flags/shiny/24/Montenegro.png) Montenegrin Cyrillic - *Coming soon (0.4.0)*
-- ![rs](https://raw.githubusercontent.com/gosquared/flags/master/flags/flags/shiny/24/Serbia.png)![br](https://raw.githubusercontent.com/gosquared/flags/master/flags/flags/shiny/24/Bosnia-and-Herzegovina.png) Serbian Cyrillic - *Coming soon (0.3.0)*
+- ![in](https://raw.githubusercontent.com/gosquared/flags/master/flags/flags/shiny/24/India.png) Devanagari - *Planned for 2021 (0.4.0)*
+- ![mk](https://raw.githubusercontent.com/gosquared/flags/master/flags/flags/shiny/24/Macedonia.png) Macedonian Cyrillic - *Planned for 2021 (0.4.0)*
+- ![me](https://raw.githubusercontent.com/gosquared/flags/master/flags/flags/shiny/24/Montenegro.png) Montenegrin Cyrillic - *Planned for 2021 (0.4.0)*
 
 Other alphabets are not planned for the moment.  
 
 ---
 
-Can't find yours? Contribute to the project implementing it 😀! [Read More](./CONTRIBUTING.md)
+Can't find yours? Contribute to the project implementing it 😀 ! [Read More](./CONTRIBUTING.md)
 
 ## Installation
 
@@ -166,6 +166,7 @@ prompt:
   - **Belarusian**: by | бел
   - **Bulgarian**: bg | бг | блг
   - **Russian**: ru | рус
+  - **Serbian**: rs | срб
   - **Ukrainian** : ua | укр
 - output: output configuration
   - translate: indicates to pyc whether the output has to be converted to cyrillic or not
@@ -236,9 +237,11 @@ The developer documentation can be found on Rust Docs at <https://docs.rs/pyc-sh
 
 The documentation related to translator modules can be instead found here:
 
-- [Belarusian transliteration](docs/by.md)
-- [Bulgarian transliteration](docs/bg.md)
-- [Russian transliteration](docs/ru.md)
+- [Belarusian transliteration](docs/translators/by.md)
+- [Bulgarian transliteration](docs/translators/bg.md)
+- [Russian transliteration](docs/translators/ru.md)
+- [Serbian transliteration](docs/translators/rs.md)
+- [Ukrainian transliteration](docs/translators/ua.md)
 
 ## Escape text
 
@@ -315,6 +318,7 @@ Pyc-shell is an active project, development effort is minimum at the moment due 
 Planned for 2021
 
 - translators:
+  - Devanagari
   - Macedonian
   - Montenegrin
 - Fish support

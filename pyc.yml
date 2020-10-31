@@ -8,7 +8,7 @@ alias:
 output:
   translate: true
 prompt:
-  prompt_line: "${KBOLD}${KYEL}${USER}${KRST} on ${KBOLD}${KGRN}${HOSTNAME}${KRST} in ${KBOLD}${KCYN}${WRKDIR}${KRST} ${KBOLD}${KMAG}${GIT_BRANCH} ${GIT_COMMIT}${KRST} ${KYEL}${CMD_TIME}${KRST}"
+  prompt_line: "${LANG} ${KBOLD}${KYEL}${USER}${KRST} on ${KBOLD}${KGRN}${HOSTNAME}${KRST} in ${KBOLD}${KCYN}${WRKDIR}${KRST} ${KBOLD}${KMAG}${GIT_BRANCH} ${GIT_COMMIT}${KRST} ${KYEL}${CMD_TIME}${KRST}"
   history_size: 256
   translate: false
   break:

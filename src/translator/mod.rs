@@ -54,6 +54,7 @@ pub fn new_translator(language: Language) -> Box<dyn Translator> {
     Language::Belarusian => Box::new(lang::Belarusian {}),
     Language::Bulgarian => Box::new(lang::Bulgarian {}),
     Language::Russian => Box::new(lang::Russian {}),
+    Language::Serbian => Box::new(lang::Serbian {}),
     Language::Ukrainian => Box::new(lang::Ukrainian {}),
   }
 }
@@ -69,6 +70,7 @@ mod tests {
     let _ = new_translator(Language::Belarusian);
     let _ = new_translator(Language::Bulgarian);
     let _ = new_translator(Language::Russian);
+    let _ = new_translator(Language::Serbian);
     let _ = new_translator(Language::Ukrainian);
   }
 
