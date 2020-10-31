@@ -9,7 +9,6 @@ rust:
 jobs:
   allow_failures:
     - rust: nightly
-    - rust: beta
 before_cache: |
   if [[ "$TRAVIS_RUST_VERSION" == stable ]]; then
     cargo install cargo-tarpaulin
