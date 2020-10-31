@@ -84,6 +84,14 @@ pub fn language_to_str(language: Language) -> String {
             PromptColor::Cyan.to_string(),
             lang_str.chars().nth(2).unwrap_or(' '),
             PromptColor::Reset.to_string()
+        )),
+        Language::Nil => String::from(format!(
+            "{}{}{}{}{}",
+            PromptColor::Blink.to_string(),
+            lang_str.chars().nth(0).unwrap_or(' '),
+            lang_str.chars().nth(1).unwrap_or(' '),
+            lang_str.chars().nth(2).unwrap_or(' '),
+            PromptColor::Reset.to_string()
         ))
     }
 }
@@ -115,5 +123,9 @@ mod tests {
         let expected_str = String::from("\x1b[36mу\x1b[33mк\x1b[36mр\x1b[0m");
         println!("{}", language_to_str(Language::Ukrainian));
         assert_eq!(language_to_str(Language::Ukrainian), expected_str);
+        // Nil
+        let expected_str = String::from("\x1b[5mnil\x1b[0m");
+        println!("{}", language_to_str(Language::Nil));
+        assert_eq!(language_to_str(Language::Nil), expected_str);
     }
 }
