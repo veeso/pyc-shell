@@ -62,11 +62,15 @@ Basically Рус is a shell interface, which means that it reads the user input,
 ## Features
 
 - Different alphabets support
-- Possibility to easily implement new translators for other cyrillic alphabets.
-- Conversion of both Input and outputs.
+- Implementing translators for other alphabets is extremely easy.
+- Conversion of both input and output.
 - Escaping for latin strings.
 - Interactive, oneshot and file modes.
-- Customizations and aliases
+- Prompt is fully customizable
+- Shell aliases support
+- Supports bash, sh, zsh and ~~fish~~
+- ~~Allows you to use your shell aliases and functions~~
+- ~~Text editors support~~
 
 ## Supported alphabets
 
