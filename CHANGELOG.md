@@ -12,6 +12,10 @@ Released on ??
   - 🇺🇦 Ukrainian
 - Prompt configuration:
   - new ```commit_prepend``` and ```commit_append``` keys
+  - New colors keys:
+    - KBOLD
+    - KBLINK
+    - KSELECT
 - Reverse search for prompt
   - KeyBinding: CTRL+R (enter reverse search)
   - KeyBinding: CTRL+G (exit reverse search)

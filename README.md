@@ -208,17 +208,20 @@ Each prompt line key must have the following syntax ```${VAR_NAME}```
 
 #### Colors keys
 
-| Key      | Description |
-|----------|-------------|
-| KYEL     | Yellow      |
-| KRED     | Red         |
-| KBLU     | Blue        |
-| KMAG     | Magenta     |
-| KGRN     | Green       |
-| KWHT     | White       |
-| KBLK     | Black       |
-| KGRY     | Gray        |
-| KRST     | Reset       |
+| Key      | Description   |
+|----------|---------------|
+| KYEL     | Yellow        |
+| KRED     | Red           |
+| KBLU     | Blue          |
+| KMAG     | Magenta       |
+| KGRN     | Green         |
+| KWHT     | White         |
+| KBLK     | Black         |
+| KGRY     | Gray          |
+| KBOLD    | Bold text     |
+| KBLINK   | Blinking text |
+| KSELECT  | Selected text |
+| KRST     | Reset         |
 
 #### Git keys
 
