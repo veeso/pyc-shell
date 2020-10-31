@@ -82,7 +82,6 @@ Basically Рус is a shell interface, which means that it reads the user input,
 
 ### Planned alphabets
 
-- ![kr](https://raw.githubusercontent.com/gosquared/flags/master/flags/flags/shiny/24/South-Korea.png) Hangŭl - According to [Revised Romanization of Korean](https://en.wikipedia.org/wiki/Revised_Romanization_of_Korean) - *Coming soon (0.3.0)*
 - ![in](https://raw.githubusercontent.com/gosquared/flags/master/flags/flags/shiny/24/India.png) Devanagari - *Planned for 2021 (0.4.0)*
 - ![mk](https://raw.githubusercontent.com/gosquared/flags/master/flags/flags/shiny/24/Macedonia.png) Macedonian Cyrillic - *Planned for 2021 (0.4.0)*
 - ![me](https://raw.githubusercontent.com/gosquared/flags/master/flags/flags/shiny/24/Montenegro.png) Montenegrin Cyrillic - *Planned for 2021 (0.4.0)*
