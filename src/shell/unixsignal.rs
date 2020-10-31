@@ -110,7 +110,7 @@ impl UnixSignal {
     }
 
     #[cfg(target_os = "macos")]
-    #[cfg_attr(tarpaulin, skip)]
+    #[cfg(not(tarpaulin_include))]
     /// ### to_nix_signal
     /// 
     /// Converts a UnixSignal to a nix::signal
