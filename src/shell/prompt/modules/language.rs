@@ -108,7 +108,7 @@ mod tests {
         println!("{}", language_to_str(Language::Russian));
         assert_eq!(language_to_str(Language::Russian), expected_str);
         // Serbian
-        let expected_str = String::from("\x1b[31mр\x1b[34mу\x1b[37mс\x1b[0m");
+        let expected_str = String::from("\x1b[31mс\x1b[34mр\x1b[37mб\x1b[0m");
         println!("{}", language_to_str(Language::Serbian));
         assert_eq!(language_to_str(Language::Serbian), expected_str);
         // Ukrainian
