@@ -473,7 +473,29 @@ mod tests {
         let config_file: tempfile::NamedTempFile = write_config_file_en();
         let config_file_path: PathBuf = PathBuf::from(config_file.path().to_str().unwrap());
         println!("Generated config file: {}", config_file_path.display());
-        assert!(Config::parse_config(config_file_path).is_ok())
+        let config: Result<Config, ConfigError> =Config::parse_config(config_file_path);
+        assert!(config.is_ok());
+        let config: Config = config.ok().unwrap();
+        // Verify parameters
+        assert!(config.get_alias(&String::from("чд")).is_some());
+        assert_eq!(config.output_config.translate_output, true);
+        assert_eq!(config.language, String::from("ru"));
+        let prompt_config: PromptConfig = config.prompt_config;
+        assert_eq!(prompt_config.prompt_line, String::from("${USER}@${HOSTNAME}:${WRKDIR}$"));
+        assert_eq!(prompt_config.break_enabled, false);
+        assert_eq!(prompt_config.break_str, String::from("❯"));
+        assert_eq!(prompt_config.git_branch, String::from("on "));
+        assert_eq!(prompt_config.git_commit_ref, 8);
+        assert_eq!(prompt_config.git_commit_prepend, None);
+        assert_eq!(prompt_config.git_commit_append, None);
+        assert_eq!(prompt_config.history_size, 256);
+        assert_eq!(prompt_config.min_duration, 2000);
+        assert_eq!(prompt_config.rc_err, String::from("✖"));
+        assert_eq!(prompt_config.rc_ok, String::from("✔"));
+        assert_eq!(prompt_config.translate, false);
+        assert_eq!(config.shell_config.exec, String::from("bash"));
+        assert_eq!(config.shell_config.args.len(), 0);
+        
     }
 
     #[test]
