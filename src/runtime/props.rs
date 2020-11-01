@@ -26,8 +26,7 @@
 use super::imiop::{self, Imiop};
 
 use crate::config::Config;
-use crate::shell::proc::ShellState;
-use crate::shell::Shell;
+use crate::shell::{Shell, ShellState};
 use crate::translator::ioprocessor::IOProcessor;
 use crate::translator::lang::Language;
 use crate::translator::new_translator;
@@ -123,11 +122,10 @@ impl RuntimeProps {
     fn switch_imiop(&mut self) {
         // Change if last state changed
         if self.get_state_changed() {
-            // TODO: check environmental shell state
-            // If in standard state...
+            // TODO: text editor
             // Check last_state
             self.imiop = match self.get_last_state() {
-                ShellState::Idle => Box::new(imiop::shiop::ShIop::new(
+                ShellState::Shell => Box::new(imiop::shiop::ShIop::new(
                     self.config.clone(),
                     IOProcessor::new(self.language, new_translator(self.language)),
                 )),
@@ -172,8 +170,8 @@ mod tests {
         assert_eq!(props.get_state_changed(), true);
         props.report_state_changed_notified();
         assert_eq!(props.get_state_changed(), false);
-        props.update_state(ShellState::Idle);
-        assert_eq!(props.get_last_state(), ShellState::Idle);
+        props.update_state(ShellState::Shell);
+        assert_eq!(props.get_last_state(), ShellState::Shell);
         assert_eq!(props.get_state_changed(), true);
     }
 
@@ -182,7 +180,7 @@ mod tests {
         let mut props: RuntimeProps = new_runtime_props(true);
         // State hasn't changed
         props.state_changed = false;
-        props.last_state = ShellState::Idle;
+        props.last_state = ShellState::Shell;
         props.switch_imiop();
         // Change state
         props.state_changed = true;
@@ -190,7 +188,7 @@ mod tests {
         props.switch_imiop();
         // Change back to Idle
         props.state_changed = true;
-        props.last_state = ShellState::Idle;
+        props.last_state = ShellState::Shell;
         props.switch_imiop();
         // Change to unhandled state
         props.state_changed = true;

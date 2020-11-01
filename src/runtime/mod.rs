@@ -41,8 +41,7 @@ use crate::config;
 //Props
 use props::RuntimeProps;
 //Shell
-use crate::shell::proc::ShellState;
-use crate::shell::{Shell};
+use crate::shell::{Shell, ShellState};
 use crate::shell::unixsignal::UnixSignal;
 // Translator
 use crate::translator::ioprocessor::IOProcessor;
@@ -94,7 +93,7 @@ pub fn run_interactive(language: Language, config: config::Config, shell: Option
         if current_state != props.get_last_state() {
             props.update_state(current_state);
         }
-        if props.get_state_changed() && current_state == ShellState::Idle {
+        if props.get_state_changed() && current_state == ShellState::Shell {
             //Force shellenv to refresh info
             shell.refresh_env();
             //Print prompt

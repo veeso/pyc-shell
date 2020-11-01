@@ -27,7 +27,7 @@ extern crate nix;
 extern crate tempfile;
 extern crate uuid;
 
-use super::{ShellError, ShellProc, ShellState};
+use super::{ShellError, ShellProc, ShellProcState};
 use super::pipe::Pipe;
 
 use std::ffi::{CStr, CString};
@@ -73,7 +73,7 @@ impl ShellProc {
                 };
                 //Return Shell Proc
                 Ok(ShellProc {
-                    state: ShellState::Idle,
+                    state: ShellProcState::Idle,
                     uuid: uuid,
                     exit_status: 0,
                     exec_time: Duration::from_millis(0),
@@ -101,7 +101,7 @@ impl ShellProc {
     /// 
     /// cleanup shell once exited. Returns the shell exit code
     pub fn cleanup(&mut self) -> Result<u8, ShellError> {
-        if self.update_state() != ShellState::Terminated {
+        if self.update_state() != ShellProcState::Terminated {
             return Err(ShellError::ShellRunning)
         }
         //Close pipes
@@ -133,7 +133,7 @@ impl ShellProc {
     /// Read from child pipes
     pub fn read(&mut self) -> Result<(Option<String>, Option<String>), ShellError> {
         /* NOTE: doesn't make sense; read must be possible even if shell has terminated
-        if self.update_state() == ShellState::Terminated {
+        if self.update_state() == ShellProcState::Terminated {
             return Err(ShellError::ShellTerminated)
         }*/
         let stdout: Option<String> = match self.stdout_pipe.read(50, false) {
@@ -154,11 +154,11 @@ impl ShellProc {
     /// 
     /// Write to child process stdin
     pub fn write(&mut self, mut data: String) -> Result<(), ShellError> {
-        if self.update_state() == ShellState::Terminated {
+        if self.update_state() == ShellProcState::Terminated {
             return Err(ShellError::ShellTerminated)
         }
         //Add echo command to data if shell state is Idle
-        if self.state == ShellState::Idle {
+        if self.state == ShellProcState::Idle {
             //Replace data newline with ';'
             while data.ends_with('\n') {
                 data.pop();
@@ -208,17 +208,17 @@ impl ShellProc {
     /// ### update_state
     /// 
     /// Update shell running state checking if the other thread has terminated
-    pub fn update_state(&mut self) -> ShellState {
+    pub fn update_state(&mut self) -> ShellProcState {
         //Wait pid (NO HANG)
         match nix::sys::wait::waitpid(nix::unistd::Pid::from_raw(self.pid), Some(nix::sys::wait::WaitPidFlag::WNOHANG)) {
             Err(_) => {}, //Could not get information
             Ok(status) => match status {
                 nix::sys::wait::WaitStatus::Exited(_, rc) => {
-                    self.state = ShellState::Terminated;
+                    self.state = ShellProcState::Terminated;
                     self.rc = rc as u8;
                 },
                 nix::sys::wait::WaitStatus::Signaled(_, signal, _) => {
-                    self.state = ShellState::Terminated;
+                    self.state = ShellProcState::Terminated;
                     self.rc = signal as u8;
                 },
                 _ => {}, //Still running
@@ -296,7 +296,7 @@ impl ShellProc {
             }
         }
         self.exec_time = self.start_time.elapsed();
-        self.state = ShellState::Idle;
+        self.state = ShellProcState::Idle;
     }
 
     /// ### set_state_running
@@ -304,7 +304,7 @@ impl ShellProc {
     /// Set state to running
     fn set_state_running(&mut self) {
         self.start_time = Instant::now();
-        self.state = ShellState::SubprocessRunning;
+        self.state = ShellProcState::SubprocessRunning;
     }
 }
 
@@ -333,7 +333,7 @@ mod tests {
         let mut shell_proc: ShellProc = ShellProc::start(vec![String::from("sh")]).unwrap();
         println!("A new shell started with PID {}", shell_proc.pid);
         //Check shell parameters
-        assert_eq!(shell_proc.state, ShellState::Idle);
+        assert_eq!(shell_proc.state, ShellProcState::Idle);
         assert_eq!(shell_proc.exit_status, 0);
         assert_ne!(shell_proc.pid, 0);
         assert_ne!(shell_proc.wrkdir.len(), 0);
@@ -344,13 +344,13 @@ mod tests {
         assert_eq!(shell_proc.echo_command, format!("echo \"\x02$?;`pwd`;{}\x03\"\n", shell_proc.uuid));
         //Verify shell is still running
         sleep(Duration::from_millis(500));
-        assert_eq!(shell_proc.update_state(), ShellState::Idle);
+        assert_eq!(shell_proc.update_state(), ShellProcState::Idle);
         //Stop process
         assert!(shell_proc.kill().is_ok());
         sleep(Duration::from_millis(500));
-        assert_eq!(shell_proc.update_state(), ShellState::Terminated);
+        assert_eq!(shell_proc.update_state(), ShellProcState::Terminated);
         //Rc should be set to 9
-        assert_eq!(shell_proc.state, ShellState::Terminated);
+        assert_eq!(shell_proc.state, ShellProcState::Terminated);
         assert_eq!(shell_proc.rc, 9);
         //Cleanup
         assert!(shell_proc.cleanup().is_ok());
@@ -362,7 +362,7 @@ mod tests {
         println!("A new shell started with PID {}", shell_proc.pid);
         //Shell should have died
         sleep(Duration::from_millis(1000));
-        assert_eq!(shell_proc.update_state(), ShellState::Terminated);
+        assert_eq!(shell_proc.update_state(), ShellProcState::Terminated);
         assert_eq!(shell_proc.rc, 255);
     }
 
@@ -372,11 +372,11 @@ mod tests {
         println!("A new shell started with PID {}", shell_proc.pid);
         //Verify shell is still running
         sleep(Duration::from_millis(500));
-        assert_eq!(shell_proc.update_state(), ShellState::Idle);
+        assert_eq!(shell_proc.update_state(), ShellProcState::Idle);
         //Send SIGINT
         assert!(shell_proc.raise(nix::sys::signal::Signal::SIGINT).is_ok());
         sleep(Duration::from_millis(500));
-        assert_eq!(shell_proc.update_state(), ShellState::Terminated);
+        assert_eq!(shell_proc.update_state(), ShellProcState::Terminated);
         assert_eq!(shell_proc.rc, 2);
     }
 
@@ -387,12 +387,12 @@ mod tests {
         sleep(Duration::from_millis(500)); //DON'T REMOVE THIS SLEEP
         //Parse metadata
         let metadata: String = String::from("128;/home;ee9ec814-a751-4329-850f-6d54d12c8a5c");
-        shell_proc.state = ShellState::SubprocessRunning;
+        shell_proc.state = ShellProcState::SubprocessRunning;
         shell_proc.set_state_idle(metadata);
         //Verify metadata have been parsed successfully
         assert_eq!(shell_proc.exit_status, 128);
         assert_eq!(shell_proc.wrkdir, PathBuf::from("/home"));
-        assert_eq!(shell_proc.state, ShellState::Idle);
+        assert_eq!(shell_proc.state, ShellProcState::Idle);
         //Kill
         assert!(shell_proc.kill().is_ok());
     }
@@ -405,22 +405,22 @@ mod tests {
         //Parse stdout when empty
         assert!(shell_proc.parse_stdout(None).is_none());
         //Parse stdout with metadata only (and parse theme)
-        shell_proc.state = ShellState::SubprocessRunning;
+        shell_proc.state = ShellProcState::SubprocessRunning;
         assert!(shell_proc.parse_stdout(Some(format!("\x02128;/home;{}\x03\n", shell_proc.uuid))).is_none());
         assert_eq!(shell_proc.exit_status, 128);
         assert_eq!(shell_proc.wrkdir, PathBuf::from("/home"));
-        assert_eq!(shell_proc.state, ShellState::Idle);
+        assert_eq!(shell_proc.state, ShellProcState::Idle);
         //Parse stdout with output only
-        shell_proc.state = ShellState::SubprocessRunning;
+        shell_proc.state = ShellProcState::SubprocessRunning;
         assert_eq!(shell_proc.parse_stdout(Some(String::from("HELLO\n"))).unwrap(), String::from("HELLO\n"));
-        assert_eq!(shell_proc.state, ShellState::SubprocessRunning); //State unchanged
+        assert_eq!(shell_proc.state, ShellProcState::SubprocessRunning); //State unchanged
         assert_eq!(*shell_proc.stdout_cache.as_ref().unwrap(), String::from("HELLO\n"));
         //Parse stdout with everything
-        shell_proc.state = ShellState::SubprocessRunning;
+        shell_proc.state = ShellProcState::SubprocessRunning;
         assert_eq!(shell_proc.parse_stdout(Some(format!("HELLO\n\x022;/tmp;{}\x03\n", shell_proc.uuid))).unwrap(), String::from("HELLO\n"));
         assert_eq!(shell_proc.exit_status, 2);
         assert_eq!(shell_proc.wrkdir, PathBuf::from("/tmp"));
-        assert_eq!(shell_proc.state, ShellState::Idle);
+        assert_eq!(shell_proc.state, ShellProcState::Idle);
         assert!(shell_proc.stdout_cache.is_none());
         //Kill
         assert!(shell_proc.kill().is_ok());
@@ -433,7 +433,7 @@ mod tests {
         //Send a cd command
         assert!(shell_proc.write(String::from("cd /tmp\n")).is_ok());
         //State should have changed to subprocess
-        assert_eq!(shell_proc.state, ShellState::SubprocessRunning);
+        assert_eq!(shell_proc.state, ShellProcState::SubprocessRunning);
         //Then read response
         sleep(Duration::from_millis(50));
         let (stdout, stderr) = shell_proc.read().unwrap();
@@ -442,7 +442,7 @@ mod tests {
         assert!(stderr.is_none());
         //Verify shell is still running
         sleep(Duration::from_millis(100));
-        assert_eq!(shell_proc.update_state(), ShellState::Idle);
+        assert_eq!(shell_proc.update_state(), ShellProcState::Idle);
         //Verify wrkdir is now /tmp/
         assert_eq!(shell_proc.wrkdir, PathBuf::from("/tmp"));
         //Verify exit status
@@ -452,9 +452,9 @@ mod tests {
         //Stop process
         assert!(shell_proc.kill().is_ok());
         sleep(Duration::from_millis(500));
-        assert_eq!(shell_proc.update_state(), ShellState::Terminated);
+        assert_eq!(shell_proc.update_state(), ShellProcState::Terminated);
         //Rc should be set to 9
-        assert_eq!(shell_proc.state, ShellState::Terminated);
+        assert_eq!(shell_proc.state, ShellProcState::Terminated);
         assert_eq!(shell_proc.rc, 9);
         //Cleanup
         assert!(shell_proc.cleanup().is_ok());

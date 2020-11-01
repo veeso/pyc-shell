@@ -32,7 +32,7 @@ extern crate nix;
 extern crate whoami;
 
 use history::ShellHistory;
-use proc::{ShellError, ShellProc, ShellState};
+use proc::{ShellError, ShellProc, ShellProcState};
 use prompt::ShellPrompt;
 
 use crate::config::PromptConfig;
@@ -41,6 +41,19 @@ use crate::translator::ioprocessor::IOProcessor;
 use std::path::PathBuf;
 use std::time::{Duration};
 
+/// ### ShellState
+/// 
+/// ShellState represents the shell environment state, which basically is a super state of
+/// the shell state. This is used to switch between built-in modes (std shell, text editor, ...)
+#[derive(Copy, Clone, PartialEq, std::fmt::Debug)]
+pub enum ShellState {
+    Shell,
+    SubprocessRunning,
+    TextEditor,
+    Terminated,
+    Unknown
+}
+
 /// ### Shell
 ///
 /// Shell represents the current user shell configuration
@@ -48,7 +61,8 @@ pub struct Shell {
     pub history: ShellHistory,
     process: ShellProc,
     prompt: ShellPrompt,
-    props: ShellProps
+    props: ShellProps,
+    state: ShellState
 }
 
 /// ### ShellProps
@@ -87,7 +101,8 @@ impl Shell {
             process: shell_process,
             prompt: shell_prompt,
             props: ShellProps::new(hostname, user, wrkdir),
-            history: ShellHistory::new()
+            history: ShellHistory::new(),
+            state: ShellState::Shell
         })
     }
 
@@ -106,6 +121,7 @@ impl Shell {
     ///
     /// Mirrors ShellProc read
     pub fn read(&mut self) -> Result<(Option<String>, Option<String>), ShellError> {
+        // TODO: env state
         self.process.read()
     }
 
@@ -113,6 +129,7 @@ impl Shell {
     ///
     /// Mirrors ShellProc write
     pub fn write(&mut self, input: String) -> Result<(), ShellError> {
+        // TODO: env state
         self.process.write(input)
     }
 
@@ -121,6 +138,7 @@ impl Shell {
     /// Send a signal to shell process
     #[allow(dead_code)]
     pub fn raise(&mut self, sig: unixsignal::UnixSignal) -> Result<(), ShellError> {
+        // TODO: env state
         self.process.raise(sig.to_nix_signal())
     }
 
@@ -128,7 +146,18 @@ impl Shell {
     ///
     /// Returns the current Shell state
     pub fn get_state(&mut self) -> ShellState {
-        self.process.update_state()
+        let proc_state: ShellProcState = self.process.update_state();
+        match self.state {
+            ShellState::TextEditor => ShellState::TextEditor,
+            _ => {
+                self.state = match proc_state {
+                    ShellProcState::Idle => ShellState::Shell,
+                    ShellProcState::SubprocessRunning => ShellState::SubprocessRunning,
+                    _ => ShellState::Terminated
+                };
+                self.state
+            }
+        }
     }
 
     /// ### refresh_env
@@ -207,9 +236,11 @@ mod tests {
         //Verify PID
         assert_ne!(shell_env.process.pid, 0);
         //Verify shell status
-        assert_eq!(shell_env.get_state(), ShellState::Idle);
+        assert_eq!(shell_env.get_state(), ShellProcState::Idle);
         //Verify history capacity
         assert_eq!(shell_env.history.len(), 0);
+        // Verify env state
+        assert_eq!(shell_env.state, ShellState::Shell);
         //Get username etc
         println!("Username: {}", shell_env.props.username);
         println!("Hostname: {}", shell_env.props.hostname);
@@ -222,7 +253,7 @@ mod tests {
         //Terminate shell
         assert_eq!(shell_env.stop().unwrap(), 9);
         sleep(Duration::from_millis(500)); //DON'T REMOVE THIS SLEEP
-        assert_eq!(shell_env.get_state(), ShellState::Terminated);
+        assert_eq!(shell_env.get_state(), ShellProcState::Terminated);
     }
 
     #[test]
@@ -233,7 +264,7 @@ mod tests {
         let mut shell_env: Shell = Shell::start(shell, vec![], &PromptConfig::default()).unwrap();
         sleep(Duration::from_millis(500)); //DON'T REMOVE THIS SLEEP
         //Shell should have terminated
-        assert_eq!(shell_env.get_state(), ShellState::Terminated);
+        assert_eq!(shell_env.get_state(), ShellProcState::Terminated);
     }
 
     #[test]
@@ -246,13 +277,13 @@ mod tests {
         //Verify PID
         assert_ne!(shell_env.process.pid, 0);
         //Verify shell status
-        assert_eq!(shell_env.get_state(), ShellState::Idle);
+        assert_eq!(shell_env.get_state(), ShellProcState::Idle);
         //Try to start a blocking process (e.g. cat)
         let command: String = String::from("head -n 2\n");
         assert!(shell_env.write(command).is_ok());
         sleep(Duration::from_millis(500));
         //Check if status is SubprocessRunning
-        assert_eq!(shell_env.get_state(), ShellState::SubprocessRunning);
+        assert_eq!(shell_env.get_state(), ShellProcState::SubprocessRunning);
         let stdin: String = String::from("foobar\n");
         assert!(shell_env.write(stdin.clone()).is_ok());
         //Wait 100ms
@@ -274,21 +305,21 @@ mod tests {
             }
         }
         //Verify shell status again
-        assert_eq!(shell_env.get_state(), ShellState::SubprocessRunning);
+        assert_eq!(shell_env.get_state(), ShellProcState::SubprocessRunning);
         if ! test_must_pass { //NOTE: this is an issue related to tests. THIS PROBLEM DOESN'T HAPPEN IN PRODUCTION ENVIRONMENT
             let stdin: String = String::from("foobar\n");
             assert!(shell_env.write(stdin.clone()).is_ok());
             sleep(Duration::from_millis(50));
             assert!(shell_env.read().is_ok());
             sleep(Duration::from_millis(50));
-            assert_eq!(shell_env.get_state(), ShellState::Idle);
+            assert_eq!(shell_env.get_state(), ShellProcState::Idle);
         }
         //Now should be IDLE
         //Okay, send SIGINT now
         assert!(shell_env.process.kill().is_ok());
         //Shell should have terminated
         sleep(Duration::from_millis(500));
-        assert_eq!(shell_env.get_state(), ShellState::Terminated);
+        assert_eq!(shell_env.get_state(), ShellProcState::Terminated);
         assert_eq!(shell_env.stop().unwrap(), 9);
     }
 
@@ -302,7 +333,7 @@ mod tests {
         //Verify PID
         assert_ne!(shell_env.process.pid, 0);
         //Verify shell status
-        assert_eq!(shell_env.get_state(), ShellState::Idle);
+        assert_eq!(shell_env.get_state(), ShellProcState::Idle);
         //Terminate the shell gracefully
         sleep(Duration::from_millis(500));
         let command: String = String::from("exit 5\n");
@@ -310,7 +341,7 @@ mod tests {
         //Wait shell to terminate
         sleep(Duration::from_millis(1000));
         //Verify shell has terminated
-        assert_eq!(shell_env.get_state(), ShellState::Terminated);
+        assert_eq!(shell_env.get_state(), ShellProcState::Terminated);
         //Verify exitcode to be 0
         assert_eq!(shell_env.stop().unwrap(), 5);
     }
@@ -326,7 +357,7 @@ mod tests {
         //Wait shell to terminate
         sleep(Duration::from_millis(500));
         //Verify shell has terminated
-        assert_eq!(shell_env.get_state(), ShellState::Terminated);
+        assert_eq!(shell_env.get_state(), ShellProcState::Terminated);
         //Verify exitcode to be 0
         assert_eq!(shell_env.stop().unwrap(), 2);
     }
