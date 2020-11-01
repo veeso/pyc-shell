@@ -68,7 +68,7 @@ Runtime is the main module and it's executed directly by main. Runtime takes car
 
 Runtime has 3 different working modes:
 
-- Interactive mode: the classic shell mode. This mode makes the runtime to poll for input and output from the shell until the user stops the shell execution (until state is ```ShellState::Terminated```). When the state changes from ```ShellState::SubprocessRunning``` to ```ShellState::Idle``` the prompt is printed.
+- Interactive mode: the classic shell mode. This mode makes the runtime to poll for input and output from the shell until the user stops the shell execution (until state is ```ShellState::Terminated```). When the state changes from ```ShellState::SubprocessRunning``` to ```ShellState::Shell``` the prompt is printed. Since 0.3.0 this mode supports also an additional state called ```TextEditor```, which is the state pyc enters when using the text editor.
 - Oneshot mode: executes the command provided as parameter and returns
 - File mode: read the file provided as argument, read each line and executes them, then returns.
 

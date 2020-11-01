@@ -2,9 +2,12 @@ language: ru
 shell:
   exec: "bash"
 alias:
+  - лев: lev
+  - рус: pyc
   - чд: cd
   - пвд: pwd
   - уич: which
+  - лл: ls -l
 output:
   translate: true
 prompt:

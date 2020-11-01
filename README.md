@@ -25,13 +25,14 @@ Current version: [0.3.0 (??/??/2020)](./CHANGELOG.md#pyc-030)
       - [General keys](#general-keys)
       - [Colors keys](#colors-keys)
       - [Git keys](#git-keys)
+  - [Lev Text Editor](#lev-text-editor)
   - [Documentation](#documentation)
   - [Escape text](#escape-text)
   - [Known issues](#known-issues)
     - [Unicode Replacement character while typing (�)](#unicode-replacement-character-while-typing-)
     - [Cd command in oneshot mode doesn't work](#cd-command-in-oneshot-mode-doesnt-work)
     - [Fish doesn't work](#fish-doesnt-work)
-    - [Shell alias not working](#shell-alias-not-working)
+    - [Shell aliases don't work](#shell-aliases-dont-work)
     - [Text editors dont' work](#text-editors-dont-work)
   - [Upcoming Features and Releases](#upcoming-features-and-releases)
     - [Development Status](#development-status)
@@ -68,9 +69,9 @@ Basically Рус is a shell interface, which means that it reads the user input,
 - Interactive, oneshot and file modes.
 - Prompt is fully customizable
 - Shell aliases support
+- Built-in text editor **[lev](#lev-text-editor)**
 - Supports bash, sh, zsh and ~~fish~~
 - ~~Allows you to use your shell aliases and functions~~
-- ~~Text editors support~~
 
 ## Supported alphabets
 
@@ -234,6 +235,15 @@ Each prompt line key must have the following syntax ```${VAR_NAME}```
 | GIT_BRANCH | The current git branch      |
 | GIT_COMMIT | The current git commit  ref |
 
+---
+
+## Lev Text Editor
+
+Lev text editor is the built-in text editor compatible with pyc.
+See Lev documentation [HERE](docs/lev/README.md).
+
+---
+
 ## Documentation
 
 The developer documentation can be found on Rust Docs at <https://docs.rs/pyc-shell>
@@ -298,13 +308,13 @@ If you know a possible way to make it work, please contribute to this project to
 
 Uuhm, I don't know why, I need some time to investigate why, maybe it doesn't use stdout to write (?).
 
-### Shell alias not working
+### Shell aliases don't work
 
 I will fix this soon
 
 ### Text editors dont' work
 
-I will try to fix this issue
+Common text editors such as nano, vim, mcedit don't work in Pyc; use [lev](#lev-text-editor) instead.
 
 ---
 

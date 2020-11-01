@@ -1,3 +1,7 @@
+//! ## Editor
+//!
+//! `editor` is the module which contains the data types and the implementation of the Lev text editor
+
 /*
 *
 *   Copyright (C) 2020 Christian Visintin - christian.visintin1997@gmail.com
@@ -19,11 +23,29 @@
 *
 */
 
-#[macro_use] extern crate lazy_static;
+// Pyc Library
+use crate::translator::ioprocessor::IOProcessor;
 
-pub mod config;
-pub mod lev;
-pub mod runtime;
-pub mod shell;
-pub mod translator;
-pub mod utils;
+// Standard library
+use std::fs::File;
+
+pub struct LevEditor {
+    file: Option<File>, // File opened
+    lines: Vec<String>, // Buffer content
+    row: usize,         // Row pointed by cursor
+    col: usize,         // Column pointed by cursor
+    // TODO: states
+    iop: IOProcessor
+}
+
+impl LevEditor {
+
+    /// ### main
+    /// 
+    /// LevEditor entry point
+    pub fn main(argv: Vec<String>) -> u8 {
+        // parse arguments...
+        0
+    }
+
+}

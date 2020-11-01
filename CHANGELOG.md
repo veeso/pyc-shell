@@ -8,10 +8,11 @@
 
 Released on ??
 
-- New translators:
+- Built-in text editor **lev text editor**
+- New **translators**:
   - 🇷🇸 Serbian
   - 🇺🇦 Ukrainian
-- Prompt configuration:
+- **Prompt** configuration:
   - new ```commit_prepend``` and ```commit_append``` keys
   - New colors keys:
     - KBOLD
