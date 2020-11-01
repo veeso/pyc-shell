@@ -26,11 +26,11 @@
 use super::imiop::{self, Imiop};
 
 use crate::config::Config;
-use crate::shell::Shell;
 use crate::shell::proc::ShellState;
-use crate::translator::new_translator;
-use crate::translator::lang::Language;
+use crate::shell::Shell;
 use crate::translator::ioprocessor::IOProcessor;
+use crate::translator::lang::Language;
+use crate::translator::new_translator;
 use crate::utils::console::InputEvent;
 
 // TODO: convert interactive boolean to Enum ShellEnvMode
@@ -43,7 +43,7 @@ pub(super) struct RuntimeProps {
     language: Language,
     last_state: ShellState,
     state_changed: bool,
-    imiop: Box<dyn Imiop>
+    imiop: Box<dyn Imiop>,
 }
 
 impl RuntimeProps {
@@ -56,7 +56,7 @@ impl RuntimeProps {
             language: language,
             last_state: ShellState::Unknown,
             state_changed: true,
-            imiop: RuntimeProps::init_imiop(interactive, &config, language)
+            imiop: RuntimeProps::init_imiop(interactive, &config, language),
         }
     }
 
@@ -101,18 +101,24 @@ impl RuntimeProps {
     }
 
     /// ### init_imiop
-    /// 
+    ///
     /// Instantiate the first IMIOP at first launch of props
 
     fn init_imiop(interactive: bool, config: &Config, language: Language) -> Box<dyn Imiop> {
         match interactive {
-            true => Box::new(imiop::shiop::ShIop::new(config.clone(), IOProcessor::new(language, new_translator(language)))),
-            false => Box::new(imiop::subprociop::SubProcIop::new(config.clone(), IOProcessor::new(language, new_translator(language))))
+            true => Box::new(imiop::shiop::ShIop::new(
+                config.clone(),
+                IOProcessor::new(language, new_translator(language)),
+            )),
+            false => Box::new(imiop::subprociop::SubProcIop::new(
+                config.clone(),
+                IOProcessor::new(language, new_translator(language)),
+            )),
         }
     }
 
     /// ### switch_imiop
-    /// 
+    ///
     /// Change current imiop based on states
     fn switch_imiop(&mut self) {
         // Change if last state changed
@@ -121,9 +127,18 @@ impl RuntimeProps {
             // If in standard state...
             // Check last_state
             self.imiop = match self.get_last_state() {
-                ShellState::Idle => Box::new(imiop::shiop::ShIop::new(self.config.clone(), IOProcessor::new(self.language, new_translator(self.language)))),
-                ShellState::SubprocessRunning => Box::new(imiop::subprociop::SubProcIop::new(self.config.clone(), IOProcessor::new(self.language, new_translator(self.language)))),
-                _ => Box::new(imiop::shiop::ShIop::new(self.config.clone(), IOProcessor::new(self.language, new_translator(self.language))))
+                ShellState::Idle => Box::new(imiop::shiop::ShIop::new(
+                    self.config.clone(),
+                    IOProcessor::new(self.language, new_translator(self.language)),
+                )),
+                ShellState::SubprocessRunning => Box::new(imiop::subprociop::SubProcIop::new(
+                    self.config.clone(),
+                    IOProcessor::new(self.language, new_translator(self.language)),
+                )),
+                _ => Box::new(imiop::shiop::ShIop::new(
+                    self.config.clone(),
+                    IOProcessor::new(self.language, new_translator(self.language)),
+                )),
             };
             // Reset state changed
             self.report_state_changed_notified();
@@ -138,8 +153,8 @@ mod tests {
     use crate::config::Config;
     use crate::translator::lang::Language;
 
-    // use std::thread::sleep;
-    // use std::time::Duration;
+    use std::thread::sleep;
+    use std::time::Duration;
 
     #[test]
     fn test_runtimeprops_new() {
@@ -163,21 +178,67 @@ mod tests {
     }
 
     #[test]
+    fn test_runtimeprops_switch_imiop() {
+        let mut props: RuntimeProps = new_runtime_props(true);
+        // State hasn't changed
+        props.state_changed = false;
+        props.last_state = ShellState::Idle;
+        props.switch_imiop();
+        // Change state
+        props.state_changed = true;
+        props.last_state = ShellState::SubprocessRunning;
+        props.switch_imiop();
+        // Change back to Idle
+        props.state_changed = true;
+        props.last_state = ShellState::Idle;
+        props.switch_imiop();
+        // Change to unhandled state
+        props.state_changed = true;
+        props.last_state = ShellState::Unknown;
+        props.switch_imiop();
+    }
+
+    #[test]
     fn test_runtimeprops_handle_input_event() {
-        // TODO: REDO
+        let mut props: RuntimeProps = new_runtime_props(true);
+        let config: Config = Config::default();
+        let mut shell: Shell = Shell::start(
+            String::from("sh"),
+            Vec::new(),
+            &config.prompt_config,
+        )
+        .unwrap();
+        sleep(Duration::from_millis(500)); //DON'T REMOVE THIS SLEEP
+        props.handle_input_event(InputEvent::Enter, &mut shell);
+        //Signal
+        props.handle_input_event(InputEvent::Ctrl(3), &mut shell);
+        //Stop shell
+        sleep(Duration::from_millis(500)); //DON'T REMOVE THIS SLEEP
+        let _ = shell.stop();
+        sleep(Duration::from_millis(500)); //DON'T REMOVE THIS SLEEP
     }
 
     #[test]
     fn test_runtimeprops_handle_input_event_not_interactive() {
-        // TODO: redo
         let mut props: RuntimeProps = new_runtime_props(false);
+        let config: Config = Config::default();
+        let mut shell: Shell = Shell::start(
+            String::from("sh"),
+            Vec::new(),
+            &config.prompt_config,
+        )
+        .unwrap();
+        sleep(Duration::from_millis(500)); //DON'T REMOVE THIS SLEEP
+        props.handle_input_event(InputEvent::Enter, &mut shell);
+        //Signal
+        props.handle_input_event(InputEvent::Ctrl(3), &mut shell);
+        //Stop shell
+        sleep(Duration::from_millis(500)); //DON'T REMOVE THIS SLEEP
+        let _ = shell.stop();
+        sleep(Duration::from_millis(500)); //DON'T REMOVE THIS SLEEP
     }
 
     fn new_runtime_props(interactive: bool) -> RuntimeProps {
-        RuntimeProps::new(
-            interactive,
-            Config::default(),
-            Language::Russian,
-        )
+        RuntimeProps::new(interactive, Config::default(), Language::Russian)
     }
 }

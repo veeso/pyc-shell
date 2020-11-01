@@ -34,15 +34,13 @@ pub(crate) mod shiop;
 pub(crate) mod subprociop;
 
 /// ## Imiop
-/// 
+///
 /// Imiop (interactive mode I/O processor) defines the methods an Imiop has to implement
 pub(crate) trait Imiop {
-
     /// ### handle_input_event
-    /// 
+    ///
     /// Handle input event received from stdin
     fn handle_input_event(&mut self, ev: InputEvent, shell: &mut Shell);
-
 }
 
 // TODO: add factory for imiop
