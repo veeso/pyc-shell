@@ -42,8 +42,7 @@ use pipe::Pipe;
 pub enum ShellProcState {
     Idle,
     SubprocessRunning,
-    Terminated,
-    Unknown
+    Terminated
 }
 
 /// ### ShellError
