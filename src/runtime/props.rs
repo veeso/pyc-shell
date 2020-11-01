@@ -32,8 +32,6 @@ use crate::translator::lang::Language;
 use crate::translator::new_translator;
 use crate::utils::console::InputEvent;
 
-// TODO: convert interactive boolean to Enum ShellEnvMode
-
 /// ## RuntimeProps
 ///
 /// Runtime Props is a wrapper for all the properties used by the Runtime module

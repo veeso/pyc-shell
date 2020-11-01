@@ -236,7 +236,7 @@ mod tests {
         //Verify PID
         assert_ne!(shell_env.process.pid, 0);
         //Verify shell status
-        assert_eq!(shell_env.get_state(), ShellProcState::Idle);
+        assert_eq!(shell_env.get_state(), ShellState::Shell);
         //Verify history capacity
         assert_eq!(shell_env.history.len(), 0);
         // Verify env state
@@ -253,7 +253,7 @@ mod tests {
         //Terminate shell
         assert_eq!(shell_env.stop().unwrap(), 9);
         sleep(Duration::from_millis(500)); //DON'T REMOVE THIS SLEEP
-        assert_eq!(shell_env.get_state(), ShellProcState::Terminated);
+        assert_eq!(shell_env.get_state(), ShellState::Terminated);
     }
 
     #[test]
@@ -264,7 +264,7 @@ mod tests {
         let mut shell_env: Shell = Shell::start(shell, vec![], &PromptConfig::default()).unwrap();
         sleep(Duration::from_millis(500)); //DON'T REMOVE THIS SLEEP
         //Shell should have terminated
-        assert_eq!(shell_env.get_state(), ShellProcState::Terminated);
+        assert_eq!(shell_env.get_state(), ShellState::Terminated);
     }
 
     #[test]
@@ -277,13 +277,13 @@ mod tests {
         //Verify PID
         assert_ne!(shell_env.process.pid, 0);
         //Verify shell status
-        assert_eq!(shell_env.get_state(), ShellProcState::Idle);
+        assert_eq!(shell_env.get_state(), ShellState::Shell);
         //Try to start a blocking process (e.g. cat)
         let command: String = String::from("head -n 2\n");
         assert!(shell_env.write(command).is_ok());
         sleep(Duration::from_millis(500));
         //Check if status is SubprocessRunning
-        assert_eq!(shell_env.get_state(), ShellProcState::SubprocessRunning);
+        assert_eq!(shell_env.get_state(), ShellState::SubprocessRunning);
         let stdin: String = String::from("foobar\n");
         assert!(shell_env.write(stdin.clone()).is_ok());
         //Wait 100ms
@@ -305,21 +305,21 @@ mod tests {
             }
         }
         //Verify shell status again
-        assert_eq!(shell_env.get_state(), ShellProcState::SubprocessRunning);
+        assert_eq!(shell_env.get_state(), ShellState::SubprocessRunning);
         if ! test_must_pass { //NOTE: this is an issue related to tests. THIS PROBLEM DOESN'T HAPPEN IN PRODUCTION ENVIRONMENT
             let stdin: String = String::from("foobar\n");
             assert!(shell_env.write(stdin.clone()).is_ok());
             sleep(Duration::from_millis(50));
             assert!(shell_env.read().is_ok());
             sleep(Duration::from_millis(50));
-            assert_eq!(shell_env.get_state(), ShellProcState::Idle);
+            assert_eq!(shell_env.get_state(), ShellState::Shell);
         }
         //Now should be IDLE
         //Okay, send SIGINT now
         assert!(shell_env.process.kill().is_ok());
         //Shell should have terminated
         sleep(Duration::from_millis(500));
-        assert_eq!(shell_env.get_state(), ShellProcState::Terminated);
+        assert_eq!(shell_env.get_state(), ShellState::Terminated);
         assert_eq!(shell_env.stop().unwrap(), 9);
     }
 
@@ -333,7 +333,7 @@ mod tests {
         //Verify PID
         assert_ne!(shell_env.process.pid, 0);
         //Verify shell status
-        assert_eq!(shell_env.get_state(), ShellProcState::Idle);
+        assert_eq!(shell_env.get_state(), ShellState::Shell);
         //Terminate the shell gracefully
         sleep(Duration::from_millis(500));
         let command: String = String::from("exit 5\n");
@@ -341,7 +341,7 @@ mod tests {
         //Wait shell to terminate
         sleep(Duration::from_millis(1000));
         //Verify shell has terminated
-        assert_eq!(shell_env.get_state(), ShellProcState::Terminated);
+        assert_eq!(shell_env.get_state(), ShellState::Terminated);
         //Verify exitcode to be 0
         assert_eq!(shell_env.stop().unwrap(), 5);
     }
@@ -357,7 +357,7 @@ mod tests {
         //Wait shell to terminate
         sleep(Duration::from_millis(500));
         //Verify shell has terminated
-        assert_eq!(shell_env.get_state(), ShellProcState::Terminated);
+        assert_eq!(shell_env.get_state(), ShellState::Terminated);
         //Verify exitcode to be 0
         assert_eq!(shell_env.stop().unwrap(), 2);
     }
