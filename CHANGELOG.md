@@ -11,7 +11,13 @@ Released on ??
 - New translators:
   - 🇷🇸 Serbian
   - 🇺🇦 Ukrainian
-- Prompt configuration:
+- Translators changes:
+  - 🇷🇺 Russian:
+    - Latin to cyrillic:
+      - E => E
+    - Cyrillic to latin:
+      - E => E
+- **Prompt** configuration:
   - new ```commit_prepend``` and ```commit_append``` keys
   - New colors keys:
     - KBOLD

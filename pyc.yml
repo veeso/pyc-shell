@@ -2,6 +2,7 @@ language: ru
 shell:
   exec: "bash"
 alias:
+  - рус: pyc
   - чд: cd
   - пвд: pwd
   - уич: which

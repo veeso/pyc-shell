@@ -44,7 +44,7 @@ The conversion from cyrillic to latin follows the [GOST 7.79-2000](https://en.wi
 | КС      | X     |                                                                                                                                                        |
 | Ы       | Y     |                                                                                                                                                        |
 | Я       | YA    |                                                                                                                                                        |
-| Е       | YE    |                                                                                                                                                        |
+| Е       | E    |                                                                                                                                                        |
 | Ю       | YU    |                                                                                                                                                        |
 | З       | Z     |                                                                                                                                                        |
 | ₽       | $     |                                                                                                                                                        |
@@ -62,7 +62,7 @@ The conversion from cyrillic to latin follows the [GOST 7.79-2000](https://en.wi
 | CH    | Ч       |                               |
 | Ч     | CH      |                               |
 | D     | Д       |                               |
-| E     | Э       |                               |
+| E     | E       |                               |
 | F     | Ф       |                               |
 | G     | Г       |                               |
 | G     | ДЖ      | If g is followed by Y, E, I   |
