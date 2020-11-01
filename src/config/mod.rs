@@ -35,6 +35,7 @@ use yaml_rust::{Yaml, YamlLoader};
 use std::path::PathBuf;
 
 //Types
+#[derive(Clone)]
 pub struct Config {
     pub language: String,
     pub shell_config: ShellConfig,
@@ -43,15 +44,18 @@ pub struct Config {
     pub prompt_config: PromptConfig,
 }
 
+#[derive(Clone)]
 pub struct ShellConfig {
     pub exec: String,
     pub args: Vec<String>
 }
 
+#[derive(Clone)]
 pub struct OutputConfig {
     pub translate_output: bool,
 }
 
+#[derive(Clone)]
 pub struct PromptConfig {
     pub prompt_line: String,
     pub history_size: usize,
