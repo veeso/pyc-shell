@@ -32,7 +32,7 @@ extern crate nix;
 extern crate whoami;
 
 use history::ShellHistory;
-use proc::{ShellError, ShellProc, ShellState};
+use proc::{ShellError, ShellProc, ShellProcState};
 use prompt::ShellPrompt;
 
 use crate::config::PromptConfig;
@@ -41,6 +41,18 @@ use crate::translator::ioprocessor::IOProcessor;
 use std::path::PathBuf;
 use std::time::{Duration};
 
+/// ### ShellState
+/// 
+/// ShellState represents the shell environment state, which basically is a super state of
+/// the shell state. This is used to switch between built-in modes (std shell, text editor, ...)
+#[derive(Copy, Clone, PartialEq, std::fmt::Debug)]
+pub enum ShellState {
+    Shell,
+    SubprocessRunning,
+    Terminated,
+    Unknown
+}
+
 /// ### Shell
 ///
 /// Shell represents the current user shell configuration
@@ -48,7 +60,8 @@ pub struct Shell {
     pub history: ShellHistory,
     process: ShellProc,
     prompt: ShellPrompt,
-    props: ShellProps
+    props: ShellProps,
+    state: ShellState
 }
 
 /// ### ShellProps
@@ -81,13 +94,14 @@ impl Shell {
         //Get process username
         let user: String = whoami::username();
         //Get hostname
-        let hostname: String = whoami::host();
+        let hostname: String = Shell::get_hostname();
         let wrkdir: PathBuf = shell_process.wrkdir.clone();
         Ok(Shell {
             process: shell_process,
             prompt: shell_prompt,
             props: ShellProps::new(hostname, user, wrkdir),
-            history: ShellHistory::new()
+            history: ShellHistory::new(),
+            state: ShellState::Shell
         })
     }
 
@@ -128,7 +142,17 @@ impl Shell {
     ///
     /// Returns the current Shell state
     pub fn get_state(&mut self) -> ShellState {
-        self.process.update_state()
+        let proc_state: ShellProcState = self.process.update_state();
+        match self.state {
+            _ => {
+                self.state = match proc_state {
+                    ShellProcState::Idle => ShellState::Shell,
+                    ShellProcState::SubprocessRunning => ShellState::SubprocessRunning,
+                    _ => ShellState::Terminated
+                };
+                self.state
+            }
+        }
     }
 
     /// ### refresh_env
@@ -136,7 +160,7 @@ impl Shell {
     /// Refresh Shell Environment information
     pub fn refresh_env(&mut self) {
         self.props.username = whoami::username();
-        self.props.hostname = whoami::host();
+        self.props.hostname = Shell::get_hostname();
         self.props.wrkdir = self.process.wrkdir.clone();
         self.props.exit_status = self.process.exit_status;
         self.props.elapsed_time = self.process.exec_time;
@@ -148,6 +172,16 @@ impl Shell {
     pub fn get_promptline(&mut self, processor: &IOProcessor) -> String {
         self.prompt.get_line(&self.props, processor)
     }
+
+    /// ### get_hostname
+    /// 
+    /// Get hostname without domain
+    fn get_hostname() -> String {
+        let full_hostname: String = whoami::hostname();
+        let tokens: Vec<&str> = full_hostname.split(".").collect();
+        String::from(*tokens.get(0).unwrap())
+    }
+
 }
 
 //@! Shell Props
@@ -197,9 +231,11 @@ mod tests {
         //Verify PID
         assert_ne!(shell_env.process.pid, 0);
         //Verify shell status
-        assert_eq!(shell_env.get_state(), ShellState::Idle);
+        assert_eq!(shell_env.get_state(), ShellState::Shell);
         //Verify history capacity
         assert_eq!(shell_env.history.len(), 0);
+        // Verify env state
+        assert_eq!(shell_env.state, ShellState::Shell);
         //Get username etc
         println!("Username: {}", shell_env.props.username);
         println!("Hostname: {}", shell_env.props.hostname);
@@ -236,7 +272,7 @@ mod tests {
         //Verify PID
         assert_ne!(shell_env.process.pid, 0);
         //Verify shell status
-        assert_eq!(shell_env.get_state(), ShellState::Idle);
+        assert_eq!(shell_env.get_state(), ShellState::Shell);
         //Try to start a blocking process (e.g. cat)
         let command: String = String::from("head -n 2\n");
         assert!(shell_env.write(command).is_ok());
@@ -271,7 +307,7 @@ mod tests {
             sleep(Duration::from_millis(50));
             assert!(shell_env.read().is_ok());
             sleep(Duration::from_millis(50));
-            assert_eq!(shell_env.get_state(), ShellState::Idle);
+            assert_eq!(shell_env.get_state(), ShellState::Shell);
         }
         //Now should be IDLE
         //Okay, send SIGINT now
@@ -292,7 +328,7 @@ mod tests {
         //Verify PID
         assert_ne!(shell_env.process.pid, 0);
         //Verify shell status
-        assert_eq!(shell_env.get_state(), ShellState::Idle);
+        assert_eq!(shell_env.get_state(), ShellState::Shell);
         //Terminate the shell gracefully
         sleep(Duration::from_millis(500));
         let command: String = String::from("exit 5\n");
@@ -319,5 +355,10 @@ mod tests {
         assert_eq!(shell_env.get_state(), ShellState::Terminated);
         //Verify exitcode to be 0
         assert_eq!(shell_env.stop().unwrap(), 2);
+    }
+
+    #[test]
+    fn test_shell_hostname() {
+        assert_ne!(Shell::get_hostname(), String::from(""));
     }
 }

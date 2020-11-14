@@ -42,7 +42,6 @@ mod shell;
 mod translator;
 mod utils;
 
-use translator::ioprocessor::IOProcessor;
 use translator::lang::Language;
 
 /// ### print_usage
@@ -63,6 +62,9 @@ fn str_to_language(lang: String) -> Language {
         "ru" | "рус" => Language::Russian,
         "by" | "бел" => Language::Belarusian,
         "bg" | "бг" | "блг" => Language::Bulgarian,
+        "rs" | "срб" => Language::Serbian,
+        "ua" | "укр" => Language::Ukrainian,
+        "nil" => Language::Nil,
         _ => {
             eprintln!(
                 "{}",
@@ -192,11 +194,9 @@ fn main() {
         Some(l) => l,
         None => str_to_language(config.language.clone())
     };
-    //Set up processor
-    let processor: IOProcessor = IOProcessor::new(language, translator::new_translator(language));
     //Start runtime
     let rc: u8 = match command {
-        Some(command) => runtime::run_command(command, processor, config, shell),
+        Some(command) => runtime::run_command(command, language, config, shell),
         None => match file {
             None => {
                 //Get history file
@@ -208,9 +208,9 @@ fn main() {
                         Some(pyc_history_file)
                     }
                 };
-                runtime::run_interactive(processor, config, shell, history_file)
+                runtime::run_interactive(language, config, shell, history_file)
             },
-            Some(file) => runtime::run_file(file, processor, config, shell)
+            Some(file) => runtime::run_file(file, language, config, shell)
         }
     };
     std::process::exit(rc as i32);

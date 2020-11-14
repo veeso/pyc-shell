@@ -2,13 +2,14 @@ language: ru
 shell:
   exec: "bash"
 alias:
+  - рус: pyc
   - чд: cd
   - пвд: pwd
   - уич: which
 output:
   translate: true
 prompt:
-  prompt_line: "${KYEL}${USER}${KRST} on ${KGRN}${HOSTNAME}${KRST} in ${KCYN}${WRKDIR}${KRST} ${KMAG}${GIT_BRANCH} ${GIT_COMMIT}${KRST} ${KYEL}${CMD_TIME}${KRST}"
+  prompt_line: "${LANG} ${KBOLD}${KYEL}${USER}${KRST} on ${KBOLD}${KGRN}${HOSTNAME}${KRST} in ${KBOLD}${KCYN}${WRKDIR}${KRST} ${KBOLD}${KMAG}${GIT_BRANCH} ${GIT_COMMIT}${KRST} ${KYEL}${CMD_TIME}${KRST}"
   history_size: 256
   translate: false
   break:
@@ -22,3 +23,5 @@ prompt:
   git:
     branch: "on  "
     commit_ref_len: 8
+    commit_prepend: "("
+    commit_append: ")"

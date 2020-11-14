@@ -1,10 +1,10 @@
 # Pyc
 
-[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0) [![Stars](https://img.shields.io/github/stars/ChristianVisintin/Pyc.svg)](https://github.com/ChristianVisintin/Pyc) [![Issues](https://img.shields.io/github/issues/ChristianVisintin/Pyc.svg)](https://github.com/ChristianVisintin/Pyc/issues) [![Crates.io](https://img.shields.io/badge/crates.io-v0.2.0-orange.svg)](https://crates.io/crates/pyc-shell) [![Build](https://api.travis-ci.org/ChristianVisintin/Pyc.svg?branch=master)](https://travis-ci.org/ChristianVisintin/Pyc) [![codecov](https://codecov.io/gh/ChristianVisintin/Pyc/branch/master/graph/badge.svg)](https://codecov.io/gh/ChristianVisintin/Pyc)
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0) [![Stars](https://img.shields.io/github/stars/ChristianVisintin/Pyc.svg)](https://github.com/ChristianVisintin/Pyc) [![Issues](https://img.shields.io/github/issues/ChristianVisintin/Pyc.svg)](https://github.com/ChristianVisintin/Pyc/issues) [![Crates.io](https://img.shields.io/badge/crates.io-v0.3.0-orange.svg)](https://crates.io/crates/pyc-shell) [![Build](https://api.travis-ci.org/ChristianVisintin/Pyc.svg?branch=master)](https://travis-ci.org/ChristianVisintin/Pyc) [![codecov](https://codecov.io/gh/ChristianVisintin/Pyc/branch/master/graph/badge.svg)](https://codecov.io/gh/ChristianVisintin/Pyc)
 
 ~ Use your alphabet with your favourite shell ~  
 Developed by Christian Visintin  
-Current version: [0.2.0 (27/06/2020)](./CHANGELOG.md#pyc-020-27062020)
+Current version: [0.3.0 (14/11/2020)](./CHANGELOG.md#pyc-030)
 
 ---
 
@@ -36,7 +36,6 @@ Current version: [0.2.0 (27/06/2020)](./CHANGELOG.md#pyc-020-27062020)
   - [Upcoming Features and Releases](#upcoming-features-and-releases)
     - [Development Status](#development-status)
     - [Planned releases](#planned-releases)
-      - [Pyc 0.3.0](#pyc-030)
       - [Pyc 0.4.0](#pyc-040)
   - [Contributions](#contributions)
   - [Changelog](#changelog)
@@ -63,32 +62,35 @@ Basically Рус is a shell interface, which means that it reads the user input,
 ## Features
 
 - Different alphabets support
-- Possibility to easily implement new translators for other cyrillic alphabets.
-- Conversion of both Input and outputs.
+- Implementing translators for other alphabets is extremely easy.
+- Conversion of both input and output.
 - Escaping for latin strings.
 - Interactive, oneshot and file modes.
-- Customizations and aliases
+- Prompt is fully customizable
+- Shell aliases support
+- Supports bash, sh, zsh and ~~fish~~
+- ~~Allows you to use your shell aliases and functions~~
+- ~~Text editors support~~
 
 ## Supported alphabets
 
-- ![by](https://raw.githubusercontent.com/gosquared/flags/master/flags/flags/shiny/24/Belarus.png) Belarusian Cyrillic - According to russian cyrillic [GOST 7.79-2000](https://en.wikipedia.org/wiki/GOST_7.79-2000) with some differences ([See here](./docs/translators/by.md))
-- ![bg](https://raw.githubusercontent.com/gosquared/flags/master/flags/flags/shiny/24/Bulgaria.png) Bulgarian Cyrillic - According to russian cyrillic [GOST 7.79-2000](https://en.wikipedia.org/wiki/GOST_7.79-2000) with some differences ([See here](./docs/translators/ru.md))
+- ![by](https://raw.githubusercontent.com/gosquared/flags/master/flags/flags/shiny/24/Belarus.png) Belarusian Cyrillic - According to belarusian cyrillic [GOST 7.79-2000](https://en.wikipedia.org/wiki/GOST_7.79-2000) with some differences ([See here](./docs/translators/by.md))
+- ![bg](https://raw.githubusercontent.com/gosquared/flags/master/flags/flags/shiny/24/Bulgaria.png) Bulgarian Cyrillic - According to bulgarian cyrillic [GOST 7.79-2000](https://en.wikipedia.org/wiki/GOST_7.79-2000) with some differences ([See here](./docs/translators/ru.md))
+- ![rs](https://raw.githubusercontent.com/gosquared/flags/master/flags/flags/shiny/24/Serbia.png)![br](https://raw.githubusercontent.com/gosquared/flags/master/flags/flags/shiny/24/Bosnia-and-Herzegovina.png) Serbian Cyrillic - According to serbian cyrillic [GOST 7.79-2000](https://en.wikipedia.org/wiki/GOST_7.79-2000) with some differences ([See here](./docs/translators/rs.md))
 - ![ru](https://raw.githubusercontent.com/gosquared/flags/master/flags/flags/shiny/24/Russia.png) Russian Cyrillic - According to russian cyrillic [GOST 7.79-2000](https://en.wikipedia.org/wiki/GOST_7.79-2000) with some differences ([See here](./docs/translators/ru.md))
+- ![ua](https://raw.githubusercontent.com/gosquared/flags/master/flags/flags/shiny/24/Ukraine.png) Ukrainian Cyrillic - According to ukrainian cyrillic [GOST 7.79-2000](https://en.wikipedia.org/wiki/GOST_7.79-2000) with some differences ([See here](./docs/translators/ua.md))
 
 ### Planned alphabets
 
-- ![in](https://raw.githubusercontent.com/gosquared/flags/master/flags/flags/shiny/24/India.png) Devanagari - *Coming soon (0.3.0)*
-- ![kr](https://raw.githubusercontent.com/gosquared/flags/master/flags/flags/shiny/24/South-Korea.png) Hangŭl - According to [Revised Romanization of Korean](https://en.wikipedia.org/wiki/Revised_Romanization_of_Korean) *Coming soon (0.3.0)*
-- ![mk](https://raw.githubusercontent.com/gosquared/flags/master/flags/flags/shiny/24/Macedonia.png) Macedonian Cyrillic - *TBD*
-- ![me](https://raw.githubusercontent.com/gosquared/flags/master/flags/flags/shiny/24/Montenegro.png) Montenegrin Cyrillic - *TBD*
-- ![rs](https://raw.githubusercontent.com/gosquared/flags/master/flags/flags/shiny/24/Serbia.png)![br](https://raw.githubusercontent.com/gosquared/flags/master/flags/flags/shiny/24/Bosnia-and-Herzegovina.png) Serbian Cyrillic - *Coming soon (0.3.0)*
-- ![ua](https://raw.githubusercontent.com/gosquared/flags/master/flags/flags/shiny/24/Ukraine.png) Ukrainian Cyrillic - *Coming soon (0.3.0)*
+- ![in](https://raw.githubusercontent.com/gosquared/flags/master/flags/flags/shiny/24/India.png) Devanagari - *Planned for 2021 (0.4.0)*
+- ![mk](https://raw.githubusercontent.com/gosquared/flags/master/flags/flags/shiny/24/Macedonia.png) Macedonian Cyrillic - *Planned for 2021 (0.4.0)*
+- ![me](https://raw.githubusercontent.com/gosquared/flags/master/flags/flags/shiny/24/Montenegro.png) Montenegrin Cyrillic - *Planned for 2021 (0.4.0)*
 
 Other alphabets are not planned for the moment.  
 
 ---
 
-Can't find yours? Contribute to the project implementing it 😀! [Read More](./CONTRIBUTING.md)
+Can't find yours? Contribute to the project implementing it 😀 ! [Read More](./CONTRIBUTING.md)
 
 ## Installation
 
@@ -155,6 +157,8 @@ prompt:
   git:
     branch: "on  "
     commit_ref_len: 8
+    commit_prepend: "("
+    commit_append: ")"
 ```
 
 - shell: Shell configuration
@@ -165,6 +169,8 @@ prompt:
   - **Belarusian**: by | бел
   - **Bulgarian**: bg | бг | блг
   - **Russian**: ru | рус
+  - **Serbian**: rs | срб
+  - **Ukrainian** : ua | укр
 - output: output configuration
   - translate: indicates to pyc whether the output has to be converted to cyrillic or not
 - prompt: Prompt configuration (See [Prompt Configuration](#prompt-line-configuration))
@@ -182,6 +188,8 @@ prompt:
   - git: git module
     - branch: string to write before writing branch name
     - commit_ref_len: length of commit reference
+    - commit_prepend: string to prepend to commit ref
+    - commit_append: string to append to commit ref
 
 ### Prompt Line Configuration
 
@@ -204,17 +212,20 @@ Each prompt line key must have the following syntax ```${VAR_NAME}```
 
 #### Colors keys
 
-| Key      | Description |
-|----------|-------------|
-| KYEL     | Yellow      |
-| KRED     | Red         |
-| KBLU     | Blue        |
-| KMAG     | Magenta     |
-| KGRN     | Green       |
-| KWHT     | White       |
-| KBLK     | Black       |
-| KGRY     | Gray        |
-| KRST     | Reset       |
+| Key      | Description   |
+|----------|---------------|
+| KYEL     | Yellow        |
+| KRED     | Red           |
+| KBLU     | Blue          |
+| KMAG     | Magenta       |
+| KGRN     | Green         |
+| KWHT     | White         |
+| KBLK     | Black         |
+| KGRY     | Gray          |
+| KBOLD    | Bold text     |
+| KBLINK   | Blinking text |
+| KSELECT  | Selected text |
+| KRST     | Reset         |
 
 #### Git keys
 
@@ -229,9 +240,11 @@ The developer documentation can be found on Rust Docs at <https://docs.rs/pyc-sh
 
 The documentation related to translator modules can be instead found here:
 
-- [Belarusian transliteration](docs/by.md)
-- [Bulgarian transliteration](docs/bg.md)
-- [Russian transliteration](docs/ru.md)
+- [Belarusian transliteration](docs/translators/by.md)
+- [Bulgarian transliteration](docs/translators/bg.md)
+- [Russian transliteration](docs/translators/ru.md)
+- [Serbian transliteration](docs/translators/rs.md)
+- [Ukrainian transliteration](docs/translators/ua.md)
 
 ## Escape text
 
@@ -291,7 +304,7 @@ I will fix this soon
 
 ### Text editors dont' work
 
-I will try to fix this issue
+An integrated text editor will be available in 0.4.0
 
 ---
 
@@ -303,23 +316,12 @@ Pyc-shell is an active project, development effort is minimum at the moment due 
 
 ### Planned releases
 
-#### Pyc 0.3.0
-
-Planned for December 2020
-
-- translators:
-  - devanagari
-  - hangul
-  - ukrainian
-  - serbian
-- reverse search
-- new configurations keys
-
 #### Pyc 0.4.0
 
 Planned for 2021
 
 - translators:
+  - Devanagari
   - Macedonian
   - Montenegrin
 - Fish support

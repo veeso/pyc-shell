@@ -32,6 +32,9 @@ pub enum Language {
   Belarusian,
   Bulgarian,
   Russian,
+  Serbian,
+  Ukrainian,
+  Nil
 }
 
 /// ## Languages
@@ -42,16 +45,25 @@ pub enum Language {
 pub(crate) struct Belarusian {}
 pub(crate) struct Bulgarian {}
 pub(crate) struct Russian {}
+pub(crate) struct Serbian {}
+pub(crate) struct Ukrainian {}
+pub(crate) struct Nil {}
 mod belarusian;
 mod bulgarian;
 mod russian;
+mod serbian;
+mod ukrainian;
+mod nil;
 
 impl ToString for Language {
     fn to_string(&self) -> String {
         match self {
         Language::Belarusian => String::from("бел"),
         Language::Bulgarian => String::from("блг"),
-        Language::Russian => String::from("рус")
+        Language::Russian => String::from("рус"),
+        Language::Serbian => String::from("срб"),
+        Language::Ukrainian => String::from("укр"),
+        Language::Nil => String::from("nil")
         }
     }
 }
@@ -66,6 +78,9 @@ mod tests {
     assert_eq!(Language::Belarusian.to_string(), String::from("бел"));
     assert_eq!(Language::Bulgarian.to_string(), String::from("блг"));
     assert_eq!(Language::Russian.to_string(), String::from("рус"));
+    assert_eq!(Language::Serbian.to_string(), String::from("срб"));
+    assert_eq!(Language::Ukrainian.to_string(), String::from("укр"));
+    assert_eq!(Language::Nil.to_string(), String::from("nil"));
   }
 
 }

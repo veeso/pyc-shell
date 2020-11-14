@@ -33,6 +33,9 @@ pub(crate) const PROMPT_KMAG: &str = "${KMAG}";
 pub(crate) const PROMPT_KBLK: &str = "${KBLK}";
 pub(crate) const PROMPT_KGRY: &str = "${KGRY}";
 pub(crate) const PROMPT_KWHT: &str = "${KWHT}";
+pub(crate) const PROMPT_KBOLD: &str = "${KBOLD}";
+pub(crate) const PROMPT_KBLINK: &str = "${KBLINK}";
+pub(crate) const PROMPT_KSELECT: &str = "${KSELECT}";
 pub(crate) const PROMPT_KRST: &str = "${KRST}";
 
 //Colors
@@ -45,6 +48,9 @@ const KMAG: &str = "\x1b[35m";
 const KGRY: &str = "\x1b[90m";
 const KBLK: &str = "\x1b[30m";
 const KWHT: &str = "\x1b[37m";
+const KBOLD: &str = "\x1b[1m";
+const KBLINK: &str = "\x1b[5m";
+const KSELECT: &str = "\x1b[7m";
 const KRST: &str = "\x1b[0m";
 
 #[derive(Copy, Clone, PartialEq, std::fmt::Debug)]
@@ -58,6 +64,9 @@ pub enum PromptColor {
     Black,
     Gray,
     White,
+    Bold,
+    Blink,
+    Select,
     Reset,
 }
 
@@ -73,6 +82,9 @@ impl ToString for PromptColor {
             PromptColor::Black => String::from(KBLK),
             PromptColor::Gray => String::from(KGRY),
             PromptColor::White => String::from(KWHT),
+            PromptColor::Bold => String::from(KBOLD),
+            PromptColor::Blink => String::from(KBLINK),
+            PromptColor::Select => String::from(KSELECT),
             PromptColor::Reset => String::from(KRST),
         }
     }
@@ -90,6 +102,9 @@ impl PromptColor {
             PROMPT_KMAG => PromptColor::Magenta,
             PROMPT_KBLK => PromptColor::Black,
             PROMPT_KWHT => PromptColor::White,
+            PROMPT_KBOLD => PromptColor::Bold,
+            PROMPT_KBLINK => PromptColor::Blink,
+            PROMPT_KSELECT => PromptColor::Select,
             PROMPT_KRST => PromptColor::Reset,
             _ => PromptColor::Reset,
         }
@@ -112,6 +127,9 @@ mod tests {
         assert_eq!(PromptColor::from_key(PROMPT_KGRY), PromptColor::Gray);
         assert_eq!(PromptColor::from_key(PROMPT_KWHT), PromptColor::White);
         assert_eq!(PromptColor::from_key(PROMPT_KBLK), PromptColor::Black);
+        assert_eq!(PromptColor::from_key(PROMPT_KBOLD), PromptColor::Bold);
+        assert_eq!(PromptColor::from_key(PROMPT_KBLINK), PromptColor::Blink);
+        assert_eq!(PromptColor::from_key(PROMPT_KSELECT), PromptColor::Select);
         assert_eq!(PromptColor::from_key(PROMPT_KRST), PromptColor::Reset);
         assert_eq!(PromptColor::from_key("UnknownColor"), PromptColor::Reset);
     }
@@ -136,6 +154,12 @@ mod tests {
         println!("{}White", PromptColor::White.to_string());
         assert_eq!(PromptColor::Black.to_string(), KBLK);
         println!("{}Black", PromptColor::Black.to_string());
+        assert_eq!(PromptColor::Bold.to_string(), KBOLD);
+        println!("{}Bold", PromptColor::Bold.to_string());
+        assert_eq!(PromptColor::Blink.to_string(), KBLINK);
+        println!("{}Blink", PromptColor::Blink.to_string());
+        assert_eq!(PromptColor::Select.to_string(), KSELECT);
+        println!("{}Selected", PromptColor::Select.to_string());
         assert_eq!(PromptColor::Reset.to_string(), KRST);
         println!("{}Reset", PromptColor::Reset.to_string());
     }

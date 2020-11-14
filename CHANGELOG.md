@@ -1,9 +1,50 @@
 # Changelog
 
 - [Changelog](#changelog)
-  - [Pyc 0.2.0 (27/06/2020)](#pyc-020-27062020)
+  - [Pyc 0.3.0](#pyc-030)
+  - [Pyc 0.2.0](#pyc-020)
 
-## Pyc 0.2.0 (27/06/2020)
+## Pyc 0.3.0
+
+Released on 14/11/2020
+
+- New translators:
+  - 🇷🇸 Serbian
+  - 🇺🇦 Ukrainian
+- Translators changes:
+  - 🇷🇺 Russian:
+    - Latin to cyrillic:
+      - E => E
+    - Cyrillic to latin:
+      - E => E
+  - 🇧🇾 Belarusian:
+    - Latin to cyrillic:
+      - E => E
+    - Cyrillic to latin:
+      - E => E
+  - 🇧🇬 Bulgarian:
+    - Latin to cyrillic:
+      - E => E
+    - Cyrillic to latin:
+      - E => E
+- **Prompt** configuration:
+  - new ```commit_prepend``` and ```commit_append``` keys
+  - New colors keys:
+    - KBOLD
+    - KBLINK
+    - KSELECT
+- Reverse search for prompt
+  - KeyBinding: CTRL+R (enter reverse search)
+  - KeyBinding: CTRL+G (exit reverse search)
+- Updated dependencies
+  - nix: 0.19.0
+  - dirs: 3.0.1
+  - whoami: 0.9.0
+  - libgit2: 0.13.12
+
+## Pyc 0.2.0
+
+Released on 27.06.2020
 
 - Prompt improvements
   - Added left/right arrows handler to move cursor

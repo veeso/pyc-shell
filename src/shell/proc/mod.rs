@@ -35,15 +35,14 @@ use pipe::Pipe;
 
 //Proc has a thread which runs the subprocess of the shell and 3 pipes (stdout, stdin, stderr). It must provides the function to write and to read
 
-/// ### ShellState
+/// ### ShellProcState
 ///
-/// ShellState represents the current shell state
+/// ShellProcState represents the current shell state
 #[derive(Copy, Clone, PartialEq, std::fmt::Debug)]
-pub enum ShellState {
+pub enum ShellProcState {
     Idle,
     SubprocessRunning,
-    Terminated,
-    Unknown
+    Terminated
 }
 
 /// ### ShellError
@@ -65,7 +64,7 @@ pub enum ShellError {
 /// Shell Proc represents an instance of the shell process wrapper
 #[derive(std::fmt::Debug)]
 pub struct ShellProc {
-    pub state: ShellState,                  //Shell process state
+    pub state: ShellProcState,                  //Shell process state
     pub exit_status: u8,                    //Exit status of the subprocess (child of shell)
     pub pid: i32,                           //Shell pid
     pub wrkdir: PathBuf,                    //Working directory

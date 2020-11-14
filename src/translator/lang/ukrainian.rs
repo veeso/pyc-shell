@@ -1,6 +1,6 @@
-//! ### Russian
+//! ### Ukrainian
 //!
-//! `russian` language implementation of Translator trait
+//! `ukrainian` language implementation of Translator trait
 
 /*
 *
@@ -23,13 +23,13 @@
 *
 */
 
-use super::Russian;
+use super::Ukrainian;
 use super::super::Translator;
 
-impl Translator for Russian {
-  /// ### Russian translator
+impl Translator for Ukrainian {
+  /// ### Ukrainian translator
 
-  /// Converts a string which contains russian cyrillic characters into a latin string.
+  /// Converts a string which contains ukrainian cyrillic characters into a latin string.
   /// Characters between '"' (quotes) are escaped, expressions inside escaped blocks are translitarated anyway
   /// Transliteration according to GOST 7.79-2000
   fn to_latin(&self, input: &String) -> String {
@@ -79,26 +79,26 @@ impl Translator for Russian {
             None => "v",
           }
         }
-        'Г' => "G",
-        'г' => "g",
+        'Г' | 'Ґ' => "G",
+        'г' | 'ґ' => "g",
         'Д' => "D",
         'д' => "d",
-        'Е' | 'Э' => "E",
-        'е' | 'э' => "e",
-        'Ё' => "YO",
-        'ё' => "yo",
+        'Е' => "E",
+        'е' => "e",
+        'Є' => "YE",
+        'є' => "ye",
         'Ж' => "J",
         'ж' => "j",
         'З' => "Z",
         'з' => "z",
-        'И' => "I",
-        'и' => "i",
-        'Й' => "J",
-        'й' => "j",
+        'И' | 'І' => "I",
+        'и' | 'і' => "i",
+        'Ї' => "YI",
+        'ї' => "yi",
         'К' => {
           //K is very complex, sometimes it is C, sometimes is K or even Q or X
           //If following letter is in (E, I, Y), then is K
-          //If following character is 'Ъ', then is always K
+          //If following character is 'ʼ', then is always K
           //If following character is 'ь', then is always C
           //If following character is 'y', then is always Q
           //If follwing character is 'с', then is always X
@@ -106,7 +106,7 @@ impl Translator for Russian {
             Some(ch) => {
               //Check following character
               match ch {
-                'Е' | 'Э' | 'И' | 'Й' | 'Ы' | 'е' | 'э' | 'и' | 'й' | 'ы' => "K",
+                'Є' | 'Е' | 'И' | 'Й' | 'є' | 'е' | 'и' | 'й' => "K",
                 ' ' => {
                   //Check previous character
                   match i {
@@ -128,7 +128,7 @@ impl Translator for Russian {
                   skip_counter += 1;
                   "X"
                 }
-                'ъ' | 'Ъ' => {
+                'ʼ' => {
                   skip_counter += 1; //Skip next character
                   "K"
                 }
@@ -164,7 +164,7 @@ impl Translator for Russian {
             Some(ch) => {
               //Check following character
               match ch {
-                'Е' | 'Э' | 'И' | 'Й' | 'Ы' | 'е' | 'э' | 'и' | 'й' | 'ы' => "k",
+                'Є' | 'Е' | 'И' | 'Й' | 'є' | 'е' | 'и' | 'й' => "k",
                 ' ' => {
                   match i {
                     0 => "k",
@@ -186,7 +186,7 @@ impl Translator for Russian {
                   skip_counter += 1;
                   "x"
                 }
-                'ъ' | 'Ъ' => {
+                'ʼ' => {
                   skip_counter += 1; //Skip next character
                   "k"
                 }
@@ -242,10 +242,9 @@ impl Translator for Russian {
         'ш' => "sh",
         'Щ' => "SHH",
         'щ' => "shh",
-        'Ъ' => "'",
-        'ъ' => "'",
-        'Ы' => "Y",
-        'ы' => "y",
+        'ʼ' => "'",
+        'Й' => "Y",
+        'й' => "y",
         'Ь' => "`",
         'ь' => "`",
         'Ю' => "YU",
@@ -255,7 +254,6 @@ impl Translator for Russian {
         'Ц' => "Z",
         'ц' => "z",
         '№' => "#",
-        '₽' => "$",
         _ => {
           unchanged_str = c.to_string();
           unchanged_str.as_str()
@@ -265,7 +263,7 @@ impl Translator for Russian {
     output
   }
 
-  /// Converts a string which contains latin characters into a russian cyrillic string.
+  /// Converts a string which contains latin characters into a ukrainian cyrillic string.
   /// Characters between quotes are escapes
   fn to_cyrillic(&self, input: &String) -> String {
     let mut output: String = String::new();
@@ -323,7 +321,7 @@ impl Translator for Russian {
         },
         'H' => "Х",
         'h' => "х",
-        'I' => match input.chars().nth(i + 1) {
+        'I' => match input.chars().nth(i + 1) { // Match following character
           Some(ch) => match ch {
             'u' | 'U' => {
               skip_cycles += 1;
@@ -332,10 +330,6 @@ impl Translator for Russian {
             'a' | 'A' => {
               skip_cycles += 1;
               "Я"
-            }
-            'o' | 'O' => {
-              skip_cycles += 1;
-              "Ё"
             }
             _ => "И",
           },
@@ -350,10 +344,6 @@ impl Translator for Russian {
             'a' | 'A' => {
               skip_cycles += 1;
               "я"
-            }
-            'o' | 'O' => {
-              skip_cycles += 1;
-              "ё"
             }
             _ => "и",
           },
@@ -429,21 +419,21 @@ impl Translator for Russian {
           Some(ch) => match ch {
             'e' | 'E' => {
               skip_cycles += 1;
-              "Е"
+              "Є"
             }
-            _ => "Ы",
+            _ => "Й",
           },
-          None => "Ы",
+          None => "Й",
         },
         'y' => match input.chars().nth(i + 1) {
           Some(ch) => match ch {
             'e' | 'E' => {
               skip_cycles += 1;
-              "е"
+              "є"
             }
-            _ => "ы",
+            _ => "й",
           },
-          None => "ы",
+          None => "й",
         },
         'Z' => "З",
         'z' => "з",
@@ -466,9 +456,9 @@ mod tests {
   use crate::translator::{new_translator, Language};
 
   #[test]
-  fn test_translator_lang_russian_to_latin() {
+  fn test_translator_lang_ukrainian_to_latin() {
     //Simple commands
-    let translator: Box<dyn Translator> = new_translator(Language::Russian);
+    let translator: Box<dyn Translator> = new_translator(Language::Ukrainian);
     //ls -l
     let input: String = String::from("лс -л");
     let output = translator.to_latin(&input);
@@ -480,27 +470,27 @@ mod tests {
     println!("\"{}\" => \"{}\"", input, output);
     assert_eq!(output, "echo hello");
     //K vs C
-    let input: String = String::from("ифконфиг етх0 аддресс 192.168.1.30 нетмаскъ 255.255.255.0"); //Use твёрдый знак to force k in netmask
+    let input: String = String::from("ифконфиг етх0 аддресс 192.168.1.30 нетмаскʼ 255.255.255.0"); //Use твёрдйй знак to force k in netmask
     let output = translator.to_latin(&input);
     println!("\"{}\" => \"{}\"", input, output);
     assert_eq!(
       output,
       "ifconfig eth0 address 192.168.1.30 netmask 255.255.255.0"
     );
-    let input: String = String::from("кат РЕАДМЭ.мд");
+    let input: String = String::from("кат РЕАДМЕ.мд");
     let output = translator.to_latin(&input);
     println!("\"{}\" => \"{}\"", input, output);
     assert_eq!(output, "cat README.md");
     //Test all letters (Lowercase)
-    let input: String = String::from("абкьдэефгхижйкълмнопкюрстуввьксызшщёюячц");
+    let input: String = String::from("абкьдефгґхиіїжкʼлмнопкюрстуввьксйзшщюячц");
     let output = translator.to_latin(&input);
     println!("\"{}\" => \"{}\"", input, output);
-    assert_eq!(output, "abcdeefghijjklmnopqrstuvwxyzshshhyoyuyachz");
+    assert_eq!(output, "abcdefgghiiyijklmnopqrstuvwxyzshshhyuyachz");
     //Test all letters (Uppercase)
-    let input: String = String::from("АБКЬДЭЕФГХИЖЙКЪЛМНОПКЮРСТУВВЬКСЫЗШЩЁЮЯЧЦ");
+    let input: String = String::from("АБКЬДЕФГҐХИІЇЖКʼЛМНОПКЮРСТУВВЬКСЙЗШЩЮЯЧЦ");
     let output = translator.to_latin(&input);
     println!("\"{}\" => \"{}\"", input, output);
-    assert_eq!(output, "ABCDEEFGHIJJKLMNOPQRSTUVWXYZSHSHHYOYUYACHZ");
+    assert_eq!(output, "ABCDEFGGHIIYIJKLMNOPQRSTUVWXYZSHSHHYUYACHZ");
     //Special cases 'Q'
     let input: String = String::from("москюуитто_пуб");
     let output = translator.to_latin(&input);
@@ -519,21 +509,30 @@ mod tests {
     let output = translator.to_latin(&input);
     println!("\"{}\" => \"{}\"", input, output);
     assert_eq!(output, "SRV");
+    //Special case: Ye
+    let input: String = String::from("єлл");
+    let output = translator.to_latin(&input);
+    println!("\"{}\" => \"{}\"", input, output);
+    assert_eq!(output, "yell");
+    let input: String = String::from("ЄЛЛ");
+    let output = translator.to_latin(&input);
+    println!("\"{}\" => \"{}\"", input, output);
+    assert_eq!(output, "YELL");
     //Special case: ck
-    let input: String = String::from("чэкк чэкк");
+    let input: String = String::from("чекк чекк");
     let output = translator.to_latin(&input);
     println!("\"{}\" => \"{}\"", input, output);
     assert_eq!(output, "check check");
-    let input: String = String::from("ЧЭКК ЧЭКК");
+    let input: String = String::from("ЧЕКК ЧЕКК");
     let output = translator.to_latin(&input);
     println!("\"{}\" => \"{}\"", input, output);
     assert_eq!(output, "CHECK CHECK");
     //Special case: k as last character which becomes 'c'
-    let input: String = String::from("рэк к к");
+    let input: String = String::from("рек к к");
     let output = translator.to_latin(&input);
     println!("\"{}\" => \"{}\"", input, output);
     assert_eq!(output, "rec k k");
-    let input: String = String::from("РЭК К К");
+    let input: String = String::from("РЕК К К");
     let output = translator.to_latin(&input);
     println!("\"{}\" => \"{}\"", input, output);
     assert_eq!(output, "REC K K");
@@ -582,34 +581,34 @@ mod tests {
     println!("\"{}\" => \"{}\"", input, output);
     assert_eq!(output, "CD");
     //Backtick and quote
-    let input: String = String::from("ъьЪЬ");
+    let input: String = String::from("ʼьʼЬ");
     let output = translator.to_latin(&input);
     println!("\"{}\" => \"{}\"", input, output);
     assert_eq!(output, "'`'`");
     //Symbols
-    let input: String = String::from("№ ₽");
+    let input: String = String::from("№");
     let output = translator.to_latin(&input);
     println!("\"{}\" => \"{}\"", input, output);
-    assert_eq!(output, "# $");
+    assert_eq!(output, "#");
   }
 
   #[test]
-  fn test_translator_lang_russian_to_cyrillic() {
-    let translator: Box<dyn Translator> = new_translator(Language::Russian);
+  fn test_translator_lang_ukrainian_to_cyrillic() {
+    let translator: Box<dyn Translator> = new_translator(Language::Ukrainian);
     //Test all
     let input: String = String::from("a b c d e f g h i j k l m n o p q r s t u v w x y z");
     let output = translator.to_cyrillic(&input);
     println!("\"{}\" => \"{}\"", input, output);
     assert_eq!(
       output,
-      "а б к д е ф г х и ж к л м н о п кю р с т у в у кс ы з"
+      "а б к д е ф г х и ж к л м н о п кю р с т у в у кс й з"
     );
     let input: String = String::from("A B C D E F G H I J K L M N O P Q R S T U V W X Y Z");
     let output = translator.to_cyrillic(&input);
     println!("\"{}\" => \"{}\"", input, output);
     assert_eq!(
       output,
-      "А Б К Д Е Ф Г Х И Ж К Л М Н О П КЮ Р С Т У В У КС Ы З"
+      "А Б К Д Е Ф Г Х И Ж К Л М Н О П КЮ Р С Т У В У КС Й З"
     );
     //Test particular case (sh)
     let input: String = String::from("shell");
@@ -620,15 +619,15 @@ mod tests {
     let output = translator.to_cyrillic(&input);
     println!("\"{}\" => \"{}\"", input, output);
     assert_eq!(output, "ШЕЛЛ");
-    //Test particular case (jo)
+    //Test particular case (jo) Ё
     let input: String = String::from("Option");
     let output = translator.to_cyrillic(&input);
     println!("\"{}\" => \"{}\"", input, output);
-    assert_eq!(output, "Оптён");
+    assert_eq!(output, "Оптион");
     let input: String = String::from("OPTION");
     let output = translator.to_cyrillic(&input);
     println!("\"{}\" => \"{}\"", input, output);
-    assert_eq!(output, "ОПТЁН");
+    assert_eq!(output, "ОПТИОН");
     //Test particular case (ts)
     let input: String = String::from("tsunami");
     let output = translator.to_cyrillic(&input);
@@ -660,11 +659,11 @@ mod tests {
     let input: String = String::from("yellow");
     let output = translator.to_cyrillic(&input);
     println!("\"{}\" => \"{}\"", input, output);
-    assert_eq!(output, "еллоу");
+    assert_eq!(output, "єллоу");
     let input: String = String::from("YELLOW");
     let output = translator.to_cyrillic(&input);
     println!("\"{}\" => \"{}\"", input, output);
-    assert_eq!(output, "ЕЛЛОУ");
+    assert_eq!(output, "ЄЛЛОУ");
     //Test particular case (giu) + (ia)
     let input: String = String::from("giulia");
     let output = translator.to_cyrillic(&input);
@@ -687,7 +686,7 @@ mod tests {
     let input: String = String::from("Usage: cat [OPTION]... [FILE]...");
     let output = translator.to_cyrillic(&input);
     println!("\"{}\" => \"{}\"", input, output);
-    assert_eq!(output, "Усадже: кат [ОПТЁН]... [ФИЛЕ]...");
+    assert_eq!(output, "Усадже: кат [ОПТИОН]... [ФИЛЕ]...");
     //Special cases: last character is 'c'
     let input: String = String::from("chic");
     let output = translator.to_cyrillic(&input);
@@ -737,19 +736,19 @@ mod tests {
     let input: String = String::from("yacc");
     let output = translator.to_cyrillic(&input);
     println!("\"{}\" => \"{}\"", input, output);
-    assert_eq!(output, "ыакк");
+    assert_eq!(output, "йакк");
     let input: String = String::from("YACC");
     let output = translator.to_cyrillic(&input);
     println!("\"{}\" => \"{}\"", input, output);
-    assert_eq!(output, "ЫАКК");
+    assert_eq!(output, "ЙАКК");
     //Special cases: y part 2
     let input: String = String::from("y");
     let output = translator.to_cyrillic(&input);
     println!("\"{}\" => \"{}\"", input, output);
-    assert_eq!(output, "ы");
+    assert_eq!(output, "й");
     let input: String = String::from("Y");
     let output = translator.to_cyrillic(&input);
     println!("\"{}\" => \"{}\"", input, output);
-    assert_eq!(output, "Ы");
+    assert_eq!(output, "Й");
   }
 }

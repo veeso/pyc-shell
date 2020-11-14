@@ -27,7 +27,9 @@
 extern crate ansi_term;
 extern crate nix;
 
+// Runtime modules
 mod props;
+mod imiop;
 
 use ansi_term::Colour;
 use std::path::{Path, PathBuf};
@@ -39,11 +41,12 @@ use crate::config;
 //Props
 use props::RuntimeProps;
 //Shell
-use crate::shell::proc::ShellState;
-use crate::shell::{Shell};
+use crate::shell::{Shell, ShellState};
 use crate::shell::unixsignal::UnixSignal;
-//Translator
+// Translator
 use crate::translator::ioprocessor::IOProcessor;
+use crate::translator::lang::Language;
+use crate::translator::new_translator;
 //Utils
 use crate::utils::console;
 use crate::utils::file;
@@ -54,9 +57,10 @@ use crate::utils::file;
 ///
 /// Run pyc in interactive mode
 
-pub fn run_interactive(processor: IOProcessor, config: config::Config, shell: Option<String>, history_file: Option<PathBuf>) -> u8 {
+pub fn run_interactive(language: Language, config: config::Config, shell: Option<String>, history_file: Option<PathBuf>) -> u8 {
     //Instantiate Runtime Props
-    let mut props: RuntimeProps = RuntimeProps::new(true, config, processor);
+    let mut props: RuntimeProps = RuntimeProps::new(true, config, language);
+    let processor: IOProcessor = IOProcessor::new(language, new_translator(language));
     //Determine the shell to use
     let (shell, args): (String, Vec<String>) = resolve_shell(&props.config, shell);
     //Intantiate and start a new shell
@@ -66,7 +70,7 @@ pub fn run_interactive(processor: IOProcessor, config: config::Config, shell: Op
             print_err(
                 String::from(format!("Could not start shell: {}", err)),
                 props.config.output_config.translate_output,
-                &props.processor,
+                &processor,
             );
             return 255;
         }
@@ -78,7 +82,7 @@ pub fn run_interactive(processor: IOProcessor, config: config::Config, shell: Op
             Err(err) => print_err(
                 String::from(format!("Could not load history from '{}': {}", history_file.display(), err)),
                 props.config.output_config.translate_output,
-                &props.processor,
+                &processor,
             )
         }
     };
@@ -89,11 +93,11 @@ pub fn run_interactive(processor: IOProcessor, config: config::Config, shell: Op
         if current_state != props.get_last_state() {
             props.update_state(current_state);
         }
-        if props.get_state_changed() && current_state == ShellState::Idle {
+        if props.get_state_changed() && current_state == ShellState::Shell {
             //Force shellenv to refresh info
             shell.refresh_env();
             //Print prompt
-            console::print(format!("{} ", shell.get_promptline(&props.processor)));
+            console::print(format!("{} ", shell.get_promptline(&processor)));
             props.report_state_changed_notified(); //Force state changed to false
         } else if props.get_state_changed() {
             props.report_state_changed_notified(); //Check has been done, nothing to do
@@ -108,7 +112,7 @@ pub fn run_interactive(processor: IOProcessor, config: config::Config, shell: Op
             props.update_state(new_state);
         }
         //@! Read Shell stdout
-        read_from_shell(&mut shell, &props.config, &props.processor);
+        read_from_shell(&mut shell, &props.config, &processor);
         //Check if shell has terminated
         sleep(Duration::from_nanos(100)); //Sleep for 100ns
     } //@! End of loop
@@ -119,7 +123,7 @@ pub fn run_interactive(processor: IOProcessor, config: config::Config, shell: Op
             print_err(
                 String::from(format!("Could not write history to '{}': {}", history_file.display(), err)),
                 props.config.output_config.translate_output,
-                &props.processor,
+                &processor,
             );
         }
     };
@@ -127,7 +131,7 @@ pub fn run_interactive(processor: IOProcessor, config: config::Config, shell: Op
     match shell.stop() {
         Ok(rc) => rc,
         Err(err) => {
-            print_err(format!("Could not stop shell: {}", err), props.config.output_config.translate_output, &props.processor);
+            print_err(format!("Could not stop shell: {}", err), props.config.output_config.translate_output, &processor);
             255
         }
     }
@@ -136,9 +140,10 @@ pub fn run_interactive(processor: IOProcessor, config: config::Config, shell: Op
 /// ### run_command
 /// 
 /// Run command in shell and return
-pub fn run_command(mut command: String, processor: IOProcessor, config: config::Config, shell: Option<String>) -> u8 {
+pub fn run_command(mut command: String, language: Language, config: config::Config, shell: Option<String>) -> u8 {
     //Instantiate Runtime Props
-    let mut props: RuntimeProps = RuntimeProps::new(false, config, processor);
+    let mut props: RuntimeProps = RuntimeProps::new(false, config, language);
+    let processor: IOProcessor = IOProcessor::new(language, new_translator(language));
     //Determine the shell to use
     let (shell, args): (String, Vec<String>) = resolve_shell(&props.config, shell);
     //Intantiate and start a new shell
@@ -148,7 +153,7 @@ pub fn run_command(mut command: String, processor: IOProcessor, config: config::
             print_err(
                 String::from(format!("Could not start shell: {}", err)),
                 props.config.output_config.translate_output,
-                &props.processor,
+                &processor,
             );
             return 255;
         }
@@ -167,7 +172,7 @@ pub fn run_command(mut command: String, processor: IOProcessor, config: config::
         print_err(
             String::from(format!("Could not start shell: {}", err)),
             props.config.output_config.translate_output,
-            &props.processor,
+            &processor,
         );
         return 255;
     }
@@ -179,7 +184,7 @@ pub fn run_command(mut command: String, processor: IOProcessor, config: config::
             props.handle_input_event(ev, &mut shell);
         };
         //@! Read Shell stdout
-        read_from_shell(&mut shell, &props.config, &props.processor);
+        read_from_shell(&mut shell, &props.config, &processor);
         //Check if shell has terminated
         if shell.get_state() == ShellState::Terminated {
             break;
@@ -190,7 +195,7 @@ pub fn run_command(mut command: String, processor: IOProcessor, config: config::
     match shell.stop() {
         Ok(rc) => rc,
         Err(err) => {
-            print_err(format!("Could not stop shell: {}", err), props.config.output_config.translate_output, &props.processor);
+            print_err(format!("Could not stop shell: {}", err), props.config.output_config.translate_output, &processor);
             255
         }
     }
@@ -199,8 +204,9 @@ pub fn run_command(mut command: String, processor: IOProcessor, config: config::
 /// ### run_file
 /// 
 /// Run shell reading commands from file
-pub fn run_file(file: String, processor: IOProcessor, config: config::Config, shell: Option<String>) -> u8 {
+pub fn run_file(file: String, language: Language, config: config::Config, shell: Option<String>) -> u8 {
     let file_path: &Path = Path::new(file.as_str());
+    let processor: IOProcessor = IOProcessor::new(language, new_translator(language));
     let lines: Vec<String> = match file::read_lines(file_path) {
         Ok(lines) => lines,
         Err(_) => {
@@ -211,7 +217,7 @@ pub fn run_file(file: String, processor: IOProcessor, config: config::Config, sh
     //Join lines in a single command
     let command: String = script_lines_to_string(&lines);
     //Execute command
-    run_command(command, processor, config, shell)
+    run_command(command, language, config, shell)
 }
 
 //@! Shell functions
@@ -310,6 +316,17 @@ fn print_out(out: String, to_cyrillic: bool, processor: &IOProcessor) {
         true => console::println(format!("{}", processor.text_to_cyrillic(&out))),
         false => console::println(format!("{}", out)),
     };
+}
+
+/// ### console_fmt
+/// 
+/// Format console message
+
+fn console_fmt(out: String, to_cyrillic: bool, processor: &IOProcessor) -> String {
+    match to_cyrillic {
+        true => format!("{}", processor.text_to_cyrillic(&out)),
+        false => format!("{}", out)
+    }
 }
 
 /// ### shellsignal_to_signal
@@ -418,6 +435,14 @@ mod tests {
         //Err
         print_err(String::from("Hello"), true, &iop);
         print_err(String::from("Hello"), false, &iop);
+    }
+
+    #[test]
+    fn test_runtime_console_fmt() {
+        let iop: IOProcessor = IOProcessor::new(Language::Russian, new_translator(Language::Russian));
+        //Out
+        assert_eq!(console_fmt(String::from("Hello"), true, &iop), String::from("Хелло"));
+        assert_eq!(console_fmt(String::from("Hello"), false, &iop), String::from("Hello"));
     }
 
     #[test]

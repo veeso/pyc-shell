@@ -84,8 +84,8 @@ impl Translator for Bulgarian {
         'г' => "g",
         'Д' => "D",
         'д' => "d",
-        'Е' => "YE",
-        'е' => "ye",
+        'Е' => "E",
+        'е' => "e",
         'Э' => "E",
         'э' => "e",
         'Ё' => "YO",
@@ -306,8 +306,8 @@ impl Translator for Bulgarian {
         },
         'D' => "Д",
         'd' => "д",
-        'E' => "Э",
-        'e' => "э",
+        'E' => "Е",
+        'e' => "е",
         'F' => "Ф",
         'f' => "ф",
         'G' => match input.chars().nth(i + 1) {
@@ -478,32 +478,32 @@ mod tests {
     println!("\"{}\" => \"{}\"", input, output);
     assert_eq!(output, "ls -l");
     //Echo hello
-    let input: String = String::from("экхо хэлло");
+    let input: String = String::from("екхо хелло");
     let output = translator.to_latin(&input);
     println!("\"{}\" => \"{}\"", input, output);
     assert_eq!(output, "echo hello");
     //K vs C
-    let input: String = String::from("ифконфиг этх0 аддрэсс 192.168.1.30 нэтмаскъ 255.255.255.0"); //Use твёрдый знак to force k in netmask
+    let input: String = String::from("ифконфиг етх0 аддресс 192.168.1.30 нетмаскъ 255.255.255.0"); //Use твёрдый знак to force k in netmask
     let output = translator.to_latin(&input);
     println!("\"{}\" => \"{}\"", input, output);
     assert_eq!(
       output,
       "ifconfig eth0 address 192.168.1.30 netmask 255.255.255.0"
     );
-    let input: String = String::from("кат РЭАДМЭ.мд");
+    let input: String = String::from("кат РЕАДМЕ.мд");
     let output = translator.to_latin(&input);
     println!("\"{}\" => \"{}\"", input, output);
     assert_eq!(output, "cat README.md");
     //Test all letters (Lowercase)
-    let input: String = String::from("абкьдэфгхижйкълмнопкюрстуввьксызшщёюячц");
+    let input: String = String::from("абкьдеэфгхижйкълмнопкюрстуввьксызшщёюячц");
     let output = translator.to_latin(&input);
     println!("\"{}\" => \"{}\"", input, output);
-    assert_eq!(output, "abcdefghijjklmnopqrstuvwxyzshshtyoyuyachz");
+    assert_eq!(output, "abcdeefghijjklmnopqrstuvwxyzshshtyoyuyachz");
     //Test all letters (Uppercase)
-    let input: String = String::from("АБКЬДЭФГХИЖЙКЪЛМНОПКЮРСТУВВЬКСЫЗШЩЁЮЯЧЦ");
+    let input: String = String::from("АБКЬДЕЭФГХИЖЙКЪЛМНОПКЮРСТУВВЬКСЫЗШЩЁЮЯЧЦ");
     let output = translator.to_latin(&input);
     println!("\"{}\" => \"{}\"", input, output);
-    assert_eq!(output, "ABCDEFGHIJJKLMNOPQRSTUVWXYZSHSHTYOYUYACHZ");
+    assert_eq!(output, "ABCDEEFGHIJJKLMNOPQRSTUVWXYZSHSHTYOYUYACHZ");
     //Special cases 'Q'
     let input: String = String::from("москюуитто_пуб");
     let output = translator.to_latin(&input);
@@ -522,30 +522,21 @@ mod tests {
     let output = translator.to_latin(&input);
     println!("\"{}\" => \"{}\"", input, output);
     assert_eq!(output, "SRV");
-    //Special case: Ye
-    let input: String = String::from("елл");
-    let output = translator.to_latin(&input);
-    println!("\"{}\" => \"{}\"", input, output);
-    assert_eq!(output, "yell");
-    let input: String = String::from("ЕЛЛ");
-    let output = translator.to_latin(&input);
-    println!("\"{}\" => \"{}\"", input, output);
-    assert_eq!(output, "YELL");
     //Special case: ck
-    let input: String = String::from("чэкк чэкк");
+    let input: String = String::from("чекк чэкк");
     let output = translator.to_latin(&input);
     println!("\"{}\" => \"{}\"", input, output);
     assert_eq!(output, "check check");
-    let input: String = String::from("ЧЭКК ЧЭКК");
+    let input: String = String::from("ЧЕКК ЧЭКК");
     let output = translator.to_latin(&input);
     println!("\"{}\" => \"{}\"", input, output);
     assert_eq!(output, "CHECK CHECK");
     //Special case: k as last character which becomes 'c'
-    let input: String = String::from("рэк к к");
+    let input: String = String::from("рек к к");
     let output = translator.to_latin(&input);
     println!("\"{}\" => \"{}\"", input, output);
     assert_eq!(output, "rec k k");
-    let input: String = String::from("РЭК К К");
+    let input: String = String::from("РЕК К К");
     let output = translator.to_latin(&input);
     println!("\"{}\" => \"{}\"", input, output);
     assert_eq!(output, "REC K K");
@@ -614,24 +605,24 @@ mod tests {
     println!("\"{}\" => \"{}\"", input, output);
     assert_eq!(
       output,
-      "а б к д э ф г х и ж к л м н о п кю р с т у в у кс ы з"
+      "а б к д е ф г х и ж к л м н о п кю р с т у в у кс ы з"
     );
     let input: String = String::from("A B C D E F G H I J K L M N O P Q R S T U V W X Y Z");
     let output = translator.to_cyrillic(&input);
     println!("\"{}\" => \"{}\"", input, output);
     assert_eq!(
       output,
-      "А Б К Д Э Ф Г Х И Ж К Л М Н О П КЮ Р С Т У В У КС Ы З"
+      "А Б К Д Е Ф Г Х И Ж К Л М Н О П КЮ Р С Т У В У КС Ы З"
     );
     //Test particular case (sh)
     let input: String = String::from("shell");
     let output = translator.to_cyrillic(&input);
     println!("\"{}\" => \"{}\"", input, output);
-    assert_eq!(output, "шэлл");
+    assert_eq!(output, "шелл");
     let input: String = String::from("SHELL");
     let output = translator.to_cyrillic(&input);
     println!("\"{}\" => \"{}\"", input, output);
-    assert_eq!(output, "ШЭЛЛ");
+    assert_eq!(output, "ШЕЛЛ");
     //Test particular case (jo)
     let input: String = String::from("Option");
     let output = translator.to_cyrillic(&input);
@@ -654,11 +645,11 @@ mod tests {
     let input: String = String::from("gin and games");
     let output = translator.to_cyrillic(&input);
     println!("\"{}\" => \"{}\"", input, output);
-    assert_eq!(output, "джин анд гамэс");
+    assert_eq!(output, "джин анд гамес");
     let input: String = String::from("GIN AND GAMES");
     let output = translator.to_cyrillic(&input);
     println!("\"{}\" => \"{}\"", input, output);
-    assert_eq!(output, "ДЖИН АНД ГАМЭС");
+    assert_eq!(output, "ДЖИН АНД ГАМЕС");
     //Test particular case (iu)
     let input: String = String::from("iuta");
     let output = translator.to_cyrillic(&input);
@@ -690,16 +681,16 @@ mod tests {
     let input: String = String::from("channel");
     let output = translator.to_cyrillic(&input);
     println!("\"{}\" => \"{}\"", input, output);
-    assert_eq!(output, "чаннэл");
+    assert_eq!(output, "чаннел");
     let input: String = String::from("CHANNEL");
     let output = translator.to_cyrillic(&input);
     println!("\"{}\" => \"{}\"", input, output);
-    assert_eq!(output, "ЧАННЭЛ");
+    assert_eq!(output, "ЧАННЕЛ");
     //Test some words
     let input: String = String::from("Usage: cat [OPTION]... [FILE]...");
     let output = translator.to_cyrillic(&input);
     println!("\"{}\" => \"{}\"", input, output);
-    assert_eq!(output, "Усаджэ: кат [ОПТЁН]... [ФИЛЭ]...");
+    assert_eq!(output, "Усадже: кат [ОПТЁН]... [ФИЛЕ]...");
     //Special cases: last character is 'c'
     let input: String = String::from("chic");
     let output = translator.to_cyrillic(&input);
@@ -731,11 +722,11 @@ mod tests {
     let input: String = String::from("less");
     let output = translator.to_cyrillic(&input);
     println!("\"{}\" => \"{}\"", input, output);
-    assert_eq!(output, "лэсс");
+    assert_eq!(output, "лесс");
     let input: String = String::from("LESS");
     let output = translator.to_cyrillic(&input);
     println!("\"{}\" => \"{}\"", input, output);
-    assert_eq!(output, "ЛЭСС");
+    assert_eq!(output, "ЛЕСС");
     //Special cases: last character is 't'
     let input: String = String::from("cat");
     let output = translator.to_cyrillic(&input);

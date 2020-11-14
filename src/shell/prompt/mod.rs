@@ -86,6 +86,8 @@ struct RcOptions {
 struct GitOptions {
     pub branch: String,
     pub commit_ref_len: usize,
+    pub commit_ref_prepend: Option<String>,
+    pub commit_ref_append: Option<String>
 }
 
 impl ShellPrompt {
@@ -110,6 +112,8 @@ impl ShellPrompt {
             true => Some(GitOptions::new(
                 &prompt_opt.git_branch,
                 prompt_opt.git_commit_ref,
+                &prompt_opt.git_commit_prepend,
+                &prompt_opt.git_commit_append
             )),
             false => None,
         };
@@ -231,12 +235,23 @@ impl ShellPrompt {
                     self.cache.get_cached_git().unwrap(),
                     self.git_opt.as_ref().unwrap().commit_ref_len,
                 ) {
-                    Some(commit) => commit,
+                    Some(commit) => {
+                        // Format commit
+                        let commit_prepend: String = match &self.git_opt.as_ref().unwrap().commit_ref_prepend {
+                            Some(s) => s.clone(),
+                            None => String::from("")
+                        };
+                        let commit_append: String = match &self.git_opt.as_ref().unwrap().commit_ref_append {
+                            Some(s) => s.clone(),
+                            None => String::from("")
+                        };
+                        format!("{}{}{}", commit_prepend, commit, commit_append)
+                    },
                     None => String::from(""),
                 }
             }
             PROMPT_HOSTNAME => shell_props.hostname.clone(),
-            modules::colors::PROMPT_KBLK | modules::colors::PROMPT_KBLU | modules::colors::PROMPT_KCYN | modules::colors::PROMPT_KGRN | modules::colors::PROMPT_KGRY | modules::colors::PROMPT_KMAG | modules::colors::PROMPT_KRED | modules::colors::PROMPT_KRST | modules::colors::PROMPT_KWHT | modules::colors::PROMPT_KYEL => colors::PromptColor::from_key(key.as_str()).to_string(),
+            modules::colors::PROMPT_KBLINK | modules::colors::PROMPT_KBLK | modules::colors::PROMPT_KBLU | modules::colors::PROMPT_KBOLD | modules::colors::PROMPT_KCYN | modules::colors::PROMPT_KGRN | modules::colors::PROMPT_KGRY | modules::colors::PROMPT_KMAG | modules::colors::PROMPT_KRED | modules::colors::PROMPT_KRST | modules::colors::PROMPT_KSELECT | modules::colors::PROMPT_KWHT | modules::colors::PROMPT_KYEL => colors::PromptColor::from_key(key.as_str()).to_string(),
             modules::language::PROMPT_LANG => language::language_to_str(processor.language),
             PROMPT_RC => match &self.rc_opt {
                 Some(opt) => match shell_props.exit_status {
@@ -311,10 +326,12 @@ impl GitOptions {
     /// ### new
     ///
     /// Instantiate a new GitOptions with the provided parameters
-    pub fn new(branch: &String, commit: usize) -> GitOptions {
+    pub fn new(branch: &String, commit: usize, commit_prepend: &Option<String>, commit_append: &Option<String>) -> GitOptions {
         GitOptions {
             branch: branch.clone(),
             commit_ref_len: commit,
+            commit_ref_prepend: commit_prepend.clone(),
+            commit_ref_append: commit_append.clone()
         }
     }
 }
@@ -362,7 +379,7 @@ mod tests {
     fn test_prompt_colors() {
         let mut prompt_config_default = PromptConfig::default();
         //Update prompt line
-        prompt_config_default.prompt_line = String::from("${KRED}RED${KYEL}YEL${KBLU}BLU${KGRN}GRN${KWHT}WHT${KGRY}GRY${KBLK}BLK${KMAG}MAG${KCYN}CYN${KRST}");
+        prompt_config_default.prompt_line = String::from("${KRED}RED${KYEL}YEL${KBLU}BLU${KGRN}GRN${KWHT}WHT${KGRY}GRY${KBLK}BLK${KMAG}MAG${KCYN}CYN${KBOLD}BOLD${KBLINK}BLINK${KSELECT}SELECTED${KRST}");
         let mut prompt: ShellPrompt = ShellPrompt::new(&prompt_config_default);
         let iop: IOProcessor = get_ioprocessor();
         let shellenv: ShellProps = get_shellenv();
@@ -374,7 +391,7 @@ mod tests {
         //Get prompt line
         let prompt_line: String = prompt.process_prompt(&shellenv, &iop);
         let expected_prompt_line = String::from(format!(
-            "{}RED{}YEL{}BLU{}GRN{}WHT{}GRY{}BLK{}MAG{}CYN{}",
+            "{}RED{}YEL{}BLU{}GRN{}WHT{}GRY{}BLK{}MAG{}CYN{}BOLD{}BLINK{}SELECTED{}",
             PromptColor::Red.to_string(),
             PromptColor::Yellow.to_string(),
             PromptColor::Blue.to_string(),
@@ -384,6 +401,9 @@ mod tests {
             PromptColor::Black.to_string(),
             PromptColor::Magenta.to_string(),
             PromptColor::Cyan.to_string(),
+            PromptColor::Bold.to_string(),
+            PromptColor::Blink.to_string(),
+            PromptColor::Select.to_string(),
             PromptColor::Reset.to_string()
         ));
         assert_eq!(prompt_line, expected_prompt_line);
@@ -439,11 +459,11 @@ mod tests {
         //Branch should be none
         let branch: String = git::get_branch(&repo).unwrap();
         let commit: String = git::get_commit(&repo, 8).unwrap();
-        let mut prompt_config_default = PromptConfig::default();
+        let mut prompt_config = PromptConfig::default();
         //Update prompt line
-        prompt_config_default.prompt_line =
-            String::from("${USER}@${HOSTNAME}:${WRKDIR} ${GIT_BRANCH}:${GIT_COMMIT}");
-        let mut prompt: ShellPrompt = ShellPrompt::new(&prompt_config_default);
+        prompt_config.prompt_line =
+            String::from("${USER}@${HOSTNAME}:${WRKDIR} ${GIT_BRANCH} ${GIT_COMMIT}");
+        let mut prompt: ShellPrompt = ShellPrompt::new(&prompt_config);
         let iop: IOProcessor = get_ioprocessor();
         let mut shellenv: ShellProps = get_shellenv();
         shellenv.elapsed_time = Duration::from_millis(5100);
@@ -456,7 +476,34 @@ mod tests {
         //Get prompt line
         let prompt_line: String = prompt.process_prompt(&shellenv, &iop);
         let expected_prompt_line = String::from(format!(
-            "{}@{}:{} on {}:{}",
+            "{}@{}:{} on {} {}",
+            shellenv.username.clone(),
+            shellenv.hostname.clone(),
+            shellenv.wrkdir.display(),
+            branch,
+            commit
+        ));
+        assert_eq!(prompt_line, expected_prompt_line);
+        //Terminate shell at the end of a test
+        //terminate_shell(&mut shellenv);
+        println!("\n");
+        // @! Set prepend / append
+        prompt_config.git_commit_append = Some(String::from(")"));
+        prompt_config.git_commit_prepend = Some(String::from("("));
+        let mut prompt: ShellPrompt = ShellPrompt::new(&prompt_config);
+        let iop: IOProcessor = get_ioprocessor();
+        let mut shellenv: ShellProps = get_shellenv();
+        shellenv.elapsed_time = Duration::from_millis(5100);
+        shellenv.wrkdir = PathBuf::from("./");
+        //Print first in latin
+        let _ = prompt.get_line(&shellenv, &iop);
+        prompt.translate = true;
+        //Then in cyrillic
+        let _ = prompt.get_line(&shellenv, &iop);
+        //Get prompt line
+        let prompt_line: String = prompt.process_prompt(&shellenv, &iop);
+        let expected_prompt_line = String::from(format!(
+            "{}@{}:{} on {} ({})",
             shellenv.username.clone(),
             shellenv.hostname.clone(),
             shellenv.wrkdir.display(),
