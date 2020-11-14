@@ -6,13 +6,23 @@
 
 ## Pyc 0.3.0
 
-Released on ??
+Released on 14/11/2020
 
 - New translators:
   - 🇷🇸 Serbian
   - 🇺🇦 Ukrainian
 - Translators changes:
   - 🇷🇺 Russian:
+    - Latin to cyrillic:
+      - E => E
+    - Cyrillic to latin:
+      - E => E
+  - 🇧🇾 Belarusian:
+    - Latin to cyrillic:
+      - E => E
+    - Cyrillic to latin:
+      - E => E
+  - 🇧🇬 Bulgarian:
     - Latin to cyrillic:
       - E => E
     - Cyrillic to latin:

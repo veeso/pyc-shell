@@ -4,7 +4,7 @@
 
 ~ Use your alphabet with your favourite shell ~  
 Developed by Christian Visintin  
-Current version: [0.3.0 (??/??/2020)](./CHANGELOG.md#pyc-030)
+Current version: [0.3.0 (14/11/2020)](./CHANGELOG.md#pyc-030)
 
 ---
 
@@ -304,7 +304,7 @@ I will fix this soon
 
 ### Text editors dont' work
 
-I will try to fix this issue
+An integrated text editor will be available in 0.4.0
 
 ---
 
