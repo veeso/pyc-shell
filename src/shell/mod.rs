@@ -49,7 +49,6 @@ use std::time::{Duration};
 pub enum ShellState {
     Shell,
     SubprocessRunning,
-    TextEditor,
     Terminated,
     Unknown
 }
@@ -121,7 +120,6 @@ impl Shell {
     ///
     /// Mirrors ShellProc read
     pub fn read(&mut self) -> Result<(Option<String>, Option<String>), ShellError> {
-        // TODO: env state
         self.process.read()
     }
 
@@ -129,7 +127,6 @@ impl Shell {
     ///
     /// Mirrors ShellProc write
     pub fn write(&mut self, input: String) -> Result<(), ShellError> {
-        // TODO: env state
         self.process.write(input)
     }
 
@@ -138,7 +135,6 @@ impl Shell {
     /// Send a signal to shell process
     #[allow(dead_code)]
     pub fn raise(&mut self, sig: unixsignal::UnixSignal) -> Result<(), ShellError> {
-        // TODO: env state
         self.process.raise(sig.to_nix_signal())
     }
 
@@ -148,7 +144,6 @@ impl Shell {
     pub fn get_state(&mut self) -> ShellState {
         let proc_state: ShellProcState = self.process.update_state();
         match self.state {
-            ShellState::TextEditor => ShellState::TextEditor,
             _ => {
                 self.state = match proc_state {
                     ShellProcState::Idle => ShellState::Shell,
