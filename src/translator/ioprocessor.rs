@@ -307,7 +307,7 @@ mod tests {
     let iop: IOProcessor = IOProcessor::new(Language::Russian, new_translator(Language::Russian));
     assert_eq!(iop.language, Language::Russian);
     let input: String = String::from("Привет Мир!");
-    assert_eq!(iop.text_to_latin(&input), String::from("Privyet Mir!"));
+    assert_eq!(iop.text_to_latin(&input), String::from("Privet Mir!"));
   }
 
   #[test]
@@ -336,7 +336,7 @@ mod tests {
     let input: String = String::from("экхо \\\"привет\\\"");
     assert_eq!(
       iop.expression_to_latin(&input).unwrap(),
-      String::from("echo \\\"privyet\\\"")
+      String::from("echo \\\"privet\\\"")
     );
     //With expressions
     let input: String = String::from("экхо ₽(хостнамэ)");
@@ -403,7 +403,7 @@ mod tests {
     let iop: IOProcessor = IOProcessor::new(Language::Russian, new_translator(Language::Russian));
     assert_eq!(iop.language, Language::Russian);
     let input: String = String::from("Hello World!");
-    assert_eq!(iop.text_to_cyrillic(&input), String::from("Хэлло Уорлд!"));
+    assert_eq!(iop.text_to_cyrillic(&input), String::from("Хелло Уорлд!"));
   }
 
   #[test]
@@ -415,43 +415,43 @@ mod tests {
     let input: String = String::from("echo foobar");
     assert_eq!(
       iop.expression_to_cyrillic(&input).unwrap(),
-      String::from("эчо фообар")
+      String::from("ечо фообар")
     );
     //With escape
     let input: String = String::from("echo \"hello world\"");
     assert_eq!(
       iop.expression_to_cyrillic(&input).unwrap(),
-      String::from("эчо \"hello world\"")
+      String::from("ечо \"hello world\"")
     );
     //With escape + backslash
-    let input: String = String::from("echo \\\"privyet\\\"");
+    let input: String = String::from("echo \\\"Privet\\\"");
     assert_eq!(
       iop.expression_to_cyrillic(&input).unwrap(),
-      String::from("эчо \\\"привет\\\"")
+      String::from("ечо \\\"Привет\\\"")
     );
     //With expressions
     let input: String = String::from("echo $(hostname)");
     assert_eq!(
       iop.expression_to_cyrillic(&input).unwrap(),
-      String::from("эчо $(хостнамэ)")
+      String::from("ечо $(хостнаме)")
     );
     //With expressions + escapes
     let input: String = String::from("echo $(cat \"/tmp/README.txt\")");
     assert_eq!(
       iop.expression_to_cyrillic(&input).unwrap(),
-      String::from("эчо $(кат \"/tmp/README.txt\")")
+      String::from("ечо $(кат \"/tmp/README.txt\")")
     );
     //With expressions + escapes + backslash
     let input: String = String::from("echo $(cat \"/tmp/john\\(that_guy\\).txt\")");
     assert_eq!(
       iop.expression_to_cyrillic(&input).unwrap(),
-      String::from("эчо $(кат \"/tmp/john\\(that_guy\\).txt\")")
+      String::from("ечо $(кат \"/tmp/john\\(that_guy\\).txt\")")
     );
     //Nested expressions
     let input: String = String::from("echo $(hostname) $(echo $(home)/$(whoami))");
     assert_eq!(
       iop.expression_to_cyrillic(&input).unwrap(),
-      String::from("эчо $(хостнамэ) $(эчо $(хомэ)/$(ухоами))")
+      String::from("ечо $(хостнаме) $(ечо $(хоме)/$(ухоами))")
     );
   }
 
@@ -494,6 +494,6 @@ mod tests {
     //Instantiate IOProcessor
     let iop: IOProcessor = IOProcessor::new(Language::Russian, new_translator(Language::Russian));
     assert_eq!(iop.language, Language::Russian);
-    assert_eq!(iop.text_to_cyrillic(&latin_text), String::from("\x1b[31mРЭД\x1b[0m"));
+    assert_eq!(iop.text_to_cyrillic(&latin_text), String::from("\x1b[31mРЕД\x1b[0m"));
   }
 }

@@ -441,7 +441,7 @@ mod tests {
     fn test_runtime_console_fmt() {
         let iop: IOProcessor = IOProcessor::new(Language::Russian, new_translator(Language::Russian));
         //Out
-        assert_eq!(console_fmt(String::from("Hello"), true, &iop), String::from("Хэлло"));
+        assert_eq!(console_fmt(String::from("Hello"), true, &iop), String::from("Хелло"));
         assert_eq!(console_fmt(String::from("Hello"), false, &iop), String::from("Hello"));
     }
 
