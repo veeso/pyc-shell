@@ -7,8 +7,8 @@ license = "GPL-3.0"
 keywords = ["prompt", "transliteration", "shell", "bash", "zsh"]
 categories = ["command-line-utilities"]
 description = "Pyc is a simple CLI application, which allows you to perform shell commands in cyrillic and other alphabets, through command and output transliteration."
-homepage = "https://github.com/ChristianVisintin/Pyc"
-repository = "https://github.com/ChristianVisintin/Pyc"
+homepage = "https://github.com/veeso/pyc-shell"
+repository = "https://github.com/veeso/pyc-shell"
 documentation = "https://docs.rs/pyc-shell"
 readme = "README.md"
 

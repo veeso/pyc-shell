@@ -1,6 +1,6 @@
 # Pyc
 
-[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0) [![Stars](https://img.shields.io/github/stars/ChristianVisintin/Pyc.svg)](https://github.com/ChristianVisintin/Pyc) [![Issues](https://img.shields.io/github/issues/ChristianVisintin/Pyc.svg)](https://github.com/ChristianVisintin/Pyc/issues) [![Downloads](https://img.shields.io/crates/d/pyc-shell.svg)](https://crates.io/crates/pyc-shell) [![Crates.io](https://img.shields.io/badge/crates.io-v0.3.0-orange.svg)](https://crates.io/crates/pyc-shell) [![Build](https://api.travis-ci.org/ChristianVisintin/Pyc.svg?branch=master)](https://travis-ci.org/ChristianVisintin/Pyc) [![codecov](https://codecov.io/gh/ChristianVisintin/Pyc/branch/master/graph/badge.svg)](https://codecov.io/gh/ChristianVisintin/Pyc)
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0) [![Stars](https://img.shields.io/github/stars/veeso/pyc-shell.svg)](https://github.com/veeso/pyc-shell) [![Issues](https://img.shields.io/github/issues/veeso/pyc-shell.svg)](https://github.com/veeso/pyc-shell/issues) [![Downloads](https://img.shields.io/crates/d/pyc-shell.svg)](https://crates.io/crates/pyc-shell) [![Crates.io](https://img.shields.io/badge/crates.io-v0.3.0-orange.svg)](https://crates.io/crates/pyc-shell) [![Build](https://api.travis-ci.org/veeso/pyc-shell.svg?branch=master)](https://travis-ci.org/veeso/pyc-shell) [![codecov](https://codecov.io/gh/veeso/pyc-shell/branch/master/graph/badge.svg)](https://codecov.io/gh/veeso/pyc-shell)
 
 ~ Use your alphabet with your favourite shell ~  
 Developed by Christian Visintin  
@@ -105,7 +105,7 @@ cargo install pyc-shell
 #Install configuration
 mkdir -p $HOME/.config/pyc/
 #Copy configuration file from repository
-wget -O $HOME/.config/pyc/pyc.yml https://raw.githubusercontent.com/ChristianVisintin/Pyc/master/pyc.yml
+wget -O $HOME/.config/pyc/pyc.yml https://raw.githubusercontent.com/veeso/pyc-shell/master/pyc.yml
 ```
 
 ### Deb / Rpm
